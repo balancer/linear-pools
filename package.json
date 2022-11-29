@@ -1,12 +1,12 @@
 {
-  "name": "@balancer-labs/balancer-examples",
+  "name": "@orbcollective/linear-pools",
   "private": true,
-  "description": "Examples for building on Balancer V2",
+  "description": "Implementation of Linear Pools for different Balancer Partners",
   "license": "GPL-3.0-only",
-  "homepage": "https://github.com/balancer-labs/balancer-examples#readme",
-  "repository": "git@github.com:balancer-labs/balancer-examples.git",
+  "homepage": "https://github.com/orbcollective/linear-pools#readme",
+  "repository": "git@github.com:orbcollective/linear-pools.git",
   "bugs": {
-    "url": "https://github.com/balancer-labs/balancer-examples/issues"
+    "url": "https://github.com/orbcollective/linear-pools/issues"
   },
   "engines": {
     "node": ">=12.10"
