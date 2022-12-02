@@ -27,8 +27,8 @@ import "@balancer-labs/v2-pool-utils/contracts/factories/FactoryWidePauseWindow.
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/Create2.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ReentrancyGuard.sol";
 
-import "./YearnLinearPool.sol";
-import "./YearnLinearPoolRebalancer.sol";
+import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
+import "@balancer-labs/v2-pool-linear/contracts/LinearPoolRebalancer.sol";
 
 contract YearnLinearPoolFactory is
     ILastCreatedPoolFactory,

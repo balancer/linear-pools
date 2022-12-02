@@ -15,9 +15,9 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "../../../interfaces/contracts/IBeefyVault.sol";
+import "@balancer-labs/v2-interfaces/contracts/pool-linear/IBeefyVault.sol";
 
-import "../LinearPool.sol";
+import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
 
 contract BeefyLinearPool is LinearPool {
     IBeefyVault private immutable _tokenVault;

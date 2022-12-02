@@ -18,7 +18,7 @@ pragma experimental ABIEncoderV2;
 import "@balancer-labs/v2-interfaces/contracts/pool-linear/IYearnTokenVault.sol";
 import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
 
-import "../LinearPool.sol";
+import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
 import "./YearnShareValueHelper.sol";
 
 contract YearnLinearPool is LinearPool, Version, YearnShareValueHelper {

@@ -19,7 +19,7 @@ import "@balancer-labs/v2-interfaces/contracts/pool-linear/IBeefyVault.sol";
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
 
-import "../LinearPoolRebalancer.sol";
+import "@balancer-labs/v2-pool-linear/contracts/LinearPoolRebalancer.sol";
 
 contract BeefyLinearPoolRebalancer is LinearPoolRebalancer {
     using Math for uint256;

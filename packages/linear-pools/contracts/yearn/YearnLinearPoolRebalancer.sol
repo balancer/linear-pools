@@ -20,7 +20,7 @@ import "@balancer-labs/v2-interfaces/contracts/pool-linear/IYearnTokenVault.sol"
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
 
-import "../LinearPoolRebalancer.sol";
+import "@balancer-labs/v2-pool-linear/contracts/LinearPoolRebalancer.sol";
 import "./YearnShareValueHelper.sol";
 
 contract YearnLinearPoolRebalancer is LinearPoolRebalancer, YearnShareValueHelper {
