@@ -1,9 +1,8 @@
 {
-  "name": "@orbcollective/linear-pools",
+  "name": "@orbcollective/linear-pools-repo",
   "version": "1.0.0",
   "description": "Implementation of Linear Pools for different Balancer Partners",
   "license": "GPL-3.0-only",
-  "private": "true",
   "homepage": "https://github.com/orbcollective/linear-pools#readme",
   "repository": "git@github.com:orbcollective/linear-pools.git",
   "bugs": {
@@ -13,9 +12,9 @@
     "node": ">=14.18.0 <17"
   },
   "scripts": {
-    "build": "yarn workspaces run build",
-    "lint": "yarn workspaces run lint",
-    "test": "yarn workspaces run test"
+    "build": "yarn workspaces foreach --parallel --verbose run build",
+    "lint": "yarn workspaces --parallel --verbose run lint",
+    "test": "yarn workspaces --parallel --verbose run test"
   },
   "workspaces": [
     "packages/*",

@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Implementation of Linear Pools for different Balancer Partners",
   "license": "GPL-3.0-only",
-  "private": "true",
   "homepage": "https://github.com/orbcollective/linear-pools#readme",
   "repository": "git@github.com:orbcollective/linear-pools.git",
   "bugs": {

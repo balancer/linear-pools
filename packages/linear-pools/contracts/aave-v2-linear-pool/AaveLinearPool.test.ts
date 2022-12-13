@@ -41,17 +41,24 @@ describe('AaveLinearPool', function () {
   });
 
   sharedBeforeEach('deploy tokens', async () => {
+    console.log('Here 1');
     mockLendingPool = await deploy('MockAaveLendingPool');
+    console.log('Here 2');
 
     mainToken = await Token.create('DAI');
+    console.log('Here 3');
     const wrappedTokenInstance = await deploy('MockStaticAToken', {
       args: ['cDAI', 'cDAI', 18, mainToken.address, mockLendingPool.address],
     });
+    console.log('Here 4');
     wrappedToken = await Token.deployedAt(wrappedTokenInstance.address);
+    console.log('Here 5');
 
     tokens = new TokenList([mainToken, wrappedToken]).sort();
+    console.log('Here 6');
 
     await tokens.mint({ to: [lp, trader], amount: fp(100) });
+    console.log('Here 7');
   });
 
   sharedBeforeEach('deploy pool factory', async () => {
