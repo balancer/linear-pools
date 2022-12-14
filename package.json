@@ -17,7 +17,6 @@
     "test": "yarn workspaces --parallel --verbose run test"
   },
   "workspaces": [
-    "packages/*",
-    "pvt/*"
+    "packages/*"
   ]
 }

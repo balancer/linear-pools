@@ -14,18 +14,20 @@
 
 pragma solidity ^0.7.0;
 
-import "../interfaces/ILendingPool.sol";
-import "./MockMaliciousQueryReverter.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
 
-contract MockAaveLendingPool is ILendingPool, MockMaliciousQueryReverter {
-    uint256 private _rate = 1e27;
-
-    function getReserveNormalizedIncome(address) external view override returns (uint256) {
-        maybeRevertMaliciously();
-        return _rate;
+contract TestToken is ERC20, ERC20Burnable {
+    constructor(
+        string memory name,
+        string memory symbol,
+        uint8 decimals
+    ) ERC20(name, symbol) {
+        _setupDecimals(decimals);
     }
 
-    function setReserveNormalizedIncome(uint256 newRate) external {
-        _rate = newRate;
+    function mint(address recipient, uint256 amount) external {
+        _mint(recipient, amount);
     }
 }

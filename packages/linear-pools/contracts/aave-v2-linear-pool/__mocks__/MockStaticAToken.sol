@@ -15,7 +15,7 @@
 pragma solidity ^0.7.0;
 
 import "../interfaces/IStaticAToken.sol";
-import "../../test-helpers/TestToken.sol";
+import "@orbcollective/shared-dependencies/contracts/TestToken.sol";
 
 contract MockStaticAToken is TestToken, IStaticAToken {
     address private immutable _ASSET;
