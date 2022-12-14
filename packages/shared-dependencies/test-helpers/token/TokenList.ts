@@ -1,6 +1,6 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 
-import { ZERO_ADDRESS } from '../../../index';
+import { ZERO_ADDRESS } from '../../index';
 import { RawTokenApproval, RawTokenMint, TokenApproval, TokenMint } from './types';
 
 export const ETH_TOKEN_ADDRESS = ZERO_ADDRESS;

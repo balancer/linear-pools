@@ -17,7 +17,7 @@ import {
 import { MONTH } from '@orbcollective/shared-dependencies/time';
 
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
-import TokenList from '@orbcollective/shared-dependencies/test-helpers/models/token/TokenList';
+import TokenList from '@orbcollective/shared-dependencies/test-helpers/token/TokenList';
 
 export enum SwapKind {
   GivenIn = 0,
@@ -44,21 +44,7 @@ async function deployBalancerContract(
   return contract;
 }
 
-async function deployController(deployer: SignerWithAddress, args: unknown[]): Promise<Contract> {
-  const MockController = await ethers.getContractFactory('MockSingleStageController');
-  const controller = await MockController.connect(deployer).deploy(...args);
-  const instance: Contract = await controller.deployed();
-  return instance;
-}
-
-async function fastForward(sec: number) {
-  const mostRecentBlock = await ethers.provider.getBlockNumber();
-  const timestamp = (await ethers.provider.getBlock(mostRecentBlock)).timestamp;
-  await ethers.provider.send('evm_mine', [timestamp + sec]);
-}
-
 describe('AaveLinearPool', function () {
-  const swapFeePercentage = bn(0.3e16);
   let pool: Contract;
   let vault: Contract;
   let tokens: TokenList;

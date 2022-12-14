@@ -21,6 +21,8 @@ import TestWETHArtifact from './artifacts/contracts/TestWETH.sol/TestWETH.json';
 
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 export const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
+
+export const MAX_UINT112: BigNumber = maxUint(112);
 export const MAX_UINT256: BigNumber = maxUint(256);
 
 export type TokenList = Dictionary<Contract>;
@@ -70,30 +72,14 @@ export async function deployVault(admin: string): Promise<Contract> {
 
 export async function setupEnvironment(): Promise<{
   vault: Contract;
-  tokens: TokenList;
   deployer: SignerWithAddress;
   liquidityProvider: SignerWithAddress;
   trader: SignerWithAddress;
 }> {
-  const { deployer, admin, creator, liquidityProvider, trader } = await getSigners();
+  const { deployer, admin, liquidityProvider, trader } = await getSigners();
   const vault: Contract = await deployVault(admin.address);
 
-  const tokens = await deploySortedTokens(tokenSymbols, Array(tokenSymbols.length).fill(18));
-
-  for (const symbol in tokens) {
-    // creator tokens are used to initialize pools, but tokens are only minted when required
-    await tokens[symbol].connect(creator).approve(vault.address, MaxUint256);
-
-    // liquidity provider tokens are used to provide liquidity and not have non-zero balances
-    await mintTokens(tokens, symbol, liquidityProvider, 200e18);
-    await tokens[symbol].connect(liquidityProvider).approve(vault.address, MaxUint256);
-
-    // trader tokens are used to trade and not have non-zero balances
-    await mintTokens(tokens, symbol, trader, 200e18);
-    await tokens[symbol].connect(trader).approve(vault.address, MaxUint256);
-  }
-
-  return { vault, tokens, deployer, liquidityProvider, trader };
+  return { vault, deployer, liquidityProvider, trader };
 }
 
 export async function deploySortedTokens(
@@ -122,7 +108,7 @@ export async function deployToken(symbol: string, decimals?: number, from?: Sign
   const [defaultDeployer] = await ethers.getSigners();
   const deployer = from || defaultDeployer;
   const factory = new ethers.ContractFactory(TestTokenArtifact.abi, TestTokenArtifact.bytecode, deployer);
-  const instance = await factory.deploy(deployer.address, symbol, symbol, decimals);
+  const instance = await factory.deploy(symbol, symbol, decimals);
   return instance;
 }
 
