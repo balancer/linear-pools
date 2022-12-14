@@ -1,3 +1,5 @@
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+
 import { ZERO_ADDRESS } from '../../../index';
 import { RawTokenApproval, RawTokenMint, TokenApproval, TokenMint } from './types';
 
@@ -6,6 +8,7 @@ export const ETH_TOKEN_ADDRESS = ZERO_ADDRESS;
 interface Token {
   address: string;
   approve: (to: string, amount: number, options?: { from?: unknown }) => Promise<void>;
+  connect: (address: SignerWithAddress | undefined) => Promise<Token>;
   mint: (to: string, amount: number, options?: { from?: unknown }) => Promise<void>;
 }
 
@@ -70,7 +73,7 @@ export default class TokenList {
     const params: TokenApproval[] = toTokenApprovals(rawParams);
     await Promise.all(
       params.flatMap(({ to, amount, from }) =>
-        this.tokens.map((token) => token.approve(to.address, amount, { from: from?.address }))
+        this.tokens.map(async (token) => (await token.connect(from)).approve(to.address, amount))
       )
     );
   }

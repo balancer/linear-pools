@@ -154,8 +154,8 @@ describe('AaveLinearPool', function () {
     it('sets the same asset manager for main and wrapped token', async () => {
       const poolId = await pool.getPoolId();
 
-      const { assetManager: firstAssetManager } = await vault.getPoolTokenInfo(poolId, tokens.first);
-      const { assetManager: secondAssetManager } = await vault.getPoolTokenInfo(poolId, tokens.second);
+      const { assetManager: firstAssetManager } = await vault.getPoolTokenInfo(poolId, tokens.first.address);
+      const { assetManager: secondAssetManager } = await vault.getPoolTokenInfo(poolId, tokens.second.address);
 
       expect(firstAssetManager).to.not.equal(ZERO_ADDRESS);
       expect(firstAssetManager).to.equal(secondAssetManager);
@@ -163,7 +163,7 @@ describe('AaveLinearPool', function () {
 
     it('sets the no asset manager for the BPT', async () => {
       const poolId = await pool.getPoolId();
-      const { assetManager } = await vault.instance.getPoolTokenInfo(poolId, pool.address);
+      const { assetManager } = await vault.getPoolTokenInfo(poolId, pool.address);
       expect(assetManager).to.equal(ZERO_ADDRESS);
     });
   });
@@ -201,12 +201,10 @@ describe('AaveLinearPool', function () {
     context('when Aave reverts maliciously to impersonate a swap query', () => {
       let rebalancer: Contract;
       beforeEach('provide initial liquidity to pool', async () => {
+        await mockLendingPool.setRevertType(RevertType.DoNotRevert);
         const poolId = await pool.getPoolId();
-
-        console.log('1');
         await tokens.approve({ to: vault, amount: fp(100), from: lp });
-        console.log('1');
-        await vault.instance.connect(lp).swap(
+        await vault.connect(lp).swap(
           {
             poolId,
             kind: SwapKind.GivenIn,
@@ -219,12 +217,11 @@ describe('AaveLinearPool', function () {
           0,
           MAX_UINT256
         );
-        console.log('1');
       });
 
       beforeEach('deploy and initialize pool', async () => {
         const poolId = await pool.getPoolId();
-        const { assetManager } = await vault.getPoolTokenInfo(poolId, tokens.first);
+        const { assetManager } = await vault.getPoolTokenInfo(poolId, tokens.first.address);
         rebalancer = await getPackageContractDeployedAt('AaveLinearPoolRebalancer', assetManager);
       });
 
@@ -233,7 +230,7 @@ describe('AaveLinearPool', function () {
       });
 
       it('reverts with MALICIOUS_QUERY_REVERT', async () => {
-        await expect(rebalancer.rebalance(guardian.address)).to.be.revertedWith('MALICIOUS_QUERY_REVERT');
+        await expect(rebalancer.rebalance(guardian.address)).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
       });
     });
   });
