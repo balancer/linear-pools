@@ -53,17 +53,13 @@ describe('AaveLinearPoolFactory', function () {
   const BEEFY_PROTOCOL_NAME = 'Beefy';
   const STURDY_PROTOCOL_NAME = 'Sturdy';
 
-  before('setup signers', async () => {
-    [, admin, owner] = await ethers.getSigners();
-  });
-
   beforeEach('deploy factory & tokens', async () => {
     let deployer: SignerWithAddress;
     let trader: SignerWithAddress;
 
     // appease the @typescript-eslint/no-unused-vars lint error
     [, admin, owner] = await ethers.getSigners();
-    ({ vault, deployer, trader } = await setupEnvironment());
+    ({ vault, deployer } = await setupEnvironment());
     const manager = deployer;
 
     // Deploy tokens
@@ -109,11 +105,13 @@ describe('AaveLinearPoolFactory', function () {
   });
 
   async function createPool(): Promise<Contract> {
+    const DAI = await tokens.getTokenBySymbol('DAI');
+    const cDAI = await tokens.getTokenBySymbol('cDAI');
     const tx = await factory.create(
       NAME,
       SYMBOL,
-      tokens.DAI.address,
-      tokens.CDAI.address,
+      DAI.address,
+      cDAI.address,
       UPPER_TARGET,
       POOL_SWAP_FEE_PERCENTAGE,
       owner.address,
@@ -157,9 +155,12 @@ describe('AaveLinearPoolFactory', function () {
       const poolId = await pool.getPoolId();
       const poolTokens = await vault.getPoolTokens(poolId);
 
+      const DAI = await tokens.getTokenBySymbol('DAI');
+      const cDAI = await tokens.getTokenBySymbol('cDAI');
+
       expect(poolTokens.tokens).to.have.lengthOf(3);
-      expect(poolTokens.tokens).to.include(tokens.DAI.address);
-      expect(poolTokens.tokens).to.include(tokens.CDAI.address);
+      expect(poolTokens.tokens).to.include(DAI.address);
+      expect(poolTokens.tokens).to.include(cDAI.address);
       expect(poolTokens.tokens).to.include(pool.address);
 
       poolTokens.tokens.forEach((token, i) => {
@@ -174,7 +175,7 @@ describe('AaveLinearPoolFactory', function () {
     it('sets a rebalancer as the asset manager', async () => {
       const poolId = await pool.getPoolId();
       // We only check the first token, but this will be the asset manager for both main and wrapped
-      const { assetManager } = await vault.getPoolTokenInfo(poolId, tokens.first);
+      const { assetManager } = await vault.getPoolTokenInfo(poolId, tokens.first.address);
 
       const rebalancer = await getPackageContractDeployedAt('AaveLinearPoolRebalancer', assetManager);
 
@@ -202,11 +203,13 @@ describe('AaveLinearPoolFactory', function () {
     });
 
     it('sets main token', async () => {
-      expect(await pool.getMainToken()).to.equal(tokens.DAI.address);
+      const DAI = await tokens.getTokenBySymbol('DAI');
+      expect(await pool.getMainToken()).to.equal(DAI.address);
     });
 
     it('sets wrapped token', async () => {
-      expect(await pool.getWrappedToken()).to.equal(tokens.CDAI.address);
+      const cDAI = await tokens.getTokenBySymbol('cDAI');
+      expect(await pool.getWrappedToken()).to.equal(cDAI.address);
     });
 
     it('sets the targets', async () => {
@@ -263,7 +266,7 @@ describe('AaveLinearPoolFactory', function () {
 
   describe('protocol id', () => {
     it('should not allow adding protocols without permission', async () => {
-      await expect(factory.registerProtocolId(AAVE_PROTOCOL_ID, 'AAVE')).to.be.revertedWith('SENDER_NOT_ALLOWED');
+      await expect(factory.registerProtocolId(AAVE_PROTOCOL_ID, 'AAVE')).to.be.revertedWith('BAL#401');
     });
 
     context('with no registered protocols', () => {

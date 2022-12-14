@@ -10,6 +10,7 @@ interface Token {
   approve: (to: string, amount: number, options?: { from?: unknown }) => Promise<void>;
   connect: (address: SignerWithAddress | undefined) => Promise<Token>;
   mint: (to: string, amount: number, options?: { from?: unknown }) => Promise<void>;
+  symbol: () => Promise<string>;
 }
 
 export default class TokenList {
@@ -31,6 +32,12 @@ export default class TokenList {
     if (typeof index !== 'number') return index;
     if (index >= this.tokens.length) throw Error('Accessing invalid token list index');
     return this.tokens[index];
+  }
+
+  async getTokenBySymbol(symbol: string): Promise<Token> {
+    const symbols = await Promise.all(this.tokens.map(async (token) => await token.symbol()));
+    const symbolIndex = symbols.indexOf(symbol);
+    return this.tokens[symbolIndex];
   }
 
   async mint(rawParams: RawTokenMint): Promise<void> {
