@@ -15,12 +15,13 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "../../../interfaces/contracts/IGearboxDieselToken.sol";
+import "./interfaces/contracts/IGearboxDieselToken.sol";
 import "@balancer-labs/v2-pool-utils/contracts/lib/ExternalCallLib.sol";
+import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
 
 import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
 
-contract GearboxLinearPool is LinearPool {
+contract GearboxLinearPool is LinearPool, Version {
     IGearboxVault private immutable _gearboxVault;
 
     struct ConstructorArgs {
@@ -35,6 +36,7 @@ contract GearboxLinearPool is LinearPool {
         uint256 pauseWindowDuration;
         uint256 bufferPeriodDuration;
         address owner;
+        string version;
     }
 
     constructor(ConstructorArgs memory args)
@@ -51,6 +53,7 @@ contract GearboxLinearPool is LinearPool {
             args.bufferPeriodDuration,
             args.owner
         )
+        Version(args.version)
     {
         address gearboxVaultAddress = IGearboxDieselToken(address(args.wrappedToken)).owner();
         _gearboxVault = IGearboxVault(gearboxVaultAddress);
