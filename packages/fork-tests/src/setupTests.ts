@@ -1,8 +1,6 @@
-import { AsyncFunc } from 'mocha';
 import { BigNumber } from 'ethers';
 import chai, { expect } from 'chai';
 
-import { ZERO_ADDRESS } from '@orbcollective/shared-dependencies';
 import { BalancerErrors } from '@balancer-labs/balancer-js';
 import { BigNumberish, bn, fp } from '@orbcollective/shared-dependencies/numbers';
 import {
@@ -42,10 +40,6 @@ chai.use(function (chai, utils) {
     const obj = this._obj;
     const expectedValue = Array(obj.length).fill(bn(0));
     new Assertion(obj).to.be.deep.equal(expectedValue);
-  });
-
-  Assertion.addProperty('zeroAddress', function () {
-    new Assertion(this._obj).to.be.equal(ZERO_ADDRESS);
   });
 
   Assertion.addMethod('equalFp', function (expectedValue: BigNumberish) {

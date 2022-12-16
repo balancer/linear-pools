@@ -2,7 +2,7 @@ import '@nomiclabs/hardhat-ethers';
 import '@nomiclabs/hardhat-waffle';
 import 'hardhat-local-networks-config-plugin';
 
-// import './src/setupTests';
+import './src/setupTests';
 
 import { task } from 'hardhat/config';
 import { TASK_TEST } from 'hardhat/builtin-tasks/task-names';
@@ -17,7 +17,7 @@ import Task, { TaskMode } from './src/task';
 import Verifier from './src/task-libraries/verifier';
 import { Logger } from './src/task-libraries/logger';
 import { checkActionIds, checkActionIdUniqueness, saveActionIds } from './src/task-libraries/actionId';
-import { saveContractDeploymentAddresses } from './src/network';
+import { saveContractDeploymentAddresses } from './src';
 
 task('deploy', 'Run deployment task')
   .addParam('id', 'Deployment task ID')

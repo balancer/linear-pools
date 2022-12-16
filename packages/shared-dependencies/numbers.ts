@@ -110,3 +110,4 @@ function parseScientific(num: string): string {
 }
 
 export const FP_ZERO = fp(0);
+export const FP_ONE = fp(1);
