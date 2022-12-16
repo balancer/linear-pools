@@ -41,7 +41,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@balancer-labs/typechain@npm:^1.0.0":
+"@balancer-labs/balancer-js@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "@balancer-labs/balancer-js@npm:2.0.0"
+  dependencies:
+    "@balancer-labs/typechain": 1.0.0
+    "@ethersproject/abi": ^5.7.0
+    "@ethersproject/abstract-signer": ^5.7.0
+    "@ethersproject/address": ^5.7.0
+    "@ethersproject/bignumber": ^5.7.0
+    "@ethersproject/bytes": ^5.7.0
+    "@ethersproject/constants": ^5.7.0
+    "@ethersproject/contracts": ^5.7.0
+  checksum: 42671c43fc4c41a2281b0211ab72273c411d59b1154e58710ac722169ec015f7867767f5a60e542988b2e78663f90b775a071eda53953b690e48c5103cdaf049
+  languageName: node
+  linkType: hard
+
+"@balancer-labs/typechain@npm:1.0.0, @balancer-labs/typechain@npm:^1.0.0":
   version: 1.0.0
   resolution: "@balancer-labs/typechain@npm:1.0.0"
   peerDependencies:
@@ -54,7 +70,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@balancer-labs/v2-deployments@npm:^3.0.0":
+"@balancer-labs/v2-deployments@npm:^3.0.0, @balancer-labs/v2-deployments@npm:^3.1.1":
   version: 3.1.1
   resolution: "@balancer-labs/v2-deployments@npm:3.1.1"
   peerDependencies:
@@ -303,7 +319,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ethersproject/address@npm:5.7.0, @ethersproject/address@npm:>=5.0.0-beta.128, @ethersproject/address@npm:^5.4.0, @ethersproject/address@npm:^5.7.0":
+"@ethersproject/address@npm:5.7.0, @ethersproject/address@npm:>=5.0.0-beta.128, @ethersproject/address@npm:^5.0.2, @ethersproject/address@npm:^5.4.0, @ethersproject/address@npm:^5.7.0":
   version: 5.7.0
   resolution: "@ethersproject/address@npm:5.7.0"
   dependencies:
@@ -382,7 +398,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ethersproject/contracts@npm:5.7.0":
+"@ethersproject/contracts@npm:5.7.0, @ethersproject/contracts@npm:^5.7.0":
   version: 5.7.0
   resolution: "@ethersproject/contracts@npm:5.7.0"
   dependencies:
@@ -1092,6 +1108,26 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@nomiclabs/hardhat-etherscan@npm:^3.1.2":
+  version: 3.1.3
+  resolution: "@nomiclabs/hardhat-etherscan@npm:3.1.3"
+  dependencies:
+    "@ethersproject/abi": ^5.1.2
+    "@ethersproject/address": ^5.0.2
+    cbor: ^8.1.0
+    chalk: ^2.4.2
+    debug: ^4.1.1
+    fs-extra: ^7.0.1
+    lodash: ^4.17.11
+    semver: ^6.3.0
+    table: ^6.8.0
+    undici: ^5.4.0
+  peerDependencies:
+    hardhat: ^2.0.4
+  checksum: a9e7bff84ed473b7c2650b93ed2d3ed797ff2898051b8738d378ff410c27a81f6b21762bfe60e9509ec680f1d601684fef23a493f18bdad2b4f9a5538d0d5aec
+  languageName: node
+  linkType: hard
+
 "@nomiclabs/hardhat-waffle@npm:^2.0.0, @nomiclabs/hardhat-waffle@npm:^2.0.3":
   version: 2.0.3
   resolution: "@nomiclabs/hardhat-waffle@npm:2.0.3"
@@ -1133,6 +1169,28 @@ __metadata:
   checksum: 1a6048f31ed560c34429a05e534102c51124ecaf113aca7ebeb7897cfaaf61007cdd7952374c282adaeb79b04ee86ee80b16eed28b62fc6d60e3ffcd7a696895
   languageName: node
   linkType: hard
+
+"@orbcollective/fork-tests@workspace:packages/fork-tests":
+  version: 0.0.0-use.local
+  resolution: "@orbcollective/fork-tests@workspace:packages/fork-tests"
+  dependencies:
+    "@balancer-labs/balancer-js": ^2.0.0
+    "@balancer-labs/v2-deployments": ^3.1.1
+    "@nomicfoundation/hardhat-network-helpers": ^1.0.6
+    "@nomiclabs/hardhat-ethers": ^2.2.1
+    "@nomiclabs/hardhat-etherscan": ^3.1.2
+    "@nomiclabs/hardhat-waffle": ^2.0.3
+    "@solidity-parser/parser": ^0.14.5
+    "@types/chai": ^4
+    "@types/mocha": ^10
+    chai: ^4.3.7
+    chalk: ^4.1.2
+    ethers: ^5.7.2
+    hardhat: ^2.12.2
+    hardhat-local-networks-config-plugin: ^0.0.6
+    mocha: ^10.2.0
+  languageName: unknown
+  linkType: soft
 
 "@orbcollective/linear-pools-repo@workspace:.":
   version: 0.0.0-use.local
@@ -1201,8 +1259,8 @@ __metadata:
     "@types/node": ^14.6.0
     "@typescript-eslint/eslint-plugin": ^4.1.1
     "@typescript-eslint/parser": ^4.1.1
-    chai: ^4.2.0
-    decimal.js: ^10.3.1
+    chai: ^4.3.7
+    decimal.js: ^10.4.3
     eslint: ^7.32.0
     eslint-plugin-mocha-no-only: ^1.1.1
     eslint-plugin-prettier: ^4.0.0
@@ -1508,7 +1566,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/chai@npm:*, @types/chai@npm:^4.2.12, @types/chai@npm:^4.3.3":
+"@types/chai@npm:*, @types/chai@npm:^4, @types/chai@npm:^4.2.12, @types/chai@npm:^4.3.3":
   version: 4.3.4
   resolution: "@types/chai@npm:4.3.4"
   checksum: 571184967beb03bf64c4392a13a7d44e72da9af5a1e83077ff81c39cf59c0fda2a5c78d2005084601cf8f3d11726608574d8b5b4a0e3e9736792807afd926cd0
@@ -1561,7 +1619,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/mocha@npm:^10.0.0":
+"@types/mocha@npm:^10, @types/mocha@npm:^10.0.0":
   version: 10.0.1
   resolution: "@types/mocha@npm:10.0.1"
   checksum: 224ea9fce7b1734ccdb9aa99a622d902a538ce1847bca7fd22c5fb38adcf3ed536f50f48f587085db988a4bb3c2eb68f4b98e1cd6a38bc5547bd3bbbedc54495
@@ -3704,7 +3762,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"chai@npm:^4.2.0, chai@npm:^4.3.6":
+"cbor@npm:^8.1.0":
+  version: 8.1.0
+  resolution: "cbor@npm:8.1.0"
+  dependencies:
+    nofilter: ^3.1.0
+  checksum: a90338435dc7b45cc01461af979e3bb6ddd4f2a08584c437586039cd5f2235014c06e49d664295debbfb3514d87b2f06728092ab6aa6175e2e85e9cd7dc0c1fd
+  languageName: node
+  linkType: hard
+
+"chai@npm:^4.3.6, chai@npm:^4.3.7":
   version: 4.3.7
   resolution: "chai@npm:4.3.7"
   dependencies:
@@ -4395,7 +4462,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"decimal.js@npm:^10.3.1, decimal.js@npm:^10.4.2":
+"decimal.js@npm:^10.4.2, decimal.js@npm:^10.4.3":
   version: 10.4.3
   resolution: "decimal.js@npm:10.4.3"
   checksum: 796404dcfa9d1dbfdc48870229d57f788b48c21c603c3f6554a1c17c10195fc1024de338b0cf9e1efe0c7c167eeb18f04548979bcc5fdfabebb7cc0ae3287bae
@@ -4454,6 +4521,13 @@ __metadata:
   version: 0.1.4
   resolution: "deep-is@npm:0.1.4"
   checksum: edb65dd0d7d1b9c40b2f50219aef30e116cedd6fc79290e740972c132c09106d2e80aa0bc8826673dd5a00222d4179c84b36a790eef63a4c4bca75a37ef90804
+  languageName: node
+  linkType: hard
+
+"deepmerge@npm:^4.2.2":
+  version: 4.2.2
+  resolution: "deepmerge@npm:4.2.2"
+  checksum: a8c43a1ed8d6d1ed2b5bf569fa4c8eb9f0924034baf75d5d406e47e157a451075c4db353efea7b6bcc56ec48116a8ce72fccf867b6e078e7c561904b5897530b
   languageName: node
   linkType: hard
 
@@ -6759,6 +6833,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"hardhat-local-networks-config-plugin@npm:^0.0.6":
+  version: 0.0.6
+  resolution: "hardhat-local-networks-config-plugin@npm:0.0.6"
+  dependencies:
+    deepmerge: ^4.2.2
+  peerDependencies:
+    hardhat: ^2.0.8
+  checksum: b85b88e36c0c538d2622d57a74f211f2825823b957f806e610462a0f06c6a90fbed47430078fb65b90c560fd3119d2fdc93e52710047b6d718b3405fc60ce0cb
+  languageName: node
+  linkType: hard
+
 "hardhat@npm:^2.12.2, hardhat@npm:^2.4.1":
   version: 2.12.4
   resolution: "hardhat@npm:2.12.4"
@@ -8998,7 +9083,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mocha@npm:^10.0.0, mocha@npm:^10.1.0":
+"mocha@npm:^10.0.0, mocha@npm:^10.1.0, mocha@npm:^10.2.0":
   version: 10.2.0
   resolution: "mocha@npm:10.2.0"
   dependencies:
@@ -9334,6 +9419,13 @@ __metadata:
   bin:
     nodemon: bin/nodemon.js
   checksum: 9fe858682414fe703179f4fe36c86e71f40d2693b5345c09803d7b191816a6589c5df8f1f9873bffee92893880183b95a031c86340e46b364ef1b0b7f619edbf
+  languageName: node
+  linkType: hard
+
+"nofilter@npm:^3.1.0":
+  version: 3.1.0
+  resolution: "nofilter@npm:3.1.0"
+  checksum: 58aa85a5b4b35cbb6e42de8a8591c5e338061edc9f3e7286f2c335e9e9b9b8fa7c335ae45daa8a1f3433164dc0b9a3d187fa96f9516e04a17a1f9ce722becc4f
   languageName: node
   linkType: hard
 
@@ -11927,7 +12019,7 @@ resolve@1.17.0:
   languageName: node
   linkType: hard
 
-"table@npm:^6.0.9":
+"table@npm:^6.0.9, table@npm:^6.8.0":
   version: 6.8.1
   resolution: "table@npm:6.8.1"
   dependencies:

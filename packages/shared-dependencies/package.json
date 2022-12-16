@@ -2,15 +2,15 @@
   "name": "@orbcollective/shared-dependencies",
   "version": "1.0.0",
   "private": true,
-  "description": "Shared dependencies for Balancer Managed Pool Controllers",
+  "description": "Shared dependencies for Linear Pools Repository",
   "license": "GPL-3.0-only",
   "repository": {
     "type": "git",
-    "url": "https://github.com/orbcollective/managed-pool-controllers.git",
-    "directory": "pkg/shared-dependencies"
+    "url": "https://github.com/orbcollective/linear-pools.git",
+    "directory": "packages/shared-dependencies"
   },
   "bugs": {
-    "url": "https://github.com/orbcollective/managed-pool-controllers/issues"
+    "url": "https://github.com/orbcollective/linear-pools/issues"
   },
   "files": [
     "contracts/**/*",
@@ -39,7 +39,7 @@
     "@types/node": "^14.6.0",
     "@typescript-eslint/eslint-plugin": "^4.1.1",
     "@typescript-eslint/parser": "^4.1.1",
-    "chai": "^4.2.0",
+    "chai": "^4.3.7",
     "eslint": "^7.32.0",
     "eslint-plugin-mocha-no-only": "^1.1.1",
     "eslint-plugin-prettier": "^4.0.0",
@@ -65,6 +65,6 @@
     "@ethersproject/constants": "^5.4.0",
     "@ethersproject/contracts": "5.4.0",
     "@ethersproject/providers": "^5.4.5",
-    "decimal.js": "^10.3.1"
+    "decimal.js": "^10.4.3"
   }
 }
