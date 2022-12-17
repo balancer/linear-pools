@@ -1,17 +1,29 @@
+import path from 'path';
+import { Dictionary, fromPairs } from 'lodash';
+
 import { ethers } from 'hardhat';
+import { Artifact } from 'hardhat/types';
+import { Artifacts } from 'hardhat/internal/artifacts';
+
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
+
+import { JsonFragment } from '@ethersproject/abi';
 import { BigNumber } from '@ethersproject/bignumber';
 import { MaxUint256 } from '@ethersproject/constants';
 import { Contract, ContractReceipt, ContractTransaction } from '@ethersproject/contracts';
-import { Vault } from '@balancer-labs/typechain';
-import { Dictionary, fromPairs } from 'lodash';
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
+
+import { maxUint } from './numbers';
+
+import { getBalancerContractAbi, getBalancerContractBytecode } from '@balancer-labs/v2-deployments';
+
 import TestTokenArtifact from './artifacts/contracts/TestToken.sol/TestToken.json';
 import TestWETHArtifact from './artifacts/contracts/TestWETH.sol/TestWETH.json';
-import { getBalancerContractAbi, getBalancerContractBytecode } from '@balancer-labs/v2-deployments';
-import { JsonFragment } from '@ethersproject/abi';
 
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 export const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
+
+export const MAX_UINT112: BigNumber = maxUint(112);
+export const MAX_UINT256: BigNumber = maxUint(256);
 
 export type TokenList = Dictionary<Contract>;
 
@@ -43,7 +55,7 @@ export const getBalancerContractArtifact = async (
   return { abi: await abi, bytecode: await bytecode };
 };
 
-export async function deployVault(admin: string): Promise<Vault> {
+export async function deployVault(admin: string): Promise<Contract> {
   const [deployer] = await ethers.getSigners();
   const weth = await deployWETH(deployer);
 
@@ -55,39 +67,19 @@ export async function deployVault(admin: string): Promise<Vault> {
   const vaultFactory = new ethers.ContractFactory(vaultArtifact.abi, vaultArtifact.bytecode, deployer);
   const vault = await vaultFactory.deploy(authorizer.address, weth.address, 0, 0);
 
-  return vault as Vault;
+  return vault;
 }
 
 export async function setupEnvironment(): Promise<{
-  vault: Vault;
-  tokens: TokenList;
+  vault: Contract;
   deployer: SignerWithAddress;
   liquidityProvider: SignerWithAddress;
   trader: SignerWithAddress;
 }> {
-  const { deployer, admin, creator, liquidityProvider, trader } = await getSigners();
-  const vault: Vault = await deployVault(admin.address);
+  const { deployer, admin, liquidityProvider, trader } = await getSigners();
+  const vault: Contract = await deployVault(admin.address);
 
-  const tokens = await deploySortedTokens(tokenSymbols, Array(tokenSymbols.length).fill(18));
-
-  for (const symbol in tokens) {
-    // creator tokens are used to initialize pools, but tokens are only minted when required
-    await tokens[symbol].connect(creator).approve(vault.address, MaxUint256);
-
-    // liquidity provider tokens are used to provide liquidity and not have non-zero balances
-    await mintTokens(tokens, symbol, liquidityProvider, 200e18);
-    await tokens[symbol].connect(liquidityProvider).approve(vault.address, MaxUint256);
-
-    // trader tokens are used to trade and not have non-zero balances
-    await mintTokens(tokens, symbol, trader, 200e18);
-    await tokens[symbol].connect(trader).approve(vault.address, MaxUint256);
-  }
-
-  return { vault, tokens, deployer, liquidityProvider, trader };
-}
-
-export function pickTokenAddresses(tokens: TokenList, size: number, offset?: number): string[] {
-  return tokenSymbols.slice(offset ?? 0, size + (offset ?? 0)).map((symbol) => tokens[symbol].address);
+  return { vault, deployer, liquidityProvider, trader };
 }
 
 export async function deploySortedTokens(
@@ -116,7 +108,7 @@ export async function deployToken(symbol: string, decimals?: number, from?: Sign
   const [defaultDeployer] = await ethers.getSigners();
   const deployer = from || defaultDeployer;
   const factory = new ethers.ContractFactory(TestTokenArtifact.abi, TestTokenArtifact.bytecode, deployer);
-  const instance = await factory.deploy(deployer.address, symbol, symbol, decimals);
+  const instance = await factory.deploy(symbol, symbol, decimals);
   return instance;
 }
 
@@ -135,4 +127,38 @@ export function printGas(gas: number | BigNumber): string {
   }
 
   return `${(gas / 1000).toFixed(1)}k`;
+}
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+export type ContractDeploymentParams = {
+  from?: SignerWithAddress;
+  args?: Array<unknown>;
+  libraries?: Dictionary<string>;
+};
+
+export async function getPackageContractDeployedAt(contract: string, address: string): Promise<Contract> {
+  const artifact = getPackageArtifact(contract);
+  return ethers.getContractAt(artifact.abi, address);
+}
+
+export async function deployPackageContract(
+  contract: string,
+  { from, args, libraries }: ContractDeploymentParams = {}
+): Promise<Contract> {
+  if (!args) args = [];
+  if (!from) from = (await ethers.getSigners())[0];
+
+  const artifact = getPackageArtifact(contract);
+
+  const factory = await ethers.getContractFactoryFromArtifact(artifact, { signer: from, libraries });
+  const instance = await factory.deploy(...args);
+
+  return instance.deployed();
+}
+
+function getPackageArtifact(contract: string): Artifact {
+  let artifactsPath = path.resolve('./artifacts');
+  const artifacts = new Artifacts(artifactsPath);
+  return artifacts.readArtifactSync(contract.split('/').slice(-1)[0]);
 }

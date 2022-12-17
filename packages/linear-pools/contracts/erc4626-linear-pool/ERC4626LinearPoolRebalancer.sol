@@ -15,7 +15,11 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
+<<<<<<< HEAD:packages/linear-pools/contracts/erc4626-linear-pool/ERC4626LinearPoolRebalancer.sol
 import "@balancer-labs/v2-interfaces/contracts/solidity-utils/misc/IERC4626.sol";
+=======
+import "./interfaces/IStaticAToken.sol";
+>>>>>>> master:packages/linear-pools/contracts/aave-v2-linear-pool/AaveLinearPoolRebalancer.sol
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
 

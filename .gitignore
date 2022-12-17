@@ -2,9 +2,6 @@
 yarn-debug.log*
 yarn-error.log*
 
-# IDE
-.vscode/
-
 # Dependency directories
 node_modules/
 
@@ -23,6 +20,12 @@ cache/
 
 # Build artifacts
 dist/
+pkg/balancer-js/src/typechain/*
 
-# typechain artifacts
-typechain/
+# Forge
+forge-artifacts/
+forge-cache/
+
+# IDE Settings
+.idea
+**/.DS_Store
