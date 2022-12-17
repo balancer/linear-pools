@@ -15,7 +15,7 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "../../../interfaces/contracts/IERC4626.sol";
+import "./interfaces/IERC4626.sol";
 import "@balancer-labs/v2-pool-utils/contracts/lib/ExternalCallLib.sol";
 
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20.sol";
@@ -42,7 +42,9 @@ contract ERC4626LinearPool is LinearPool {
         address owner;
     }
 
-    constructor(ConstructorArgs memory args)
+    constructor(
+        ConstructorArgs memory args
+    )
         LinearPool(
             args.vault,
             args.name,
@@ -79,7 +81,7 @@ contract ERC4626LinearPool is LinearPool {
 
         // This is always positive because we only accept tokens with <= 18 decimals
         uint256 digitsDifference = Math.add(18, wrappedTokenDecimals).sub(mainTokenDecimals);
-        _rateScaleFactor = 10**digitsDifference;
+        _rateScaleFactor = 10 ** digitsDifference;
     }
 
     function _toAssetManagerArray(ConstructorArgs memory args) private pure returns (address[] memory) {
