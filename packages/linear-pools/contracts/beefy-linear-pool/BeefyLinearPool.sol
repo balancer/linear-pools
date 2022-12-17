@@ -15,7 +15,7 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "../../../interfaces/contracts/IBeefyVault.sol";
+import "./interfaces/IBeefyVault.sol";
 
 import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
 
@@ -38,7 +38,9 @@ contract BeefyLinearPool is LinearPool {
         address owner;
     }
 
-    constructor(ConstructorArgs memory args)
+    constructor(
+        ConstructorArgs memory args
+    )
         LinearPool(
             args.vault,
             args.name,
@@ -67,7 +69,7 @@ contract BeefyLinearPool is LinearPool {
         // represented as 1e18 by the LinearPool. Since the mooUSDC is already 18 decimals,
         // but in a different representation, we need to account for that in our wrappedTokenRate.
         // Since we only accept tokens with <= 18 decimals, we know the smallest this can be is 10^0 === 1
-        _balanceScaleFactor = 10**(SafeMath.add(18, SafeMath.sub(18, ERC20(want).decimals())));
+        _balanceScaleFactor = 10 ** (SafeMath.add(18, SafeMath.sub(18, ERC20(want).decimals())));
 
         _require(address(args.mainToken) == want, Errors.TOKENS_MISMATCH);
     }

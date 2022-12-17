@@ -15,7 +15,7 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "../../../interfaces/contracts/IYearnTokenVault.sol";
+import "./interfaces/IYearnTokenVault.sol";
 import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
 
 import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
@@ -37,7 +37,9 @@ contract YearnLinearPool is LinearPool, Version, YearnShareValueHelper {
         string version;
     }
 
-    constructor(ConstructorArgs memory args)
+    constructor(
+        ConstructorArgs memory args
+    )
         LinearPool(
             args.vault,
             args.name,

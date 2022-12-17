@@ -15,7 +15,7 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "@balancer-labs/v2-interfaces/contracts/pool-linear/IBeefyVault.sol";
+import "./interfaces/IBeefyVault.sol";
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
 
@@ -29,12 +29,13 @@ contract BeefyLinearPoolRebalancer is LinearPoolRebalancer {
     // These Rebalancers can only be deployed from a factory to work around a circular dependency: the Pool must know
     // the address of the Rebalancer in order to register it, and the Rebalancer must know the address of the Pool
     // during construction.
-    constructor(IVault vault, IBalancerQueries queries)
-        LinearPoolRebalancer(ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()), vault, queries)
-    {
+    constructor(
+        IVault vault,
+        IBalancerQueries queries
+    ) LinearPoolRebalancer(ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()), vault, queries) {
         IERC20 wrappedToken = ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()).getWrappedToken();
 
-        _divisor = 10**IBeefyVault(address(wrappedToken)).decimals();
+        _divisor = 10 ** IBeefyVault(address(wrappedToken)).decimals();
     }
 
     function _wrapTokens(uint256 amount) internal override {

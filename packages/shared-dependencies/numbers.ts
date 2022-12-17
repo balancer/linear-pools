@@ -108,3 +108,6 @@ function parseScientific(num: string): string {
 
   return numberSign < 0 ? '-' + num : num;
 }
+
+export const FP_ZERO = fp(0);
+export const FP_ONE = fp(1);

@@ -16,7 +16,7 @@ pragma solidity ^0.7.0;
 
 pragma experimental ABIEncoderV2;
 
-import "@balancer-labs/v2-interfaces/contracts/pool-linear/IYearnTokenVault.sol";
+import "./interfaces/IYearnTokenVault.sol";
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
 
@@ -29,9 +29,10 @@ contract YearnLinearPoolRebalancer is LinearPoolRebalancer, YearnShareValueHelpe
     // These Rebalancers can only be deployed from a factory to work around a circular dependency: the Pool must know
     // the address of the Rebalancer in order to register it, and the Rebalancer must know the address of the Pool
     // during construction.
-    constructor(IVault vault, IBalancerQueries queries)
-        LinearPoolRebalancer(ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()), vault, queries)
-    {
+    constructor(
+        IVault vault,
+        IBalancerQueries queries
+    ) LinearPoolRebalancer(ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()), vault, queries) {
         // solhint-disable-previous-line no-empty-blocks
     }
 

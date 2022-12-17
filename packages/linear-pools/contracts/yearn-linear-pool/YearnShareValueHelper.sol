@@ -14,13 +14,13 @@
 
 pragma solidity ^0.7.0;
 
-import "@balancer-labs/v2-interfaces/contracts/pool-linear/IYearnTokenVault.sol";
+import "./interfaces/IYearnTokenVault.sol";
 
 // solhint-disable not-rely-on-time
 
 // The YearnShareValueHelper provides a more precise wrappedTokenRate than is available
 // from simply using the pricePerShare. This is because the pps is limited to the precision
-// of the underlying asset (ie: USDC = 6), but it stores more precision internally, so the 
+// of the underlying asset (ie: USDC = 6), but it stores more precision internally, so the
 // larger the amount exchanged, the larger the precision error becomes.
 // This implementation was ported from the ShareValueHelper:
 // https://github.com/wavey0x/ShareValueHelper/blob/master/contracts/Helper.sol
@@ -42,9 +42,9 @@ contract YearnShareValueHelper {
         uint256 lockedFundsRatio = (block.timestamp - IYearnTokenVault(vault).lastReport()) *
             IYearnTokenVault(vault).lockedProfitDegradation();
 
-        if (lockedFundsRatio < 10**18) {
+        if (lockedFundsRatio < 10 ** 18) {
             uint256 lockedProfit = IYearnTokenVault(vault).lockedProfit();
-            lockedProfit -= (lockedFundsRatio * lockedProfit) / 10**18;
+            lockedProfit -= (lockedFundsRatio * lockedProfit) / 10 ** 18;
             return totalAssets - lockedProfit;
         } else {
             return totalAssets;

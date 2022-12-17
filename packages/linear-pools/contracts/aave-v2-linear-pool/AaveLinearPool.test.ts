@@ -3,18 +3,26 @@ import { expect } from 'chai';
 import { Contract } from 'ethers';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 
-import { bn, fp } from '@balancer-labs/v2-helpers/src/numbers';
-import { sharedBeforeEach } from '@balancer-labs/v2-common/sharedBeforeEach';
-import * as expectEvent from '@balancer-labs/v2-helpers/src/test/expectEvent';
+import { bn, fp } from '@orbcollective/shared-dependencies/numbers';
+import {
+  deployPackageContract,
+  getPackageContractDeployedAt,
+  deployToken,
+  setupEnvironment,
+  getBalancerContractArtifact,
+  MAX_UINT256,
+  ZERO_ADDRESS,
+} from '@orbcollective/shared-dependencies';
 
-import Token from '@balancer-labs/v2-helpers/src/models/tokens/Token';
-import TokenList from '@balancer-labs/v2-helpers/src/models/tokens/TokenList';
-import LinearPool from '@balancer-labs/v2-helpers/src/models/pools/linear/LinearPool';
+import { MONTH } from '@orbcollective/shared-dependencies/time';
 
-import { deploy, deployedAt } from '@balancer-labs/v2-helpers/src/contract';
-import Vault from '@balancer-labs/v2-helpers/src/models/vault/Vault';
-import { MAX_UINT256, ZERO_ADDRESS } from '@balancer-labs/v2-helpers/src/constants';
-import { SwapKind } from '@balancer-labs/balancer-js';
+import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
+import TokenList from '@orbcollective/shared-dependencies/test-helpers/token/TokenList';
+
+export enum SwapKind {
+  GivenIn = 0,
+  GivenOut,
+}
 
 enum RevertType {
   DoNotRevert,
@@ -23,42 +31,76 @@ enum RevertType {
   MaliciousJoinExitQuery,
 }
 
+async function deployBalancerContract(
+  task: string,
+  contractName: string,
+  deployer: SignerWithAddress,
+  args: unknown[]
+): Promise<Contract> {
+  const artifact = await getBalancerContractArtifact(task, contractName);
+  const factory = new ethers.ContractFactory(artifact.abi, artifact.bytecode, deployer);
+  const contract = await factory.deploy(...args);
+
+  return contract;
+}
+
 describe('AaveLinearPool', function () {
-  let vault: Vault;
-  let pool: LinearPool, tokens: TokenList, mainToken: Token, wrappedToken: Token;
+  let pool: Contract;
+  let vault: Contract;
+  let tokens: TokenList;
+  let mainToken: Contract, wrappedToken: Contract;
   let poolFactory: Contract;
   let mockLendingPool: Contract;
-  let trader: SignerWithAddress, lp: SignerWithAddress, owner: SignerWithAddress;
+  let guardian: SignerWithAddress, lp: SignerWithAddress, owner: SignerWithAddress;
+  let manager: SignerWithAddress;
 
   const POOL_SWAP_FEE_PERCENTAGE = fp(0.01);
+  const AAVE_PROTOCOL_ID = 0;
 
-  before('setup', async () => {
-    [, lp, trader, owner] = await ethers.getSigners();
-  });
+  const BASE_PAUSE_WINDOW_DURATION = MONTH * 3;
+  const BASE_BUFFER_PERIOD_DURATION = MONTH;
 
-  sharedBeforeEach('deploy tokens', async () => {
-    mockLendingPool = await deploy('MockAaveLendingPool');
+  before('Setup', async () => {
+    let deployer: SignerWithAddress;
+    let trader: SignerWithAddress;
 
-    mainToken = await Token.create('DAI');
-    const wrappedTokenInstance = await deploy('MockStaticAToken', {
+    // appease the @typescript-eslint/no-unused-vars lint error
+    [, lp, owner] = await ethers.getSigners();
+    ({ vault, deployer, trader } = await setupEnvironment());
+    manager = deployer;
+    guardian = trader;
+
+    // Deploy tokens
+    mockLendingPool = await deployPackageContract('MockAaveLendingPool');
+    mainToken = await deployToken('DAI', 18, deployer);
+    const wrappedTokenInstance = await deployPackageContract('MockStaticAToken', {
       args: ['cDAI', 'cDAI', 18, mainToken.address, mockLendingPool.address],
     });
-    wrappedToken = await Token.deployedAt(wrappedTokenInstance.address);
+    wrappedToken = await getPackageContractDeployedAt('TestToken', wrappedTokenInstance.address);
 
     tokens = new TokenList([mainToken, wrappedToken]).sort();
-
     await tokens.mint({ to: [lp, trader], amount: fp(100) });
-  });
 
-  sharedBeforeEach('deploy pool factory', async () => {
-    vault = await Vault.create();
-    const queries = await deploy('v2-standalone-utils/BalancerQueries', { args: [vault.address] });
-    poolFactory = await deploy('AaveLinearPoolFactory', {
-      args: [vault.address, vault.getFeesProvider().address, queries.address, 'factoryVersion', 'poolVersion'],
+    // Deploy Balancer Queries
+    const queriesTask = '20220721-balancer-queries';
+    const queriesContract = 'BalancerQueries';
+    const queriesArgs = [vault.address];
+    const queries = await deployBalancerContract(queriesTask, queriesContract, manager, queriesArgs);
+
+    // Deploy poolFactory
+    poolFactory = await deployPackageContract('AaveLinearPoolFactory', {
+      args: [
+        vault.address,
+        ZERO_ADDRESS,
+        queries.address,
+        'factoryVersion',
+        'poolVersion',
+        BASE_PAUSE_WINDOW_DURATION,
+        BASE_BUFFER_PERIOD_DURATION,
+      ],
     });
-  });
 
-  sharedBeforeEach('deploy and initialize pool', async () => {
+    // Deploy and initialize pool
     const tx = await poolFactory.create(
       'Balancer Pool Token',
       'BPT',
@@ -66,18 +108,18 @@ describe('AaveLinearPool', function () {
       wrappedToken.address,
       bn(0),
       POOL_SWAP_FEE_PERCENTAGE,
-      owner.address
+      owner.address,
+      AAVE_PROTOCOL_ID
     );
-
     const receipt = await tx.wait();
     const event = expectEvent.inReceipt(receipt, 'PoolCreated');
 
-    pool = await LinearPool.deployedAt(event.args.pool);
+    pool = await getPackageContractDeployedAt('LinearPool', event.args.pool);
   });
 
   describe('constructor', () => {
     it('reverts if the mainToken is not the ASSET of the wrappedToken', async () => {
-      const otherToken = await Token.create('USDC');
+      const otherToken = await deployToken('USDC', 18, manager);
 
       await expect(
         poolFactory.create(
@@ -87,9 +129,10 @@ describe('AaveLinearPool', function () {
           wrappedToken.address,
           bn(0),
           POOL_SWAP_FEE_PERCENTAGE,
-          owner.address
+          owner.address,
+          AAVE_PROTOCOL_ID
         )
-      ).to.be.revertedWith('TOKENS_MISMATCH');
+      ).to.be.revertedWith('BAL#520'); // TOKEN_MISMATCH code
     });
   });
 
@@ -97,8 +140,8 @@ describe('AaveLinearPool', function () {
     it('sets the same asset manager for main and wrapped token', async () => {
       const poolId = await pool.getPoolId();
 
-      const { assetManager: firstAssetManager } = await vault.getPoolTokenInfo(poolId, tokens.first);
-      const { assetManager: secondAssetManager } = await vault.getPoolTokenInfo(poolId, tokens.second);
+      const { assetManager: firstAssetManager } = await vault.getPoolTokenInfo(poolId, tokens.first.address);
+      const { assetManager: secondAssetManager } = await vault.getPoolTokenInfo(poolId, tokens.second.address);
 
       expect(firstAssetManager).to.not.equal(ZERO_ADDRESS);
       expect(firstAssetManager).to.equal(secondAssetManager);
@@ -106,7 +149,7 @@ describe('AaveLinearPool', function () {
 
     it('sets the no asset manager for the BPT', async () => {
       const poolId = await pool.getPoolId();
-      const { assetManager } = await vault.instance.getPoolTokenInfo(poolId, pool.address);
+      const { assetManager } = await vault.getPoolTokenInfo(poolId, pool.address);
       expect(assetManager).to.equal(ZERO_ADDRESS);
     });
   });
@@ -126,22 +169,16 @@ describe('AaveLinearPool', function () {
     });
 
     context('when Aave reverts maliciously to impersonate a swap query', () => {
-      sharedBeforeEach('make Aave lending pool start reverting', async () => {
-        await mockLendingPool.setRevertType(RevertType.MaliciousSwapQuery);
-      });
-
       it('reverts with MALICIOUS_QUERY_REVERT', async () => {
-        await expect(pool.getWrappedTokenRate()).to.be.revertedWith('MALICIOUS_QUERY_REVERT');
+        await mockLendingPool.setRevertType(RevertType.MaliciousSwapQuery);
+        await expect(pool.getWrappedTokenRate()).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
       });
     });
 
     context('when Aave reverts maliciously to impersonate a join/exit query', () => {
-      sharedBeforeEach('make Aave lending pool start reverting', async () => {
-        await mockLendingPool.setRevertType(RevertType.MaliciousJoinExitQuery);
-      });
-
       it('reverts with MALICIOUS_QUERY_REVERT', async () => {
-        await expect(pool.getWrappedTokenRate()).to.be.revertedWith('MALICIOUS_QUERY_REVERT');
+        await mockLendingPool.setRevertType(RevertType.MaliciousJoinExitQuery);
+        await expect(pool.getWrappedTokenRate()).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
       });
     });
   });
@@ -149,11 +186,11 @@ describe('AaveLinearPool', function () {
   describe('rebalancing', () => {
     context('when Aave reverts maliciously to impersonate a swap query', () => {
       let rebalancer: Contract;
-      sharedBeforeEach('provide initial liquidity to pool', async () => {
+      beforeEach('provide initial liquidity to pool', async () => {
+        await mockLendingPool.setRevertType(RevertType.DoNotRevert);
         const poolId = await pool.getPoolId();
-
         await tokens.approve({ to: vault, amount: fp(100), from: lp });
-        await vault.instance.connect(lp).swap(
+        await vault.connect(lp).swap(
           {
             poolId,
             kind: SwapKind.GivenIn,
@@ -168,18 +205,18 @@ describe('AaveLinearPool', function () {
         );
       });
 
-      sharedBeforeEach('deploy and initialize pool', async () => {
+      beforeEach('deploy and initialize pool', async () => {
         const poolId = await pool.getPoolId();
-        const { assetManager } = await vault.getPoolTokenInfo(poolId, tokens.first);
-        rebalancer = await deployedAt('AaveLinearPoolRebalancer', assetManager);
+        const { assetManager } = await vault.getPoolTokenInfo(poolId, tokens.first.address);
+        rebalancer = await getPackageContractDeployedAt('AaveLinearPoolRebalancer', assetManager);
       });
 
-      sharedBeforeEach('make Aave lending pool start reverting', async () => {
+      beforeEach('make Aave lending pool start reverting', async () => {
         await mockLendingPool.setRevertType(RevertType.MaliciousSwapQuery);
       });
 
       it('reverts with MALICIOUS_QUERY_REVERT', async () => {
-        await expect(rebalancer.rebalance(trader.address)).to.be.revertedWith('MALICIOUS_QUERY_REVERT');
+        await expect(rebalancer.rebalance(guardian.address)).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
       });
     });
   });

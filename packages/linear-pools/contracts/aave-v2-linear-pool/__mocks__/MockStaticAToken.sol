@@ -14,9 +14,8 @@
 
 pragma solidity ^0.7.0;
 
-import "@balancer-labs/v2-interfaces/contracts/pool-linear/IStaticAToken.sol";
-
-import "@balancer-labs/v2-solidity-utils/contracts/test/TestToken.sol";
+import "../interfaces/IStaticAToken.sol";
+import "@orbcollective/shared-dependencies/contracts/TestToken.sol";
 
 contract MockStaticAToken is TestToken, IStaticAToken {
     address private immutable _ASSET;

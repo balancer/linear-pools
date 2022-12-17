@@ -1,6 +1,7 @@
 import { ethers } from 'hardhat';
 import { expect } from 'chai';
 import { BigNumber, Contract } from 'ethers';
+<<<<<<< HEAD
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 
 import Vault from '@balancer-labs/v2-helpers/src/models/vault/Vault';
@@ -15,6 +16,43 @@ import Token from '@balancer-labs/v2-helpers/src/models/tokens/Token';
 describe('AaveLinearPoolFactory', function () {
   let vault: Vault, tokens: TokenList, factory: Contract;
   let creationTime: BigNumber, owner: SignerWithAddress;
+=======
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
+
+import { fp, FP_ZERO } from '@orbcollective/shared-dependencies/numbers';
+import {
+  deployPackageContract,
+  getPackageContractDeployedAt,
+  deployToken,
+  setupEnvironment,
+  getBalancerContractArtifact,
+  MAX_UINT112,
+  ZERO_ADDRESS,
+} from '@orbcollective/shared-dependencies';
+
+import { advanceTime, currentTimestamp, MONTH } from '@orbcollective/shared-dependencies/time';
+
+import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
+import TokenList from '@orbcollective/shared-dependencies/test-helpers/token/TokenList';
+import { actionId } from '@orbcollective/shared-dependencies/test-helpers/actions';
+
+async function deployBalancerContract(
+  task: string,
+  contractName: string,
+  deployer: SignerWithAddress,
+  args: unknown[]
+): Promise<Contract> {
+  const artifact = await getBalancerContractArtifact(task, contractName);
+  const factory = new ethers.ContractFactory(artifact.abi, artifact.bytecode, deployer);
+  const contract = await factory.deploy(...args);
+
+  return contract;
+}
+
+describe('AaveLinearPoolFactory', function () {
+  let vault: Contract, tokens: TokenList, factory: Contract;
+  let creationTime: BigNumber, admin: SignerWithAddress, owner: SignerWithAddress;
+>>>>>>> master
   let factoryVersion: string, poolVersion: string;
 
   const NAME = 'Balancer Linear Pool Token';
@@ -24,6 +62,7 @@ describe('AaveLinearPoolFactory', function () {
   const BASE_PAUSE_WINDOW_DURATION = MONTH * 3;
   const BASE_BUFFER_PERIOD_DURATION = MONTH;
 
+<<<<<<< HEAD
   before('setup signers', async () => {
     [, owner] = await ethers.getSigners();
   });
@@ -31,6 +70,42 @@ describe('AaveLinearPoolFactory', function () {
   sharedBeforeEach('deploy factory & tokens', async () => {
     vault = await Vault.create();
     const queries = await deploy('v2-standalone-utils/BalancerQueries', { args: [vault.address] });
+=======
+  const AAVE_PROTOCOL_ID = 0;
+  const BEEFY_PROTOCOL_ID = 1;
+  const STURDY_PROTOCOL_ID = 2;
+
+  const AAVE_PROTOCOL_NAME = 'AAVE';
+  const BEEFY_PROTOCOL_NAME = 'Beefy';
+  const STURDY_PROTOCOL_NAME = 'Sturdy';
+
+  beforeEach('deploy factory & tokens', async () => {
+    let deployer: SignerWithAddress;
+    let trader: SignerWithAddress;
+
+    // appease the @typescript-eslint/no-unused-vars lint error
+    [, admin, owner] = await ethers.getSigners();
+    ({ vault, deployer } = await setupEnvironment());
+    const manager = deployer;
+
+    // Deploy tokens
+    const mockLendingPool = await deployPackageContract('MockAaveLendingPool');
+    const mainToken = await deployToken('DAI', 18, deployer);
+    const wrappedTokenInstance = await deployPackageContract('MockStaticAToken', {
+      args: ['cDAI', 'cDAI', 18, mainToken.address, mockLendingPool.address],
+    });
+    const wrappedToken = await getPackageContractDeployedAt('TestToken', wrappedTokenInstance.address);
+
+    tokens = new TokenList([mainToken, wrappedToken]).sort();
+
+    // Deploy Balancer Queries
+    const queriesTask = '20220721-balancer-queries';
+    const queriesContract = 'BalancerQueries';
+    const queriesArgs = [vault.address];
+    const queries = await deployBalancerContract(queriesTask, queriesContract, manager, queriesArgs);
+
+    // Deploy poolFactory
+>>>>>>> master
     factoryVersion = JSON.stringify({
       name: 'AaveLinearPoolFactory',
       version: '3',
@@ -41,6 +116,7 @@ describe('AaveLinearPoolFactory', function () {
       version: '1',
       deployment: 'test-deployment',
     });
+<<<<<<< HEAD
     factory = await deploy('AaveLinearPoolFactory', {
       args: [vault.address, vault.getFeesProvider().address, queries.address, factoryVersion, poolVersion],
     });
@@ -70,12 +146,55 @@ describe('AaveLinearPoolFactory', function () {
 
     const event = expectEvent.inReceipt(await receipt.wait(), 'PoolCreated');
     return deployedAt('AaveLinearPool', event.args.pool);
+=======
+    factory = await deployPackageContract('AaveLinearPoolFactory', {
+      args: [
+        vault.address,
+        ZERO_ADDRESS,
+        queries.address,
+        factoryVersion,
+        poolVersion,
+        BASE_PAUSE_WINDOW_DURATION,
+        BASE_BUFFER_PERIOD_DURATION,
+      ],
+    });
+
+    creationTime = await currentTimestamp();
+  });
+
+  async function createPool(): Promise<Contract> {
+    const DAI = await tokens.getTokenBySymbol('DAI');
+    const cDAI = await tokens.getTokenBySymbol('cDAI');
+    const tx = await factory.create(
+      NAME,
+      SYMBOL,
+      DAI.address,
+      cDAI.address,
+      UPPER_TARGET,
+      POOL_SWAP_FEE_PERCENTAGE,
+      owner.address,
+      AAVE_PROTOCOL_ID
+    );
+
+    const receipt = await tx.wait();
+    const event = expectEvent.inReceipt(receipt, 'PoolCreated');
+    expectEvent.inReceipt(receipt, 'AaveLinearPoolCreated', {
+      pool: event.args.pool,
+      protocolId: AAVE_PROTOCOL_ID,
+    });
+
+    return getPackageContractDeployedAt('AaveLinearPool', event.args.pool);
+>>>>>>> master
   }
 
   describe('constructor arguments', () => {
     let pool: Contract;
 
+<<<<<<< HEAD
     sharedBeforeEach('create pool', async () => {
+=======
+    beforeEach('create pool', async () => {
+>>>>>>> master
       pool = await createPool();
     });
 
@@ -99,9 +218,18 @@ describe('AaveLinearPoolFactory', function () {
       const poolId = await pool.getPoolId();
       const poolTokens = await vault.getPoolTokens(poolId);
 
+<<<<<<< HEAD
       expect(poolTokens.tokens).to.have.lengthOf(3);
       expect(poolTokens.tokens).to.include(tokens.DAI.address);
       expect(poolTokens.tokens).to.include(tokens.CDAI.address);
+=======
+      const DAI = await tokens.getTokenBySymbol('DAI');
+      const cDAI = await tokens.getTokenBySymbol('cDAI');
+
+      expect(poolTokens.tokens).to.have.lengthOf(3);
+      expect(poolTokens.tokens).to.include(DAI.address);
+      expect(poolTokens.tokens).to.include(cDAI.address);
+>>>>>>> master
       expect(poolTokens.tokens).to.include(pool.address);
 
       poolTokens.tokens.forEach((token, i) => {
@@ -116,9 +244,15 @@ describe('AaveLinearPoolFactory', function () {
     it('sets a rebalancer as the asset manager', async () => {
       const poolId = await pool.getPoolId();
       // We only check the first token, but this will be the asset manager for both main and wrapped
+<<<<<<< HEAD
       const { assetManager } = await vault.getPoolTokenInfo(poolId, tokens.first);
 
       const rebalancer = await deployedAt('AaveLinearPoolRebalancer', assetManager);
+=======
+      const { assetManager } = await vault.getPoolTokenInfo(poolId, tokens.first.address);
+
+      const rebalancer = await getPackageContractDeployedAt('AaveLinearPoolRebalancer', assetManager);
+>>>>>>> master
 
       expect(await rebalancer.getPool()).to.equal(pool.address);
     });
@@ -144,11 +278,21 @@ describe('AaveLinearPoolFactory', function () {
     });
 
     it('sets main token', async () => {
+<<<<<<< HEAD
       expect(await pool.getMainToken()).to.equal(tokens.DAI.address);
     });
 
     it('sets wrapped token', async () => {
       expect(await pool.getWrappedToken()).to.equal(tokens.CDAI.address);
+=======
+      const DAI = await tokens.getTokenBySymbol('DAI');
+      expect(await pool.getMainToken()).to.equal(DAI.address);
+    });
+
+    it('sets wrapped token', async () => {
+      const cDAI = await tokens.getTokenBySymbol('cDAI');
+      expect(await pool.getWrappedToken()).to.equal(cDAI.address);
+>>>>>>> master
     });
 
     it('sets the targets', async () => {
@@ -161,7 +305,11 @@ describe('AaveLinearPoolFactory', function () {
   describe('with a created pool', () => {
     let pool: Contract;
 
+<<<<<<< HEAD
     sharedBeforeEach('create pool', async () => {
+=======
+    beforeEach('create pool', async () => {
+>>>>>>> master
       pool = await createPool();
     });
 
@@ -202,4 +350,58 @@ describe('AaveLinearPoolFactory', function () {
       expect(bufferPeriodEndTime).to.equal(now);
     });
   });
+<<<<<<< HEAD
+=======
+
+  describe('protocol id', () => {
+    it('should not allow adding protocols without permission', async () => {
+      await expect(factory.registerProtocolId(AAVE_PROTOCOL_ID, 'AAVE')).to.be.revertedWith('BAL#401');
+    });
+
+    context('with no registered protocols', () => {
+      it('should revert when asking for an unregistered protocol name', async () => {
+        await expect(factory.getProtocolName(AAVE_PROTOCOL_ID)).to.be.revertedWith('Protocol ID not registered');
+      });
+    });
+
+    // TODO These tests are important only for Aave Linear Pool, but should be tested properly.
+    //  To do so, we need to implement the authorizer
+
+    // context('with registered protocols', () => {
+    //   beforeEach('grant permissions', async () => {
+    //     const action = await actionId(factory, 'registerProtocolId');
+    //     await vault.authorizer.connect(admin).grantPermissions([action], admin.address, [factory.address]);
+    //   });
+    //
+    //   beforeEach('register some protocols', async () => {
+    //     await factory.connect(admin).registerProtocolId(AAVE_PROTOCOL_ID, AAVE_PROTOCOL_NAME);
+    //     await factory.connect(admin).registerProtocolId(BEEFY_PROTOCOL_ID, BEEFY_PROTOCOL_NAME);
+    //     await factory.connect(admin).registerProtocolId(STURDY_PROTOCOL_ID, STURDY_PROTOCOL_NAME);
+    //   });
+    //
+    //   it('protocol ID registration should emit an event', async () => {
+    //     const OTHER_PROTOCOL_ID = 57;
+    //     const OTHER_PROTOCOL_NAME = 'Protocol 57';
+    //
+    //     const tx = await factory.connect(admin).registerProtocolId(OTHER_PROTOCOL_ID, OTHER_PROTOCOL_NAME);
+    //     expectEvent.inReceipt(await tx.wait(), 'AaveLinearPoolProtocolIdRegistered', {
+    //       protocolId: OTHER_PROTOCOL_ID,
+    //       name: OTHER_PROTOCOL_NAME,
+    //     });
+    //   });
+    //
+    //   it('should register protocols', async () => {
+    //     expect(await factory.getProtocolName(AAVE_PROTOCOL_ID)).to.equal(AAVE_PROTOCOL_NAME);
+    //     expect(await factory.getProtocolName(BEEFY_PROTOCOL_ID)).to.equal(BEEFY_PROTOCOL_NAME);
+    //     expect(await factory.getProtocolName(STURDY_PROTOCOL_ID)).to.equal(STURDY_PROTOCOL_NAME);
+    //   });
+    //
+    //   it('should fail when a protocol is already registered', async () => {
+    //     await expect(
+    //       factory.connect(admin).registerProtocolId(STURDY_PROTOCOL_ID, 'Random protocol')
+    //     ).to.be.revertedWith('Protocol ID already registered');
+    //   });
+    // });
+  });
+>>>>>>> master
 });
