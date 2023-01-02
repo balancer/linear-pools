@@ -39,6 +39,7 @@ contract MockGearboxVault is IGearboxVault, MockMaliciousQueryReverter {
     }
 
     function getDieselRate_RAY() external view override returns (uint256) {
+        maybeRevertMaliciously();
         return _rate;
     }
 

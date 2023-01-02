@@ -55,7 +55,7 @@ describe('GearboxLinearPool', function () {
   let manager: SignerWithAddress;
 
   const POOL_SWAP_FEE_PERCENTAGE = fp(0.01);
-  const AAVE_PROTOCOL_ID = 0;
+  const GEARBOX_PROTOCOL_ID = 0;
 
   const BASE_PAUSE_WINDOW_DURATION = MONTH * 3;
   const BASE_BUFFER_PERIOD_DURATION = MONTH;
@@ -110,7 +110,7 @@ describe('GearboxLinearPool', function () {
       bn(0),
       POOL_SWAP_FEE_PERCENTAGE,
       owner.address,
-      AAVE_PROTOCOL_ID
+      GEARBOX_PROTOCOL_ID
     );
     const receipt = await tx.wait();
     const event = expectEvent.inReceipt(receipt, 'PoolCreated');
@@ -131,7 +131,7 @@ describe('GearboxLinearPool', function () {
           bn(0),
           POOL_SWAP_FEE_PERCENTAGE,
           owner.address,
-          AAVE_PROTOCOL_ID
+          GEARBOX_PROTOCOL_ID
         )
       ).to.be.revertedWith('BAL#520'); // TOKEN_MISMATCH code
     });
@@ -169,14 +169,14 @@ describe('GearboxLinearPool', function () {
       });
     });
 
-    context('when Aave reverts maliciously to impersonate a swap query', () => {
+    context('when Gearbox reverts maliciously to impersonate a swap query', () => {
       it('reverts with MALICIOUS_QUERY_REVERT', async () => {
         await gearboxVault.setRevertType(RevertType.MaliciousSwapQuery);
         await expect(pool.getWrappedTokenRate()).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
       });
     });
 
-    context('when Aave reverts maliciously to impersonate a join/exit query', () => {
+    context('when Gearbox reverts maliciously to impersonate a join/exit query', () => {
       it('reverts with MALICIOUS_QUERY_REVERT', async () => {
         await gearboxVault.setRevertType(RevertType.MaliciousJoinExitQuery);
         await expect(pool.getWrappedTokenRate()).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
@@ -185,7 +185,7 @@ describe('GearboxLinearPool', function () {
   });
 
   describe('rebalancing', () => {
-    context('when Aave reverts maliciously to impersonate a swap query', () => {
+    context('when Gearbox reverts maliciously to impersonate a swap query', () => {
       let rebalancer: Contract;
       beforeEach('provide initial liquidity to pool', async () => {
         await gearboxVault.setRevertType(RevertType.DoNotRevert);
@@ -209,10 +209,10 @@ describe('GearboxLinearPool', function () {
       beforeEach('deploy and initialize pool', async () => {
         const poolId = await pool.getPoolId();
         const { assetManager } = await vault.getPoolTokenInfo(poolId, tokens.first.address);
-        rebalancer = await getPackageContractDeployedAt('AaveLinearPoolRebalancer', assetManager);
+        rebalancer = await getPackageContractDeployedAt('GearboxLinearPoolRebalancer', assetManager);
       });
 
-      beforeEach('make Aave lending pool start reverting', async () => {
+      beforeEach('make Gearbox lending pool start reverting', async () => {
         await gearboxVault.setRevertType(RevertType.MaliciousSwapQuery);
       });
 
