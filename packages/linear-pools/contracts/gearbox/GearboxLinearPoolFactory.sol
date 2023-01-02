@@ -150,20 +150,19 @@ contract GearboxLinearPoolFactory is
 
         (uint256 pauseWindowDuration, uint256 bufferPeriodDuration) = getPauseConfiguration();
 
-        GearboxLinearPool.ConstructorArgs memory args = GearboxLinearPool.ConstructorArgs({
-            vault: getVault(),
-            name: name,
-            symbol: symbol,
-            mainToken: mainToken,
-            wrappedToken: wrappedToken,
-            assetManager: expectedRebalancerAddress,
-            upperTarget: upperTarget,
-            swapFeePercentage: swapFeePercentage,
-            pauseWindowDuration: pauseWindowDuration,
-            bufferPeriodDuration: bufferPeriodDuration,
-            owner: owner,
-            version: getPoolVersion()
-        });
+        GearboxLinearPool.ConstructorArgs memory args;
+        args.vault = getVault();
+        args.name = name;
+        args.symbol = symbol;
+        args.mainToken = mainToken;
+        args.wrappedToken = wrappedToken;
+        args.assetManager = expectedRebalancerAddress;
+        args.upperTarget = upperTarget;
+        args.swapFeePercentage = swapFeePercentage;
+        args.pauseWindowDuration = pauseWindowDuration;
+        args.bufferPeriodDuration = bufferPeriodDuration;
+        args.owner = owner;
+        args.version = getPoolVersion();
 
         GearboxLinearPool pool = GearboxLinearPool(_create(abi.encode(args)));
 

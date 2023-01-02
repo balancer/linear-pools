@@ -14,12 +14,14 @@
 
 pragma solidity ^0.7.0;
 
-import "../../../interfaces/contracts/IGearboxDieselToken.sol";
+import "@orbcollective/shared-dependencies/contracts/MockMaliciousQueryReverter.sol";
+import "@orbcollective/shared-dependencies/contracts/TestToken.sol";
 
-import "@balancer-labs/v2-solidity-utils/contracts/test/TestToken.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
 
-contract MockGearboxVault is IGearboxVault {
+import "../interfaces/IGearboxDieselToken.sol";
+
+contract MockGearboxVault is IGearboxVault, MockMaliciousQueryReverter {
     using FixedPoint for uint256;
 
     uint256 private _rate = 1e27;

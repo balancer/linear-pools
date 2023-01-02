@@ -15,7 +15,7 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "./interfaces/contracts/IGearboxDieselToken.sol";
+import "./interfaces/IGearboxDieselToken.sol";
 import "@balancer-labs/v2-pool-utils/contracts/lib/ExternalCallLib.sol";
 import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
 
