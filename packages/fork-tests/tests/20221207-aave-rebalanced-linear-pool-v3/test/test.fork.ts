@@ -7,7 +7,8 @@ import { bn, fp, FP_ONE } from '@orbcollective/shared-dependencies/numbers';
 import { MAX_UINT256 } from '@orbcollective/shared-dependencies';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 
-import { describeForkTest, impersonate, getForkedNetwork, Task, TaskMode, getSigners } from '../../../src';
+import { impersonate, getForkedNetwork, Task, TaskMode, getSigners } from '../../../src';
+import { describeForkTest } from '../../../src/forkTests';
 
 export enum SwapKind {
   GivenIn = 0,
