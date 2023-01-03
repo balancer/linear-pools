@@ -54,7 +54,7 @@ contract GearboxLinearPoolFactory is
     mapping(uint256 => ProtocolIdData) private _protocolIds;
 
     // This event allows off-chain tools to differentiate between different protocols that use this factory
-    // to deploy Aave Linear Pools.
+    // to deploy Gearbox Linear Pools.
     event GearboxLinearPoolCreated(address indexed pool, uint256 indexed protocolId);
 
     // Record protocol ID registrations.
