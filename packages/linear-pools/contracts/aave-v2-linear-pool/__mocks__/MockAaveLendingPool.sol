@@ -15,7 +15,7 @@
 pragma solidity ^0.7.0;
 
 import "../interfaces/ILendingPool.sol";
-import "./MockMaliciousQueryReverter.sol";
+import "@orbcollective/shared-dependencies/contracts/MockMaliciousQueryReverter.sol";
 
 contract MockAaveLendingPool is ILendingPool, MockMaliciousQueryReverter {
     uint256 private _rate = 1e27;

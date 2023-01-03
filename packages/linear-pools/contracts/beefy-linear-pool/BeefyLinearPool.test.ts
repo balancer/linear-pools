@@ -1,208 +1,223 @@
 import { ethers } from 'hardhat';
 import { expect } from 'chai';
-import { BigNumber, Contract } from 'ethers';
+import { Contract } from 'ethers';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
-import { bn, fp } from '@balancer-labs/v2-helpers/src/numbers';
-import { sharedBeforeEach } from '@balancer-labs/v2-common/sharedBeforeEach';
-import * as expectEvent from '@balancer-labs/v2-helpers/src/test/expectEvent';
-import Token from '@balancer-labs/v2-helpers/src/models/tokens/Token';
-import LinearPool from '@balancer-labs/v2-helpers/src/models/pools/linear/LinearPool';
-import { deploy } from '@balancer-labs/v2-helpers/src/contract';
-import Vault from '@balancer-labs/v2-helpers/src/models/vault/Vault';
-import { MAX_UINT256 } from '@balancer-labs/v2-helpers/src/constants';
-import { FundManagement, SingleSwap } from '@balancer-labs/balancer-js/src';
+
+import { bn, fp } from '@orbcollective/shared-dependencies/numbers';
+import {
+  deployPackageContract,
+  getPackageContractDeployedAt,
+  deployToken,
+  setupEnvironment,
+  getBalancerContractArtifact,
+  MAX_UINT256,
+  ZERO_ADDRESS,
+} from '@orbcollective/shared-dependencies';
+
+import { MONTH } from '@orbcollective/shared-dependencies/time';
+
+import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
+import TokenList from '@orbcollective/shared-dependencies/test-helpers/token/TokenList';
+
+export enum SwapKind {
+  GivenIn = 0,
+  GivenOut,
+}
+
+enum RevertType {
+  DoNotRevert,
+  NonMalicious,
+  MaliciousSwapQuery,
+  MaliciousJoinExitQuery,
+}
+
+async function deployBalancerContract(
+  task: string,
+  contractName: string,
+  deployer: SignerWithAddress,
+  args: unknown[]
+): Promise<Contract> {
+  const artifact = await getBalancerContractArtifact(task, contractName);
+  const factory = new ethers.ContractFactory(artifact.abi, artifact.bytecode, deployer);
+  const contract = await factory.deploy(...args);
+
+  return contract;
+}
 
 describe('BeefyLinearPool', function () {
+  let pool: Contract;
+  let vault: Contract;
+  let tokens: TokenList;
+  let mainToken: Contract, wrappedToken: Contract;
   let poolFactory: Contract;
-  let lp: SignerWithAddress, owner: SignerWithAddress;
-  let vault: Vault;
-  let funds: FundManagement;
+  let mockLendingPool: Contract;
+  let guardian: SignerWithAddress, lp: SignerWithAddress, owner: SignerWithAddress;
+  let manager: SignerWithAddress;
 
   const POOL_SWAP_FEE_PERCENTAGE = fp(0.01);
+  const BEEFY_PROTOCOL_ID = 1;
 
-  before('setup', async () => {
+  const BASE_PAUSE_WINDOW_DURATION = MONTH * 3;
+  const BASE_BUFFER_PERIOD_DURATION = MONTH;
+
+  before('Setup', async () => {
+    let deployer: SignerWithAddress;
+    let trader: SignerWithAddress;
+
+    // appease the @typescript-eslint/no-unused-vars lint error
     [, lp, owner] = await ethers.getSigners();
+    ({ vault, deployer, trader } = await setupEnvironment());
+    manager = deployer;
+    guardian = trader;
 
-    funds = {
-      sender: lp.address,
-      fromInternalBalance: false,
-      toInternalBalance: false,
-      recipient: lp.address,
-    };
-  });
-
-  sharedBeforeEach('deploy vault & pool factory', async () => {
-    vault = await Vault.create();
-    const queries = await deploy('v2-standalone-utils/BalancerQueries', { args: [vault.address] });
-    poolFactory = await deploy('BeefyLinearPoolFactory', {
-      args: [vault.address, vault.getFeesProvider().address, queries.address],
+    // Deploy tokens
+    mockLendingPool = await deployPackageContract('MockBeefyLendingPool');
+    mainToken = await deployToken('DAI', 18, deployer);
+    const wrappedTokenInstance = await deployPackageContract('MockBeefyVault', {
+      args: ['mooDAI', 'mooDAI', 18, mainToken.address, mockLendingPool.address],
     });
-  });
+    wrappedToken = await getPackageContractDeployedAt('TestToken', wrappedTokenInstance.address);
 
-  async function deployPool(mainTokenAddress: string, wrappedTokenAddress: string) {
+    tokens = new TokenList([mainToken, wrappedToken]).sort();
+    await tokens.mint({ to: [lp, trader], amount: fp(100) });
+
+    // Deploy Balancer Queries
+    const queriesTask = '20220721-balancer-queries';
+    const queriesContract = 'BalancerQueries';
+    const queriesArgs = [vault.address];
+    const queries = await deployBalancerContract(queriesTask, queriesContract, manager, queriesArgs);
+
+    // Deploy poolFactory
+    poolFactory = await deployPackageContract('BeefyLinearPoolFactory', {
+      args: [
+        vault.address,
+        ZERO_ADDRESS,
+        queries.address,
+        'factoryVersion',
+        'poolVersion',
+        BASE_PAUSE_WINDOW_DURATION,
+        BASE_BUFFER_PERIOD_DURATION,
+      ],
+    });
+
+    // Deploy and initialize pool
     const tx = await poolFactory.create(
-      'Linear pool',
+      'Balancer Pool Token',
       'BPT',
-      mainTokenAddress,
-      wrappedTokenAddress,
-      fp(1_000_000),
+      mainToken.address,
+      wrappedToken.address,
+      bn(0),
       POOL_SWAP_FEE_PERCENTAGE,
-      owner.address
+      owner.address,
+      BEEFY_PROTOCOL_ID
     );
-
     const receipt = await tx.wait();
     const event = expectEvent.inReceipt(receipt, 'PoolCreated');
 
-    return LinearPool.deployedAt(event.args.pool);
-  }
+    pool = await getPackageContractDeployedAt('LinearPool', event.args.pool);
+  });
 
-  describe('USDC vault with 6 decimals tests', () => {
-    let usdc: Token;
-    let mooUSDC: Token;
-    let usdcBeefyVault: Contract;
-    let bbbUSDC: LinearPool;
+  describe('constructor', () => {
+    it('reverts if the mainToken is not the ASSET of the wrappedToken', async () => {
+      const otherToken = await deployToken('USDC', 18, manager);
 
-    sharedBeforeEach('setup tokens, beefy vault and linear pool', async () => {
-      usdc = await Token.create({ symbol: 'USDC', name: 'USDC', decimals: 6 });
-      usdcBeefyVault = await deploy('MockBeefyVault', {
-        args: ['mooUSDC', 'mooUSDC', 18, usdc.address],
-      });
-      mooUSDC = await Token.deployedAt(usdcBeefyVault.address);
-
-      bbbUSDC = await deployPool(usdc.address, mooUSDC.address);
-      const initialJoinAmount = bn(100000000000);
-      await usdc.mint(lp, initialJoinAmount);
-      await usdc.approve(vault.address, initialJoinAmount, { from: lp });
-
-      const joinData: SingleSwap = {
-        poolId: bbbUSDC.poolId,
-        kind: 0,
-        assetIn: usdc.address,
-        assetOut: bbbUSDC.address,
-        amount: BigNumber.from(100_000e6),
-        userData: '0x',
-      };
-
-      const transaction = await vault.instance.connect(lp).swap(joinData, funds, BigNumber.from(0), MAX_UINT256);
-      await transaction.wait();
-    });
-
-    it('should return wrapped token rate scaled to 18 decimals for a 6 decimal token', async () => {
-      await usdcBeefyVault.setTotalSupply(fp(1));
-      await usdcBeefyVault.setBalance(fp(1.5));
-      expect(await bbbUSDC.getWrappedTokenRate()).to.be.eq(fp(1.5e12));
-    });
-
-    it('should swap 0.000_000_000_000_800_000 mooUSDC to about 1 USDC when the ppfs is 1.25e18', async () => {
-      await usdcBeefyVault.setTotalSupply(fp(1_000_000));
-      await usdcBeefyVault.setBalance(fp(1_250_000));
-      // we try to rebalance it with some wrapped tokens
-      const mooUsdcAmount = bn(8e5);
-      await mooUSDC.mint(lp, mooUsdcAmount);
-      await mooUSDC.approve(vault.address, mooUsdcAmount, { from: lp });
-
-      const rebalanceSwapData: SingleSwap = {
-        poolId: bbbUSDC.poolId,
-        kind: 0,
-        assetIn: mooUSDC.address,
-        assetOut: usdc.address,
-        amount: mooUsdcAmount,
-        userData: '0x',
-      };
-
-      const balanceBefore = await usdc.balanceOf(lp.address);
-      await vault.instance.connect(lp).swap(rebalanceSwapData, funds, BigNumber.from(0), MAX_UINT256);
-      const balanceAfter = await usdc.balanceOf(lp.address);
-      const amountReturned = balanceAfter.sub(balanceBefore);
-      // because of decimals math we will be off by 1 wei.
-      expect(amountReturned).to.be.almostEqual(bn(1e6));
-    });
-
-    it('should swap 0.000_000_000_800_000_000 mooUSDC to about 1,0000 USDC when the ppfs is 1.25e18', async () => {
-      await usdcBeefyVault.setTotalSupply(fp(1_000_000));
-      await usdcBeefyVault.setBalance(fp(1_250_000));
-      // we try to rebalance it with some wrapped tokens
-      const mooUsdcAmount = bn(8e8);
-      await mooUSDC.mint(lp, mooUsdcAmount);
-      await mooUSDC.approve(vault.address, mooUsdcAmount, { from: lp });
-
-      const rebalanceSwapData: SingleSwap = {
-        poolId: bbbUSDC.poolId,
-        kind: 0,
-        assetIn: mooUSDC.address,
-        assetOut: usdc.address,
-        amount: mooUsdcAmount,
-        userData: '0x',
-      };
-
-      const balanceBefore = await usdc.balanceOf(lp.address);
-
-      await vault.instance.connect(lp).swap(rebalanceSwapData, funds, BigNumber.from(0), MAX_UINT256);
-      const balanceAfter = await usdc.balanceOf(lp.address);
-      const amountReturned = balanceAfter.sub(balanceBefore);
-      // because of decimals math we will be off by 1 wei.
-      expect(amountReturned).to.be.almostEqual(1e9);
+      await expect(
+        poolFactory.create(
+          'Balancer Pool Token',
+          'BPT',
+          otherToken.address,
+          wrappedToken.address,
+          bn(0),
+          POOL_SWAP_FEE_PERCENTAGE,
+          owner.address,
+          BEEFY_PROTOCOL_ID
+        )
+      ).to.be.revertedWith('BAL#520'); // TOKEN_MISMATCH code
     });
   });
 
-  describe('DAI with 18 decimals tests', () => {
-    let dai: Token;
-    let mooDAI: Token;
-    let daiBeefyVault: Contract;
-    let bbbDAI: LinearPool;
+  describe('asset managers', () => {
+    it('sets the same asset manager for main and wrapped token', async () => {
+      const poolId = await pool.getPoolId();
 
-    sharedBeforeEach('setup tokens, beefy vault and linear pool', async () => {
-      dai = await Token.create({ symbol: 'DAI', name: 'DAI', decimals: 18 });
-      daiBeefyVault = await deploy('MockBeefyVault', {
-        args: ['mooDAI', 'mooDAI', 18, dai.address],
+      const { assetManager: firstAssetManager } = await vault.getPoolTokenInfo(poolId, tokens.first.address);
+      const { assetManager: secondAssetManager } = await vault.getPoolTokenInfo(poolId, tokens.second.address);
+
+      expect(firstAssetManager).to.not.equal(ZERO_ADDRESS);
+      expect(firstAssetManager).to.equal(secondAssetManager);
+    });
+
+    it('sets the no asset manager for the BPT', async () => {
+      const poolId = await pool.getPoolId();
+      const { assetManager } = await vault.getPoolTokenInfo(poolId, pool.address);
+      expect(assetManager).to.equal(ZERO_ADDRESS);
+    });
+  });
+
+  describe('getWrappedTokenRate', () => {
+    context('under normal operation', () => {
+      it('returns the expected value', async () => {
+        // Reserve's normalised income is stored with 27 decimals (i.e. a 'ray' value)
+        // 1e27 implies a 1:1 exchange rate between main and wrapped token
+        await mockLendingPool.setReserveNormalizedIncome(bn(1e27));
+        expect(await pool.getWrappedTokenRate()).to.be.eq(fp(1));
+
+        // We now double the reserve's normalised income to change the exchange rate to 2:1
+        await mockLendingPool.setReserveNormalizedIncome(bn(2e27));
+        expect(await pool.getWrappedTokenRate()).to.be.eq(fp(2));
       });
-      mooDAI = await Token.deployedAt(daiBeefyVault.address);
-
-      bbbDAI = await deployPool(dai.address, mooDAI.address);
-      const initialJoinAmount = fp(100);
-      await dai.mint(lp, initialJoinAmount);
-      await dai.approve(vault.address, initialJoinAmount, { from: lp });
-
-      const joinData: SingleSwap = {
-        poolId: bbbDAI.poolId,
-        kind: 0,
-        assetIn: dai.address,
-        assetOut: bbbDAI.address,
-        amount: initialJoinAmount,
-        userData: '0x',
-      };
-
-      const transaction = await vault.instance.connect(lp).swap(joinData, funds, BigNumber.from(0), MAX_UINT256);
-      await transaction.wait();
     });
 
-    it('should return unscaled wrapped token rate for an 18 decimal token', async () => {
-      await daiBeefyVault.setTotalSupply(fp(1));
-      await daiBeefyVault.setBalance(fp(1.5));
-      expect(await bbbDAI.getWrappedTokenRate()).to.be.eq(fp(1.5));
+    context('when Beefy reverts maliciously to impersonate a swap query', () => {
+      it('reverts with MALICIOUS_QUERY_REVERT', async () => {
+        await mockLendingPool.setRevertType(RevertType.MaliciousSwapQuery);
+        await expect(pool.getWrappedTokenRate()).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
+      });
     });
 
-    it('should swap 1 mooDAI to 2 DAI when the pricePerFullShare is 2e18', async () => {
-      await daiBeefyVault.setBalance(fp(2));
+    context('when Beefy reverts maliciously to impersonate a join/exit query', () => {
+      it('reverts with MALICIOUS_QUERY_REVERT', async () => {
+        await mockLendingPool.setRevertType(RevertType.MaliciousJoinExitQuery);
+        await expect(pool.getWrappedTokenRate()).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
+      });
+    });
+  });
 
-      const mooDAIAmount = fp(1);
-      await mooDAI.mint(lp, mooDAIAmount);
-      await mooDAI.approve(vault.address, mooDAIAmount, { from: lp });
+  describe('rebalancing', () => {
+    context('when Beefy reverts maliciously to impersonate a swap query', () => {
+      let rebalancer: Contract;
+      beforeEach('provide initial liquidity to pool', async () => {
+        await mockLendingPool.setRevertType(RevertType.DoNotRevert);
+        const poolId = await pool.getPoolId();
+        await tokens.approve({ to: vault, amount: fp(100), from: lp });
+        await vault.connect(lp).swap(
+          {
+            poolId,
+            kind: SwapKind.GivenIn,
+            assetIn: mainToken.address,
+            assetOut: pool.address,
+            amount: fp(10),
+            userData: '0x',
+          },
+          { sender: lp.address, fromInternalBalance: false, recipient: lp.address, toInternalBalance: false },
+          0,
+          MAX_UINT256
+        );
+      });
 
-      const data: SingleSwap = {
-        poolId: bbbDAI.poolId,
-        kind: 0,
-        assetIn: mooDAI.address,
-        assetOut: dai.address,
-        amount: mooDAIAmount,
-        userData: '0x',
-      };
+      beforeEach('deploy and initialize pool', async () => {
+        const poolId = await pool.getPoolId();
+        const { assetManager } = await vault.getPoolTokenInfo(poolId, tokens.first.address);
+        rebalancer = await getPackageContractDeployedAt('BeefyLinearPoolRebalancer', assetManager);
+      });
 
-      const balanceBefore = await dai.balanceOf(lp.address);
-      await vault.instance.connect(lp).swap(data, funds, BigNumber.from(0), MAX_UINT256);
-      const balanceAfter = await dai.balanceOf(lp.address);
-      const amountReturned = balanceAfter.sub(balanceBefore);
-      expect(amountReturned).to.be.eq(fp(2));
+      beforeEach('make Beefy lending pool start reverting', async () => {
+        await mockLendingPool.setRevertType(RevertType.MaliciousSwapQuery);
+      });
+
+      it('reverts with MALICIOUS_QUERY_REVERT', async () => {
+        await expect(rebalancer.rebalance(guardian.address)).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
+      });
     });
   });
 });
