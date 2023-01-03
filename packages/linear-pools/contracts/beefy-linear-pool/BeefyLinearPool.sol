@@ -16,10 +16,11 @@ pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
 import "./interfaces/IBeefyVault.sol";
+import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
 
 import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
 
-contract BeefyLinearPool is LinearPool {
+contract BeefyLinearPool is LinearPool, Version {
     IBeefyVault private immutable _tokenVault;
 
     uint256 private immutable _balanceScaleFactor;
@@ -36,6 +37,7 @@ contract BeefyLinearPool is LinearPool {
         uint256 pauseWindowDuration;
         uint256 bufferPeriodDuration;
         address owner;
+        string version;
     }
 
     constructor(
@@ -54,6 +56,7 @@ contract BeefyLinearPool is LinearPool {
             args.bufferPeriodDuration,
             args.owner
         )
+        Version(args.version)
     {
         IBeefyVault tokenVault = IBeefyVault(address(args.wrappedToken));
 

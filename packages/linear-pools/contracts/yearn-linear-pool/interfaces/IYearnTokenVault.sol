@@ -14,7 +14,7 @@
 
 pragma solidity ^0.7.0;
 
-import "./solidity-utils/openzeppelin/IERC20.sol";
+import "@balancer-labs/v2-interfaces/contracts/solidity-utils/openzeppelin/IERC20.sol";
 
 interface IYearnTokenVault is IERC20 {
     /**

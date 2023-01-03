@@ -38,6 +38,12 @@ contract YearnLinearPoolFactory is
     ReentrancyGuard,
     FactoryWidePauseWindow
 {
+    // Associate a name with each registered protocol that uses this factory.
+    struct ProtocolIdData {
+        string name;
+        bool registered;
+    }
+
     // Used for create2 deployments
     uint256 private _nextRebalancerSalt;
 
@@ -46,13 +52,32 @@ contract YearnLinearPoolFactory is
     address private _lastCreatedPool;
     string private _poolVersion;
 
+    // Maintain a set of recognized protocolIds
+    mapping(uint256 => ProtocolIdData) private _protocolIds;
+
+    // This event allows off-chain tools to differentiate between different protocols that use this factory
+    event BeefyLinearPoolCreated(address indexed pool, uint256 indexed protocolId);
+
+    // Record protocol ID registrations
+    event BeefyLinearPoolProtocolIdRegistered(uint256 indexed protocolId, string name);
+
     constructor(
         IVault vault,
         IProtocolFeePercentagesProvider protocolFeeProvider,
         IBalancerQueries queries,
         string memory factoryVersion,
-        string memory poolVersion
-    ) BasePoolFactory(vault, protocolFeeProvider, type(YearnLinearPool).creationCode) Version(factoryVersion) {
+        string memory poolVersion,
+        uint256 initialPauseWindowDuration,
+        uint256 bufferPeriodDuration
+    ) BasePoolFactory(
+        vault,
+        protocolFeeProvider,
+        initialPauseWindowDuration,
+        bufferPeriodDuration,
+        type(YearnLinearPool).creationCode
+    )
+    Version(factoryVersion)
+    {
         _queries = queries;
         _poolVersion = poolVersion;
     }

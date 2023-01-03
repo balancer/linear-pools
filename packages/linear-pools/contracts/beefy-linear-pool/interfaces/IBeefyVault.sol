@@ -14,7 +14,7 @@
 
 pragma solidity ^0.7.0;
 
-import "./solidity-utils/openzeppelin/IERC20.sol";
+import "@balancer-labs/v2-interfaces/contracts/solidity-utils/openzeppelin/IERC20.sol";
 
 // Source: https://github.com/beefyfinance/beefy-contracts/blob/master/contracts/BIFI/vaults/BeefyVaultV6.sol
 // Interface definition for the BeefyVaultV6 contract

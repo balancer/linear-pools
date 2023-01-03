@@ -18,7 +18,9 @@ pragma experimental ABIEncoderV2;
 import "@balancer-labs/v2-interfaces/contracts/vault/IVault.sol";
 import "@balancer-labs/v2-interfaces/contracts/standalone-utils/IBalancerQueries.sol";
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
+import "@balancer-labs/v2-interfaces/contracts/pool-utils/IFactoryCreatedPoolVersion.sol";
 
+import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
 import "@balancer-labs/v2-pool-utils/contracts/factories/BasePoolFactory.sol";
 import "@balancer-labs/v2-pool-utils/contracts/factories/FactoryWidePauseWindow.sol";
 
@@ -28,20 +30,56 @@ import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ReentrancyGuard.
 import "./BeefyLinearPool.sol";
 import "./BeefyLinearPoolRebalancer.sol";
 
-contract BeefyLinearPoolFactory is ILastCreatedPoolFactory, BasePoolFactory, ReentrancyGuard, FactoryWidePauseWindow {
+contract BeefyLinearPoolFactory is
+    ILastCreatedPoolFactory,
+    IFactoryCreatedPoolVersion,
+    Version,
+    BasePoolFactory,
+    ReentrancyGuard,
+    FactoryWidePauseWindow
+{
+    // Associate a name with each registered protocol that uses this factory.
+    struct ProtocolIdData {
+        string name;
+        bool registered;
+    }
+
     // Used for create2 deployments
     uint256 private _nextRebalancerSalt;
 
     IBalancerQueries private immutable _queries;
 
     address private _lastCreatedPool;
+    string private _poolVersion;
+
+    // Maintain a set of recognized protocolIds
+    mapping(uint256 => ProtocolIdData) private _protocolIds;
+
+    // This event allows off-chain tools to differentiate between different protocols that use this factory
+    event BeefyLinearPoolCreated(address indexed pool, uint256 indexed protocolId);
+
+    // Record protocol ID registrations
+    event BeefyLinearPoolProtocolIdRegistered(uint256 indexed protocolId, string name);
 
     constructor(
         IVault vault,
         IProtocolFeePercentagesProvider protocolFeeProvider,
-        IBalancerQueries queries
-    ) BasePoolFactory(vault, protocolFeeProvider, type(BeefyLinearPool).creationCode) {
+        IBalancerQueries queries,
+        string memory factoryVersion,
+        string memory poolVersion,
+        uint256 initialPauseWindowDuration,
+        uint256 bufferPeriodDuration
+    ) BasePoolFactory(
+        vault,
+        protocolFeeProvider,
+        initialPauseWindowDuration,
+        bufferPeriodDuration,
+        type(BeefyLinearPool).creationCode
+    )
+    Version(factoryVersion)
+    {
         _queries = queries;
+        _poolVersion = poolVersion;
     }
 
     function getLastCreatedPool() external view override returns (address) {

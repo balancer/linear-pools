@@ -16,6 +16,7 @@
     "lint": "yarn workspaces --parallel --verbose run lint",
     "test": "yarn workspaces --parallel --verbose run test"
   },
+  "private": true,
   "workspaces": [
     "packages/*"
   ]
