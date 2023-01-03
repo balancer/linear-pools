@@ -18,7 +18,9 @@ pragma experimental ABIEncoderV2;
 import "@balancer-labs/v2-interfaces/contracts/vault/IVault.sol";
 import "@balancer-labs/v2-interfaces/contracts/standalone-utils/IBalancerQueries.sol";
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
+import "@balancer-labs/v2-interfaces/contracts/pool-utils/IFactoryCreatedPoolVersion.sol";
 
+import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
 import "@balancer-labs/v2-pool-utils/contracts/factories/BasePoolFactory.sol";
 
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/Create2.sol";
@@ -27,10 +29,7 @@ import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ReentrancyGuard.
 import "./ERC4626LinearPool.sol";
 import "./ERC4626LinearPoolRebalancer.sol";
 
-<<<<<<< HEAD:packages/linear-pools/contracts/erc4626-linear-pool/ERC4626LinearPoolFactory.sol
-contract ERC4626LinearPoolFactory is ILastCreatedPoolFactory, BasePoolFactory, ReentrancyGuard, FactoryWidePauseWindow {
-=======
-contract AaveLinearPoolFactory is
+contract ERC4626LinearPoolFactory is
     ILastCreatedPoolFactory,
     IFactoryCreatedPoolVersion,
     Version,
@@ -43,48 +42,44 @@ contract AaveLinearPoolFactory is
         bool registered;
     }
 
->>>>>>> master:packages/linear-pools/contracts/aave-v2-linear-pool/AaveLinearPoolFactory.sol
     // Used for create2 deployments
     uint256 private _nextRebalancerSalt;
 
     IBalancerQueries private immutable _queries;
 
     address private _lastCreatedPool;
+    string private _poolVersion;
 
     // Maintain a set of recognized protocolIds.
     mapping(uint256 => ProtocolIdData) private _protocolIds;
 
     // This event allows off-chain tools to differentiate between different protocols that use this factory
-    // to deploy Aave Linear Pools.
-    event AaveLinearPoolCreated(address indexed pool, uint256 indexed protocolId);
+    // to deploy Erc4626 Linear Pools.
+    event Erc4626LinearPoolCreated(address indexed pool, uint256 indexed protocolId);
 
     // Record protocol ID registrations.
-    event AaveLinearPoolProtocolIdRegistered(uint256 indexed protocolId, string name);
+    event Erc4626LinearPoolProtocolIdRegistered(uint256 indexed protocolId, string name);
 
     constructor(
         IVault vault,
         IProtocolFeePercentagesProvider protocolFeeProvider,
-<<<<<<< HEAD:packages/linear-pools/contracts/erc4626-linear-pool/ERC4626LinearPoolFactory.sol
-        IBalancerQueries queries
-    ) BasePoolFactory(vault, protocolFeeProvider, type(ERC4626LinearPool).creationCode) {
-=======
         IBalancerQueries queries,
         string memory factoryVersion,
         string memory poolVersion,
         uint256 initialPauseWindowDuration,
         uint256 bufferPeriodDuration
-    )
+    ) 
     BasePoolFactory(
         vault,
         protocolFeeProvider,
         initialPauseWindowDuration,
         bufferPeriodDuration,
-        type(AaveLinearPool).creationCode
+        type(ERC4626LinearPool).creationCode
     )
     Version(factoryVersion)
     {
->>>>>>> master:packages/linear-pools/contracts/aave-v2-linear-pool/AaveLinearPoolFactory.sol
         _queries = queries;
+        _poolVersion = poolVersion;
     }
 
     /**
@@ -93,9 +88,7 @@ contract AaveLinearPoolFactory is
     function getLastCreatedPool() external view override returns (address) {
         return _lastCreatedPool;
     }
-
-<<<<<<< HEAD:packages/linear-pools/contracts/erc4626-linear-pool/ERC4626LinearPoolFactory.sol
-=======
+    
     /**
      * @dev Return the pool version deployed by this factory.
      */
@@ -114,7 +107,6 @@ contract AaveLinearPoolFactory is
         return protocolIdData.name;
     }
 
->>>>>>> master:packages/linear-pools/contracts/aave-v2-linear-pool/AaveLinearPoolFactory.sol
     function _create(bytes memory constructorArgs) internal virtual override returns (address) {
         address pool = super._create(constructorArgs);
         _lastCreatedPool = pool;
@@ -123,11 +115,7 @@ contract AaveLinearPoolFactory is
     }
 
     /**
-<<<<<<< HEAD:packages/linear-pools/contracts/erc4626-linear-pool/ERC4626LinearPoolFactory.sol
      * @dev Deploys a new `ERC4626LinearPool`.
-=======
-     * @dev Deploys a new `AaveLinearPool` with a given protocolId.
->>>>>>> master:packages/linear-pools/contracts/aave-v2-linear-pool/AaveLinearPoolFactory.sol
      */
     function create(
         string memory name,
@@ -136,22 +124,13 @@ contract AaveLinearPoolFactory is
         IERC20 wrappedToken,
         uint256 upperTarget,
         uint256 swapFeePercentage,
-<<<<<<< HEAD:packages/linear-pools/contracts/erc4626-linear-pool/ERC4626LinearPoolFactory.sol
-        address owner
-    ) external nonReentrant returns (LinearPool) {
-        // We are going to deploy both an ERC4626LinearPool and an ERC4626LinearPoolRebalancer set as its Asset Manager,
-        // but this creates a circular dependency problem: the Pool must know the Asset Manager's address in order to
-        // call `IVault.registerTokens` with it, and the Asset Manager must know about the Pool in order to store its
-        // Pool ID, wrapped and main tokens, etc., as immutable variables.
-=======
         address owner,
         uint256 protocolId
-    ) external nonReentrant returns (AaveLinearPool) {
-        // We are going to deploy both an AaveLinearPool and an AaveLinearPoolRebalancer set as its Asset Manager, but
+    ) external nonReentrant returns (LinearPool) {
+        // We are going to deploy both an Erc4626LinearPool and an Erc4626LinearPoolRebalancer set as its Asset Manager, but
         // this creates a circular dependency problem: the Pool must know the Asset Manager's address in order to call
         // `IVault.registerTokens` with it, and the Asset Manager must know about the Pool in order to store its Pool
         // ID, wrapped and main tokens, etc., as immutable variables.
->>>>>>> master:packages/linear-pools/contracts/aave-v2-linear-pool/AaveLinearPoolFactory.sol
         // We could forego immutable storage in the Rebalancer and simply have a two-step initialization process that
         // uses storage, but we can keep those gas savings by instead making the deployment a bit more complicated.
         //
@@ -173,22 +152,7 @@ contract AaveLinearPoolFactory is
 
         (uint256 pauseWindowDuration, uint256 bufferPeriodDuration) = getPauseConfiguration();
 
-<<<<<<< HEAD:packages/linear-pools/contracts/erc4626-linear-pool/ERC4626LinearPoolFactory.sol
-        ERC4626LinearPool.ConstructorArgs memory args = ERC4626LinearPool.ConstructorArgs({
-            vault: getVault(),
-            name: name,
-            symbol: symbol,
-            mainToken: mainToken,
-            wrappedToken: wrappedToken,
-            assetManager: expectedRebalancerAddress,
-            upperTarget: upperTarget,
-            swapFeePercentage: swapFeePercentage,
-            pauseWindowDuration: pauseWindowDuration,
-            bufferPeriodDuration: bufferPeriodDuration,
-            owner: owner
-        });
-=======
-        AaveLinearPool.ConstructorArgs memory args;
+        ERC4626LinearPool.ConstructorArgs memory args;
         args.vault = getVault();
         args.name = name;
         args.symbol = symbol;
@@ -201,7 +165,6 @@ contract AaveLinearPoolFactory is
         args.bufferPeriodDuration = bufferPeriodDuration;
         args.owner = owner;
         args.version = getPoolVersion();
->>>>>>> master:packages/linear-pools/contracts/aave-v2-linear-pool/AaveLinearPoolFactory.sol
 
         ERC4626LinearPool pool = ERC4626LinearPool(_create(abi.encode(args)));
 
@@ -215,7 +178,7 @@ contract AaveLinearPoolFactory is
         require(expectedRebalancerAddress == actualRebalancerAddress, "Rebalancer deployment failed");
 
         // Identify the protocolId associated with this pool. We do not require that the protocolId be registered.
-        emit AaveLinearPoolCreated(address(pool), protocolId);
+        emit Erc4626LinearPoolCreated(address(pool), protocolId);
 
         // We don't return the Rebalancer's address, but that can be queried in the Vault by calling `getPoolTokenInfo`.
         return pool;
@@ -234,6 +197,6 @@ contract AaveLinearPoolFactory is
     function _registerProtocolId(uint256 protocolId, string memory name) private {
         _protocolIds[protocolId] = ProtocolIdData({ name: name, registered: true });
 
-        emit AaveLinearPoolProtocolIdRegistered(protocolId, name);
+        emit Erc4626LinearPoolProtocolIdRegistered(protocolId, name);
     }
 }

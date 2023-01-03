@@ -15,17 +15,16 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-<<<<<<< HEAD:packages/linear-pools/contracts/erc4626-linear-pool/ERC4626LinearPoolRebalancer.sol
-import "@balancer-labs/v2-interfaces/contracts/solidity-utils/misc/IERC4626.sol";
-=======
-import "./interfaces/IStaticAToken.sol";
->>>>>>> master:packages/linear-pools/contracts/aave-v2-linear-pool/AaveLinearPoolRebalancer.sol
+import "./interfaces/IERC4626.sol";
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeERC20.sol";
+
 import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
 
 import "@balancer-labs/v2-pool-linear/contracts/LinearPoolRebalancer.sol";
 
 contract ERC4626LinearPoolRebalancer is LinearPoolRebalancer {
+    using SafeERC20 for IERC20;
     using Math for uint256;
 
     // These Rebalancers can only be deployed from a factory to work around a circular dependency: the Pool must know

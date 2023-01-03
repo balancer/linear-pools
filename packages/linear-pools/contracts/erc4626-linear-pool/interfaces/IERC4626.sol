@@ -14,26 +14,7 @@
 
 pragma solidity >=0.7.0 <0.9.0;
 
-import "./solidity-utils/openzeppelin/IERC20.sol";
-
-interface IERC4626 is IERC20 {
-    /**
-     * @dev `caller` has exchanged `assets` for `shares`, and transferred those `shares` to `owner`.
-     */
-    event Deposit(address indexed caller, address indexed owner, uint256 assets, uint256 shares);
-
-    /**
-     * @dev `caller` has exchanged `shares`, owned by `owner`, for `assets`,
-     *      and transferred those `assets` to `receiver`.
-     */
-    event Withdraw(
-        address indexed caller,
-        address indexed receiver,
-        address indexed owner,
-        uint256 assets,
-        uint256 shares
-    );
-
+interface IERC4626 {
     /**
      * @dev Mints `shares` Vault shares to `receiver` by depositing exactly `amount` of underlying tokens.
      */

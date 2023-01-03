@@ -16,14 +16,16 @@ pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
 import "./interfaces/IERC4626.sol";
+
 import "@balancer-labs/v2-pool-utils/contracts/lib/ExternalCallLib.sol";
+import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
 
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
 
 import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
 
-contract ERC4626LinearPool is LinearPool {
+contract ERC4626LinearPool is LinearPool, Version {
     using Math for uint256;
 
     uint256 private immutable _rateScaleFactor;
@@ -40,11 +42,10 @@ contract ERC4626LinearPool is LinearPool {
         uint256 pauseWindowDuration;
         uint256 bufferPeriodDuration;
         address owner;
+        string version;
     }
 
-    constructor(
-        ConstructorArgs memory args
-    )
+    constructor(ConstructorArgs memory args)
         LinearPool(
             args.vault,
             args.name,
@@ -58,6 +59,7 @@ contract ERC4626LinearPool is LinearPool {
             args.bufferPeriodDuration,
             args.owner
         )
+        Version(args.version)
     {
         // We do NOT enforce mainToken == wrappedToken.asset() even
         // though this is the expected behavior in most cases. Instead,

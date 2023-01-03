@@ -14,13 +14,15 @@
 
 pragma solidity ^0.7.0;
 
-import "../../../interfaces/contracts/IERC4626.sol";
+import "../interfaces/IERC4626.sol";
+
+import "@orbcollective/shared-dependencies/contracts/MockMaliciousQueryReverter.sol";
+import "@orbcollective/shared-dependencies/contracts/TestToken.sol";
 
 import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
-import "@balancer-labs/v2-solidity-utils/contracts/test/TestToken.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
 
-contract MockERC4626Token is TestToken, IERC4626 {
+contract MockERC4626Token is TestToken, IERC4626, MockMaliciousQueryReverter {
     using FixedPoint for uint256;
 
     // rate of assets per share scaled to 1e18
@@ -81,18 +83,21 @@ contract MockERC4626Token is TestToken, IERC4626 {
     }
 
     function previewMint(uint256 shares) external view override returns (uint256) {
+        maybeRevertMaliciously();
         uint256 assetsInShareDecimals = shares.divDown(_rate);
         uint256 assets = assetsInShareDecimals.mulDown(_scaleSharesToFP).divUp(_scaleAssetsToFP);
         return assets;
     }
 
     function _convertToAssets(uint256 shares) private view returns (uint256) {
+        maybeRevertMaliciously();
         uint256 assetsInShareDecimals = shares.mulDown(_rate);
         uint256 assets = assetsInShareDecimals.mulDown(_scaleSharesToFP).divDown(_scaleAssetsToFP);
         return assets;
     }
 
     function _convertToShares(uint256 assets) private view returns (uint256) {
+        maybeRevertMaliciously();
         uint256 sharesInAssetDecimals = assets.divDown(_rate);
         uint256 shares = sharesInAssetDecimals.mulDown(_scaleAssetsToFP).divDown(_scaleSharesToFP);
         return shares;

@@ -3,118 +3,225 @@ import { expect } from 'chai';
 import { Contract } from 'ethers';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 
-import { bn, fp } from '@balancer-labs/v2-helpers/src/numbers';
-import { sharedBeforeEach } from '@balancer-labs/v2-common/sharedBeforeEach';
-import * as expectEvent from '@balancer-labs/v2-helpers/src/test/expectEvent';
+import { bn, fp } from '@orbcollective/shared-dependencies/numbers';
+import {
+  deployPackageContract,
+  getPackageContractDeployedAt,
+  deployToken,
+  setupEnvironment,
+  getBalancerContractArtifact,
+  MAX_UINT256,
+  ZERO_ADDRESS,
+} from '@orbcollective/shared-dependencies';
 
-import Token from '@balancer-labs/v2-helpers/src/models/tokens/Token';
-import TokenList from '@balancer-labs/v2-helpers/src/models/tokens/TokenList';
-import LinearPool from '@balancer-labs/v2-helpers/src/models/pools/linear/LinearPool';
+import { MONTH } from '@orbcollective/shared-dependencies/time';
 
-import { deploy } from '@balancer-labs/v2-helpers/src/contract';
-import Vault from '@balancer-labs/v2-helpers/src/models/vault/Vault';
+import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
+import TokenList from '@orbcollective/shared-dependencies/test-helpers/token/TokenList';
+
+export enum SwapKind {
+  GivenIn = 0,
+  GivenOut,
+}
+
+enum RevertType {
+  DoNotRevert,
+  NonMalicious,
+  MaliciousSwapQuery,
+  MaliciousJoinExitQuery,
+}
+
+async function deployBalancerContract(
+  task: string,
+  contractName: string,
+  deployer: SignerWithAddress,
+  args: unknown[]
+): Promise<Contract> {
+  const artifact = await getBalancerContractArtifact(task, contractName);
+  const factory = new ethers.ContractFactory(artifact.abi, artifact.bytecode, deployer);
+  const contract = await factory.deploy(...args);
+
+  return contract;
+}
 
 describe('ERC4626LinearPool', function () {
-  let pool: LinearPool, tokens: TokenList, token: Token, rebasingYieldToken: Token, wrappedYieldToken: Token;
+  let pool: Contract,
+    vault: Contract,
+    tokens: TokenList,
+    mainToken: Contract,
+    rebasingYieldToken: Contract,
+    wrappedYieldToken: Contract;
   let poolFactory: Contract;
   let wrappedYieldTokenInstance: Contract;
-  let trader: SignerWithAddress, lp: SignerWithAddress, owner: SignerWithAddress;
+  let trader: SignerWithAddress;
+  let guardian: SignerWithAddress, lp: SignerWithAddress, owner: SignerWithAddress;
+  let manager: SignerWithAddress;
 
   const POOL_SWAP_FEE_PERCENTAGE = fp(0.01);
+  const ERC4626_PROTOCOL_ID = 0;
 
-  before('setup', async () => {
-    [, lp, trader, owner] = await ethers.getSigners();
-  });
+  const BASE_PAUSE_WINDOW_DURATION = MONTH * 3;
+  const BASE_BUFFER_PERIOD_DURATION = MONTH;
 
-  sharedBeforeEach('deploy tokens', async () => {
-    token = await Token.create({ symbol: 'USDC', decimals: 6 });
-    rebasingYieldToken = await Token.create({ symbol: 'USD+', decimals: 6 });
-    wrappedYieldTokenInstance = await deploy('MockERC4626Token', {
+  before('Setup', async () => {
+    let deployer: SignerWithAddress;
+    let trader: SignerWithAddress;
+
+    // appease the @typescript-eslint/no-unused-vars lint error
+    [, lp, owner] = await ethers.getSigners();
+    ({ vault, deployer, trader } = await setupEnvironment());
+    manager = deployer;
+    guardian = trader;
+
+    // Deploy tokens
+    mainToken = await deployToken('USDC', 6, deployer);
+    rebasingYieldToken = await deployToken('USD+', 6, deployer);
+    wrappedYieldTokenInstance = await deployPackageContract('MockERC4626Token', {
       args: ['stUSD+', 'stUSD+', 12, rebasingYieldToken.address],
     });
-    wrappedYieldToken = await Token.deployedAt(wrappedYieldTokenInstance.address);
+    wrappedYieldToken = await getPackageContractDeployedAt('TestToken', wrappedYieldTokenInstance.address);
 
-    tokens = new TokenList([token, rebasingYieldToken]).sort();
+    tokens = new TokenList([mainToken, wrappedYieldToken]).sort();
 
     await tokens.mint({ to: [lp, trader], amount: fp(100) });
-  });
 
-  sharedBeforeEach('deploy pool factory', async () => {
-    const vault = await Vault.create();
-    const queries = await deploy('v2-standalone-utils/BalancerQueries', { args: [vault.address] });
-    poolFactory = await deploy('ERC4626LinearPoolFactory', {
-      args: [vault.address, vault.getFeesProvider().address, queries.address],
+    // Deploy Balancer Queries
+    const queriesTask = '20220721-balancer-queries';
+    const queriesContract = 'BalancerQueries';
+    const queriesArgs = [vault.address];
+    const queries = await deployBalancerContract(queriesTask, queriesContract, manager, queriesArgs);
+
+    // Deploy poolFactory
+    poolFactory = await deployPackageContract('ERC4626LinearPoolFactory', {
+      args: [
+        vault.address,
+        ZERO_ADDRESS,
+        queries.address,
+        'factoryVersion',
+        'poolVersion',
+        BASE_PAUSE_WINDOW_DURATION,
+        BASE_BUFFER_PERIOD_DURATION,
+      ],
     });
-  });
 
-  sharedBeforeEach('deploy and initialize pool', async () => {
+    // Deploy and initialize pool
     const tx = await poolFactory.create(
       'Balancer Pool Token',
       'BPT',
-      token.address,
+      mainToken.address,
       wrappedYieldToken.address,
       bn(0),
       POOL_SWAP_FEE_PERCENTAGE,
-      owner.address
+      owner.address,
+      ERC4626_PROTOCOL_ID
     );
-
     const receipt = await tx.wait();
     const event = expectEvent.inReceipt(receipt, 'PoolCreated');
 
-    pool = await LinearPool.deployedAt(event.args.pool);
+    pool = await getPackageContractDeployedAt('LinearPool', event.args.pool);
+  });
+
+  describe('constructor', () => {
+    it('do not revert if the mainToken is not the ASSET of the wrappedToken', async () => {
+      const otherToken = await deployToken('USDC', 18, manager);
+
+      await expect(
+        poolFactory.create(
+          'Balancer Pool Token',
+          'BPT',
+          otherToken.address,
+          wrappedYieldToken.address,
+          bn(0),
+          POOL_SWAP_FEE_PERCENTAGE,
+          owner.address,
+          ERC4626_PROTOCOL_ID
+        )
+      ).to.be.ok;
+    });
+  });
+
+  describe('asset managers', () => {
+    it('sets the same asset manager for main and wrapped token', async () => {
+      const poolId = await pool.getPoolId();
+
+      const { assetManager: firstAssetManager } = await vault.getPoolTokenInfo(poolId, tokens.first.address);
+      const { assetManager: secondAssetManager } = await vault.getPoolTokenInfo(poolId, tokens.second.address);
+
+      expect(firstAssetManager).to.not.equal(ZERO_ADDRESS);
+      expect(firstAssetManager).to.equal(secondAssetManager);
+    });
+
+    it('sets the no asset manager for the BPT', async () => {
+      const poolId = await pool.getPoolId();
+      const { assetManager } = await vault.getPoolTokenInfo(poolId, pool.address);
+      expect(assetManager).to.equal(ZERO_ADDRESS);
+    });
   });
 
   describe('getWrappedTokenRate', () => {
-    it('returns expected value for 1:1 exchange', async () => {
-      // Exchange rate is 1:1, scaled to 1e18 regardless of token decimals
-      await wrappedYieldTokenInstance.setRate(bn(1e18));
-      expect(await pool.getWrappedTokenRate()).to.be.eq(fp(1));
+    context('under normal operation', () => {
+      it('returns the expected value', async () => {
+        // 18 decimals
+        // 1e18 implies a 1:1 exchange rate between main and wrapped token
+        await wrappedYieldTokenInstance.setRate(bn(1e18));
+        expect(await pool.getWrappedTokenRate()).to.be.eq(fp(1));
 
-      // Deposit one asset and check decimals on assets/shares
-      await wrappedYieldTokenInstance.deposit(bn(1e6), trader.address);
-      expect(await wrappedYieldTokenInstance.totalSupply()).to.be.eq(bn(1e12));
-      expect(await wrappedYieldTokenInstance.totalAssets()).to.be.eq(bn(1e6));
-
-      // Redeem one share and check zero asset/share balances
-      await wrappedYieldTokenInstance.redeem(bn(1e12), owner.address, trader.address);
-      expect(await wrappedYieldTokenInstance.totalSupply()).to.be.eq(0);
-      expect(await wrappedYieldTokenInstance.totalAssets()).to.be.eq(0);
+        // We now double the reserve's normalised income to change the exchange rate to 2:1
+        await wrappedYieldTokenInstance.setRate(bn(2e18));
+        expect(await pool.getWrappedTokenRate()).to.be.eq(fp(2));
+      });
     });
 
-    it('returns expected value for 2:1 exchange', async () => {
-      // Double the exchange rate to 2:1
-      await wrappedYieldTokenInstance.setRate(bn(2e18));
-      expect(await pool.getWrappedTokenRate()).to.be.eq(fp(2));
-
-      // At this rate we get half as many shares
-      await wrappedYieldTokenInstance.deposit(bn(1e6), trader.address);
-      expect(await wrappedYieldTokenInstance.totalSupply()).to.be.eq(bn(5e11));
-      await wrappedYieldTokenInstance.redeem(bn(5e11), owner.address, trader.address);
-      expect(await wrappedYieldTokenInstance.totalAssets()).to.be.eq(0);
+    context('when Erc4626 reverts maliciously to impersonate a swap query', () => {
+      it('reverts with MALICIOUS_QUERY_REVERT', async () => {
+        await wrappedYieldTokenInstance.setRevertType(RevertType.MaliciousSwapQuery);
+        await expect(pool.getWrappedTokenRate()).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
+      });
     });
 
-    it('returns expected value for 1:2 exchange', async () => {
-      // Halve the exchange rate to 1:2
-      await wrappedYieldTokenInstance.setRate(bn(5e17));
-      expect(await pool.getWrappedTokenRate()).to.be.eq(fp(0.5));
-
-      // At this rate we get twice as many shares
-      await wrappedYieldTokenInstance.deposit(bn(1e6), trader.address);
-      expect(await wrappedYieldTokenInstance.totalSupply()).to.be.eq(bn(2e12));
-      await wrappedYieldTokenInstance.redeem(bn(2e12), owner.address, trader.address);
-      expect(await wrappedYieldTokenInstance.totalAssets()).to.be.eq(0);
+    context('when Erc4626 reverts maliciously to impersonate a join/exit query', () => {
+      it('reverts with MALICIOUS_QUERY_REVERT', async () => {
+        await wrappedYieldTokenInstance.setRevertType(RevertType.MaliciousJoinExitQuery);
+        await expect(pool.getWrappedTokenRate()).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
+      });
     });
+  });
 
-    it('returns expected value for 1.25:1 exchange', async () => {
-      // Set the exchange rate to 1.25:1
-      await wrappedYieldTokenInstance.setRate(bn(125e16));
-      expect(await pool.getWrappedTokenRate()).to.be.eq(fp(1.25));
+  describe('rebalancing', () => {
+    context('when Erc4626 reverts maliciously to impersonate a swap query', () => {
+      let rebalancer: Contract;
+      beforeEach('provide initial liquidity to pool', async () => {
+        await wrappedYieldTokenInstance.setRevertType(RevertType.DoNotRevert);
+        const poolId = await pool.getPoolId();
+        await tokens.approve({ to: vault, amount: fp(100), from: lp });
+        await vault.connect(lp).swap(
+          {
+            poolId,
+            kind: SwapKind.GivenIn,
+            assetIn: mainToken.address,
+            assetOut: pool.address,
+            amount: fp(10),
+            userData: '0x',
+          },
+          { sender: lp.address, fromInternalBalance: false, recipient: lp.address, toInternalBalance: false },
+          0,
+          MAX_UINT256
+        );
+      });
 
-      // At this rate we get 20% fewer shares
-      await wrappedYieldTokenInstance.deposit(bn(1e6), trader.address);
-      expect(await wrappedYieldTokenInstance.totalSupply()).to.be.eq(bn(8e11));
-      await wrappedYieldTokenInstance.redeem(bn(8e11), owner.address, trader.address);
-      expect(await wrappedYieldTokenInstance.totalAssets()).to.be.eq(0);
+      beforeEach('deploy and initialize pool', async () => {
+        const poolId = await pool.getPoolId();
+        const { assetManager } = await vault.getPoolTokenInfo(poolId, tokens.first.address);
+        rebalancer = await getPackageContractDeployedAt('ERC4626LinearPoolRebalancer', assetManager);
+      });
+
+      beforeEach('make Erc4626 lending pool start reverting', async () => {
+        await wrappedYieldTokenInstance.setRevertType(RevertType.MaliciousSwapQuery);
+      });
+
+      it('reverts with MALICIOUS_QUERY_REVERT', async () => {
+        await expect(rebalancer.rebalance(guardian.address)).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
+      });
     });
   });
 });
