@@ -276,41 +276,39 @@ describe('BeefyLinearPoolFactory', function () {
       });
     });
 
-    // TODO: Add these tests back in once the authorizer is implemented
+    context('with registered protocols', () => {
+      beforeEach('grant permissions', async () => {
+        const action = await actionId(factory, 'registerProtocolId');
+        await (await authorizer.connect(admin)).grantPermissions([action], admin.address, [factory.address]);
+      });
 
-    // context('with registered protocols', () => {
-    //   beforeEach('grant permissions', async () => {
-    //     const action = await actionId(factory, 'registerProtocolId');
-    //     await (await authorizer.connect(admin)).grantPermissions([action], admin.address, [factory.address]);
-    //   });
-    //
-    //   beforeEach('register some protocols', async () => {
-    //     await factory.connect(admin).registerProtocolId(AAVE_PROTOCOL_ID, AAVE_PROTOCOL_NAME);
-    //     await factory.connect(admin).registerProtocolId(BEEFY_PROTOCOL_ID, BEEFY_PROTOCOL_NAME);
-    //     await factory.connect(admin).registerProtocolId(STURDY_PROTOCOL_ID, STURDY_PROTOCOL_NAME);
-    //   });
-    //
-    //   it('protocol ID registration should emit an event', async () => {
-    //     const OTHER_PROTOCOL_ID = 57;
-    //     const OTHER_PROTOCOL_NAME = 'Protocol 57';
-    //     const tx = await factory.connect(admin).registerProtocolId(OTHER_PROTOCOL_ID, OTHER_PROTOCOL_NAME);
-    //     expectEvent.inReceipt(await tx.wait(), 'BeefyLinearPoolProtocolIdRegistered', {
-    //       protocolId: OTHER_PROTOCOL_ID,
-    //       name: OTHER_PROTOCOL_NAME,
-    //     });
-    //   });
-    //
-    //   it('should register protocols', async () => {
-    //     expect(await factory.getProtocolName(AAVE_PROTOCOL_ID)).to.equal(AAVE_PROTOCOL_NAME);
-    //     expect(await factory.getProtocolName(BEEFY_PROTOCOL_ID)).to.equal(BEEFY_PROTOCOL_NAME);
-    //     expect(await factory.getProtocolName(STURDY_PROTOCOL_ID)).to.equal(STURDY_PROTOCOL_NAME);
-    //   });
-    //
-    //   it('should fail when a protocol is already registered', async () => {
-    //     await expect(
-    //       factory.connect(admin).registerProtocolId(STURDY_PROTOCOL_ID, 'Random protocol')
-    //     ).to.be.revertedWith('Protocol ID already registered');
-    //   });
-    // });
+      beforeEach('register some protocols', async () => {
+        await factory.connect(admin).registerProtocolId(AAVE_PROTOCOL_ID, AAVE_PROTOCOL_NAME);
+        await factory.connect(admin).registerProtocolId(BEEFY_PROTOCOL_ID, BEEFY_PROTOCOL_NAME);
+        await factory.connect(admin).registerProtocolId(STURDY_PROTOCOL_ID, STURDY_PROTOCOL_NAME);
+      });
+
+      it('protocol ID registration should emit an event', async () => {
+        const OTHER_PROTOCOL_ID = 57;
+        const OTHER_PROTOCOL_NAME = 'Protocol 57';
+        const tx = await factory.connect(admin).registerProtocolId(OTHER_PROTOCOL_ID, OTHER_PROTOCOL_NAME);
+        expectEvent.inReceipt(await tx.wait(), 'BeefyLinearPoolProtocolIdRegistered', {
+          protocolId: OTHER_PROTOCOL_ID,
+          name: OTHER_PROTOCOL_NAME,
+        });
+      });
+
+      it('should register protocols', async () => {
+        expect(await factory.getProtocolName(AAVE_PROTOCOL_ID)).to.equal(AAVE_PROTOCOL_NAME);
+        expect(await factory.getProtocolName(BEEFY_PROTOCOL_ID)).to.equal(BEEFY_PROTOCOL_NAME);
+        expect(await factory.getProtocolName(STURDY_PROTOCOL_ID)).to.equal(STURDY_PROTOCOL_NAME);
+      });
+
+      it('should fail when a protocol is already registered', async () => {
+        await expect(
+          factory.connect(admin).registerProtocolId(STURDY_PROTOCOL_ID, 'Random protocol')
+        ).to.be.revertedWith('Protocol ID already registered');
+      });
+    });
   });
 });

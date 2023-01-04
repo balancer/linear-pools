@@ -12,10 +12,12 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { MaxUint256 } from '@ethersproject/constants';
 import { Contract, ContractReceipt, ContractTransaction } from '@ethersproject/contracts';
 
+import { MONTH } from './time';
 import { maxUint } from './numbers';
 
 import { getBalancerContractAbi, getBalancerContractBytecode } from '@balancer-labs/v2-deployments';
 
+import MockTimelockAuthorizerArtifact from './artifacts/contracts/MockTimelockAuthorizer.sol/MockTimelockAuthorizer.json';
 import TestTokenArtifact from './artifacts/contracts/TestToken.sol/TestToken.json';
 import TestWETHArtifact from './artifacts/contracts/TestWETH.sol/TestWETH.json';
 
@@ -55,31 +57,41 @@ export const getBalancerContractArtifact = async (
   return { abi: await abi, bytecode: await bytecode };
 };
 
-export async function deployVault(admin: string): Promise<Contract> {
+export async function deployVault(): Promise<{
+  authorizer: Contract;
+  vault: Contract;
+}> {
   const [deployer] = await ethers.getSigners();
   const weth = await deployWETH(deployer);
 
-  const authorizerArtifact = await getBalancerContractArtifact('20210418-authorizer', 'Authorizer');
-  const authorizerFactory = new ethers.ContractFactory(authorizerArtifact.abi, authorizerArtifact.bytecode, deployer);
-  const authorizer = await authorizerFactory.deploy(admin);
+  const authorizerFactory = new ethers.ContractFactory(
+    MockTimelockAuthorizerArtifact.abi,
+    MockTimelockAuthorizerArtifact.bytecode,
+    deployer
+  );
+  const authorizer = (await authorizerFactory.deploy()) as unknown as Contract;
 
   const vaultArtifact = await getBalancerContractArtifact('20210418-vault', 'Vault');
   const vaultFactory = new ethers.ContractFactory(vaultArtifact.abi, vaultArtifact.bytecode, deployer);
-  const vault = await vaultFactory.deploy(authorizer.address, weth.address, 0, 0);
+  const vault = (await vaultFactory.deploy(authorizer.address, weth.address, 0, 0)) as unknown as Contract;
 
-  return vault;
+  return {
+    authorizer,
+    vault,
+  };
 }
 
 export async function setupEnvironment(): Promise<{
+  authorizer: Contract;
   vault: Contract;
   deployer: SignerWithAddress;
   liquidityProvider: SignerWithAddress;
   trader: SignerWithAddress;
 }> {
-  const { deployer, admin, liquidityProvider, trader } = await getSigners();
-  const vault: Contract = await deployVault(admin.address);
+  const { deployer, liquidityProvider, trader } = await getSigners();
+  const { authorizer, vault } = await deployVault();
 
-  return { vault, deployer, liquidityProvider, trader };
+  return { authorizer, vault, deployer, liquidityProvider, trader };
 }
 
 export async function deploySortedTokens(
@@ -158,7 +170,7 @@ export async function deployPackageContract(
 }
 
 function getPackageArtifact(contract: string): Artifact {
-  let artifactsPath = path.resolve('./artifacts');
+  const artifactsPath = path.resolve('./artifacts');
   const artifacts = new Artifacts(artifactsPath);
   return artifacts.readArtifactSync(contract.split('/').slice(-1)[0]);
 }
