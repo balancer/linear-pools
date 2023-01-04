@@ -15,10 +15,11 @@
 pragma solidity ^0.7.0;
 
 import "@orbcollective/shared-dependencies/contracts/TestToken.sol";
+import "@orbcollective/shared-dependencies/contracts/MockMaliciousQueryReverter.sol";
 
 //we're unable to implement IYearnTokenVault because it defines the decimals function, which collides with
 //the TestToken ERC20 implementation
-contract MockYearnTokenVault is TestToken {
+contract MockYearnTokenVault is TestToken, MockMaliciousQueryReverter {
     address private immutable _token;
     uint256 private _pricePerShare;
     uint256 private _totalSupply;
@@ -40,6 +41,7 @@ contract MockYearnTokenVault is TestToken {
     }
 
     function pricePerShare() external view returns (uint256) {
+        maybeRevertMaliciously();
         return _pricePerShare;
     }
 
@@ -77,6 +79,7 @@ contract MockYearnTokenVault is TestToken {
     }
 
     function totalAssets() external view returns (uint256) {
+        maybeRevertMaliciously();
         return totalSupply() * _pricePerShare / 10**decimals();
     }
 
@@ -85,6 +88,7 @@ contract MockYearnTokenVault is TestToken {
     }
 
     function totalSupply() public view virtual override returns (uint256) {
+        maybeRevertMaliciously();
         return _totalSupply;
     }
 

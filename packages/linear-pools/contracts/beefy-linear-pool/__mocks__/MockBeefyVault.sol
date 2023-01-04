@@ -15,10 +15,11 @@
 pragma solidity ^0.7.0;
 
 import "@orbcollective/shared-dependencies/contracts/TestToken.sol";
+import "@orbcollective/shared-dependencies/contracts/MockMaliciousQueryReverter.sol";
 
 //we're unable to implement IYearnTokenVault because it defines the decimals function, which collides with
 //the TestToken ERC20 implementation
-contract MockBeefyVault is TestToken {
+contract MockBeefyVault is TestToken, MockMaliciousQueryReverter {
     address public immutable want;
     uint256 private _balance;
 
@@ -32,6 +33,7 @@ contract MockBeefyVault is TestToken {
     }
 
     function balance() external view returns (uint256) {
+        maybeRevertMaliciously();
         return _balance;
     }
 

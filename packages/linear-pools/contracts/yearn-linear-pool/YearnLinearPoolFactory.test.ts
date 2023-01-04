@@ -34,7 +34,7 @@ async function deployBalancerContract(
 }
 
 describe('YearnLinearPoolFactory', function () {
-  let vault: Contract, tokens: TokenList, factory: Contract;
+  let authorizer: Contract, vault: Contract, tokens: TokenList, factory: Contract;
   let creationTime: BigNumber, admin: SignerWithAddress, owner: SignerWithAddress;
   let factoryVersion: string, poolVersion: string;
 
@@ -61,16 +61,15 @@ describe('YearnLinearPoolFactory', function () {
 
     // appease the @typescript-eslint/no-unused-vars lint error
     [, admin, owner] = await ethers.getSigners();
-    ({ vault, deployer } = await setupEnvironment());
+    ({ authorizer, vault, deployer } = await setupEnvironment());
     const manager = deployer;
 
     // Deploy tokens
-    const mockLendingPool = await deployPackageContract('MockYearnLendingPool');
     const mainToken = await deployToken('DAI', 18, deployer);
-    const wrappedTokenInstance = await deployPackageContract('MockYearnTokenVault', {
-      args: ['yvDAI', 'yvDAI', 18, mainToken.address, mockLendingPool.address],
+    const mockYearnTokenVault = await deployPackageContract('MockYearnTokenVault', {
+      args: ['yvDAI', 'yvDAI', 18, mainToken.address, fp(1)],
     });
-    const wrappedToken = await getPackageContractDeployedAt('TestToken', wrappedTokenInstance.address);
+    const wrappedToken = await getPackageContractDeployedAt('TestToken', mockYearnTokenVault.address);
 
     tokens = new TokenList([mainToken, wrappedToken]).sort();
 
@@ -277,27 +276,26 @@ describe('YearnLinearPoolFactory', function () {
       });
     });
 
-    // TODO These tests are important only for Aave Linear Pool, but should be tested properly.
-    //  To do so, we need to implement the authorizer
+    // TODO: Add these tests back in once the authorizer is implemented
 
     // context('with registered protocols', () => {
     //   beforeEach('grant permissions', async () => {
     //     const action = await actionId(factory, 'registerProtocolId');
-    //     await vault.authorizer.connect(admin).grantPermissions([action], admin.address, [factory.address]);
+    //     await (await authorizer.connect(admin)).grantPermissions([action], admin.address, [factory.address]);
     //   });
     //
     //   beforeEach('register some protocols', async () => {
     //     await factory.connect(admin).registerProtocolId(AAVE_PROTOCOL_ID, AAVE_PROTOCOL_NAME);
     //     await factory.connect(admin).registerProtocolId(BEEFY_PROTOCOL_ID, BEEFY_PROTOCOL_NAME);
     //     await factory.connect(admin).registerProtocolId(STURDY_PROTOCOL_ID, STURDY_PROTOCOL_NAME);
+    //     await factory.connect(admin).registerProtocolId(YEARN_PROTOCOL_ID, YEARN_PROTOCOL_NAME);
     //   });
     //
     //   it('protocol ID registration should emit an event', async () => {
     //     const OTHER_PROTOCOL_ID = 57;
     //     const OTHER_PROTOCOL_NAME = 'Protocol 57';
-    //
     //     const tx = await factory.connect(admin).registerProtocolId(OTHER_PROTOCOL_ID, OTHER_PROTOCOL_NAME);
-    //     expectEvent.inReceipt(await tx.wait(), 'AaveLinearPoolProtocolIdRegistered', {
+    //     expectEvent.inReceipt(await tx.wait(), 'YearnLinearPoolProtocolIdRegistered', {
     //       protocolId: OTHER_PROTOCOL_ID,
     //       name: OTHER_PROTOCOL_NAME,
     //     });
@@ -307,6 +305,7 @@ describe('YearnLinearPoolFactory', function () {
     //     expect(await factory.getProtocolName(AAVE_PROTOCOL_ID)).to.equal(AAVE_PROTOCOL_NAME);
     //     expect(await factory.getProtocolName(BEEFY_PROTOCOL_ID)).to.equal(BEEFY_PROTOCOL_NAME);
     //     expect(await factory.getProtocolName(STURDY_PROTOCOL_ID)).to.equal(STURDY_PROTOCOL_NAME);
+    //     expect(await factory.getProtocolName(YEARN_PROTOCOL_ID)).to.equal(YEARN_PROTOCOL_NAME);
     //   });
     //
     //   it('should fail when a protocol is already registered', async () => {

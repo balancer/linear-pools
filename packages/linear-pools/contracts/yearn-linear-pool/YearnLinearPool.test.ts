@@ -50,7 +50,7 @@ describe('YearnLinearPool', function () {
   let tokens: TokenList;
   let mainToken: Contract, wrappedToken: Contract;
   let poolFactory: Contract;
-  let mockLendingPool: Contract;
+  let mockYearnTokenVault: Contract;
   let guardian: SignerWithAddress, lp: SignerWithAddress, owner: SignerWithAddress;
   let manager: SignerWithAddress;
 
@@ -71,13 +71,11 @@ describe('YearnLinearPool', function () {
     guardian = trader;
 
     // Deploy tokens
-    mockLendingPool = await deployPackageContract('MockYearnLendingPool');
     mainToken = await deployToken('DAI', 18, deployer);
-    const wrappedTokenInstance = await deployPackageContract('MockYearnTokenVault', {
-      args: ['yvDAI', 'yvDAI', 18, mainToken.address, mockLendingPool.address],
+    mockYearnTokenVault = await deployPackageContract('MockYearnTokenVault', {
+      args: ['yvDAI', 'yvDAI', 18, mainToken.address, fp(1)],
     });
-    wrappedToken = await getPackageContractDeployedAt('TestToken', wrappedTokenInstance.address);
-
+    wrappedToken = await getPackageContractDeployedAt('TestToken', mockYearnTokenVault.address);
     tokens = new TokenList([mainToken, wrappedToken]).sort();
     await tokens.mint({ to: [lp, trader], amount: fp(100) });
 
@@ -155,29 +153,39 @@ describe('YearnLinearPool', function () {
   });
 
   describe('getWrappedTokenRate', () => {
-    context('under normal operation', () => {
+    context('when price per share is 100 and the supply is 100', () => {
       it('returns the expected value', async () => {
-        // Reserve's normalised income is stored with 27 decimals (i.e. a 'ray' value)
-        // 1e27 implies a 1:1 exchange rate between main and wrapped token
-        await mockLendingPool.setReserveNormalizedIncome(bn(1e27));
+        await mockYearnTokenVault.setPricePerShare(fp(100));
         expect(await pool.getWrappedTokenRate()).to.be.eq(fp(1));
+      });
+    });
 
-        // We now double the reserve's normalised income to change the exchange rate to 2:1
-        await mockLendingPool.setReserveNormalizedIncome(bn(2e27));
-        expect(await pool.getWrappedTokenRate()).to.be.eq(fp(2));
+    context('when price is 1.05 and total supply is 1', () => {
+      it('returns the expected value', async () => {
+        await mockYearnTokenVault.setTotalSupply(fp(1));
+        await mockYearnTokenVault.setPricePerShare(fp(1.05));
+        expect(await pool.getWrappedTokenRate()).to.be.eq(fp(1.05));
+      });
+    });
+
+    context('when price is 1.08 and total supply is 1', () => {
+      it('returns the expected value', async () => {
+        await mockYearnTokenVault.setTotalSupply(fp(1));
+        await mockYearnTokenVault.setPricePerShare(fp(1.08));
+        expect(await pool.getWrappedTokenRate()).to.be.eq(fp(1.08));
       });
     });
 
     context('when Yearn reverts maliciously to impersonate a swap query', () => {
       it('reverts with MALICIOUS_QUERY_REVERT', async () => {
-        await mockLendingPool.setRevertType(RevertType.MaliciousSwapQuery);
+        await mockYearnTokenVault.setRevertType(RevertType.MaliciousSwapQuery);
         await expect(pool.getWrappedTokenRate()).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
       });
     });
 
     context('when Yearn reverts maliciously to impersonate a join/exit query', () => {
       it('reverts with MALICIOUS_QUERY_REVERT', async () => {
-        await mockLendingPool.setRevertType(RevertType.MaliciousJoinExitQuery);
+        await mockYearnTokenVault.setRevertType(RevertType.MaliciousJoinExitQuery);
         await expect(pool.getWrappedTokenRate()).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
       });
     });
@@ -187,7 +195,7 @@ describe('YearnLinearPool', function () {
     context('when Yearn reverts maliciously to impersonate a swap query', () => {
       let rebalancer: Contract;
       beforeEach('provide initial liquidity to pool', async () => {
-        await mockLendingPool.setRevertType(RevertType.DoNotRevert);
+        await mockYearnTokenVault.setRevertType(RevertType.DoNotRevert);
         const poolId = await pool.getPoolId();
         await tokens.approve({ to: vault, amount: fp(100), from: lp });
         await vault.connect(lp).swap(
@@ -212,7 +220,7 @@ describe('YearnLinearPool', function () {
       });
 
       beforeEach('make Yearn lending pool start reverting', async () => {
-        await mockLendingPool.setRevertType(RevertType.MaliciousSwapQuery);
+        await mockYearnTokenVault.setRevertType(RevertType.MaliciousSwapQuery);
       });
 
       it('reverts with MALICIOUS_QUERY_REVERT', async () => {

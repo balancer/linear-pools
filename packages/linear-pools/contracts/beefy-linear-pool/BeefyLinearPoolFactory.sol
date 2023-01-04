@@ -35,8 +35,7 @@ contract BeefyLinearPoolFactory is
     IFactoryCreatedPoolVersion,
     Version,
     BasePoolFactory,
-    ReentrancyGuard,
-    FactoryWidePauseWindow
+    ReentrancyGuard
 {
     // Associate a name with each registered protocol that uses this factory.
     struct ProtocolIdData {
@@ -86,6 +85,24 @@ contract BeefyLinearPoolFactory is
         return _lastCreatedPool;
     }
 
+    /**
+     * @dev Return the pool version deployed by this factory.
+     */
+    function getPoolVersion() public view override returns (string memory) {
+        return _poolVersion;
+    }
+
+    /**
+     * @dev Return the name associated with the given protocolId, if registered.
+     */
+    function getProtocolName(uint256 protocolId) external view returns (string memory) {
+        ProtocolIdData memory protocolIdData = _protocolIds[protocolId];
+
+        require(protocolIdData.registered, "Protocol ID not registered");
+
+        return protocolIdData.name;
+    }
+
     function _create(bytes memory constructorArgs) internal virtual override returns (address) {
         address pool = super._create(constructorArgs);
         _lastCreatedPool = pool;
@@ -103,7 +120,8 @@ contract BeefyLinearPoolFactory is
         IERC20 wrappedToken,
         uint256 upperTarget,
         uint256 swapFeePercentage,
-        address owner
+        address owner,
+        uint256 protocolId
     ) external nonReentrant returns (LinearPool) {
         // We are going to deploy both an BeefyLinearPool and an BeefyLinearPoolRebalancer set as its Asset Manager,
         // but this creates a circular dependency problem: the Pool must know the Asset Manager's address in order to
@@ -130,19 +148,19 @@ contract BeefyLinearPoolFactory is
 
         (uint256 pauseWindowDuration, uint256 bufferPeriodDuration) = getPauseConfiguration();
 
-        BeefyLinearPool.ConstructorArgs memory args = BeefyLinearPool.ConstructorArgs({
-            vault: getVault(),
-            name: name,
-            symbol: symbol,
-            mainToken: mainToken,
-            wrappedToken: wrappedToken,
-            assetManager: expectedRebalancerAddress,
-            upperTarget: upperTarget,
-            swapFeePercentage: swapFeePercentage,
-            pauseWindowDuration: pauseWindowDuration,
-            bufferPeriodDuration: bufferPeriodDuration,
-            owner: owner
-        });
+        BeefyLinearPool.ConstructorArgs memory args;
+        args.vault = getVault();
+        args.name = name;
+        args.symbol = symbol;
+        args.mainToken = mainToken;
+        args.wrappedToken = wrappedToken;
+        args.assetManager = expectedRebalancerAddress;
+        args.upperTarget = upperTarget;
+        args.swapFeePercentage = swapFeePercentage;
+        args.pauseWindowDuration = pauseWindowDuration;
+        args.bufferPeriodDuration = bufferPeriodDuration;
+        args.owner = owner;
+        args.version = getPoolVersion();
 
         BeefyLinearPool pool = BeefyLinearPool(_create(abi.encode(args)));
 
@@ -155,7 +173,26 @@ contract BeefyLinearPoolFactory is
         address actualRebalancerAddress = Create2.deploy(0, rebalancerSalt, rebalancerCreationCode);
         require(expectedRebalancerAddress == actualRebalancerAddress, "Rebalancer deployment failed");
 
+        // Identify the protocolId associated with this pool. We do not require that protocolId be registered.
+        emit BeefyLinearPoolCreated(address(pool), protocolId);
+
         // We don't return the Rebalancer's address, but that can be queried in the Vault by calling `getPoolTokenInfo`.
         return pool;
+    }
+
+    /**
+     * @notice Register an id (and name) to differentiate between multiple protocols using this factory.
+     * @dev This is a permissioned function. Protocol ids cannot be deregistered.
+     */
+    function registerProtocolId(uint256 protocolId, string memory name) external authenticate {
+        require(!_protocolIds[protocolId].registered, "Protocol ID already registered");
+
+        _registerProtocolId(protocolId, name);
+    }
+
+    function _registerProtocolId(uint256 protocolId, string memory name) private {
+        _protocolIds[protocolId] = ProtocolIdData({ name: name, registered: true });
+
+        emit BeefyLinearPoolProtocolIdRegistered(protocolId, name);
     }
 }

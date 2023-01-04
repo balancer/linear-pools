@@ -50,7 +50,7 @@ describe('BeefyLinearPool', function () {
   let tokens: TokenList;
   let mainToken: Contract, wrappedToken: Contract;
   let poolFactory: Contract;
-  let mockLendingPool: Contract;
+  let mockBeefyVault: Contract;
   let guardian: SignerWithAddress, lp: SignerWithAddress, owner: SignerWithAddress;
   let manager: SignerWithAddress;
 
@@ -71,12 +71,11 @@ describe('BeefyLinearPool', function () {
     guardian = trader;
 
     // Deploy tokens
-    mockLendingPool = await deployPackageContract('MockBeefyLendingPool');
     mainToken = await deployToken('DAI', 18, deployer);
-    const wrappedTokenInstance = await deployPackageContract('MockBeefyVault', {
-      args: ['mooDAI', 'mooDAI', 18, mainToken.address, mockLendingPool.address],
+    mockBeefyVault = await deployPackageContract('MockBeefyVault', {
+      args: ['mooDAI', 'mooDAI', 18, mainToken.address],
     });
-    wrappedToken = await getPackageContractDeployedAt('TestToken', wrappedTokenInstance.address);
+    wrappedToken = await getPackageContractDeployedAt('TestToken', mockBeefyVault.address);
 
     tokens = new TokenList([mainToken, wrappedToken]).sort();
     await tokens.mint({ to: [lp, trader], amount: fp(100) });
@@ -155,29 +154,40 @@ describe('BeefyLinearPool', function () {
   });
 
   describe('getWrappedTokenRate', () => {
-    context('under normal operation', () => {
+    context('with a supply of 200 and a balance of 100', () => {
       it('returns the expected value', async () => {
-        // Reserve's normalised income is stored with 27 decimals (i.e. a 'ray' value)
-        // 1e27 implies a 1:1 exchange rate between main and wrapped token
-        await mockLendingPool.setReserveNormalizedIncome(bn(1e27));
-        expect(await pool.getWrappedTokenRate()).to.be.eq(fp(1));
+        // Set the total supply for mooDAI to get the exchange rate
+        await mockBeefyVault.setBalance(fp(100));
+        expect(await pool.getWrappedTokenRate()).to.be.eq(fp(0.5));
+      });
+    });
 
-        // We now double the reserve's normalised income to change the exchange rate to 2:1
-        await mockLendingPool.setReserveNormalizedIncome(bn(2e27));
+    context('with a supply of 200 and a balance of 200', () => {
+      it('returns the expected value', async () => {
+        // Set the total supply for mooDAI to get the exchange rate
+        await mockBeefyVault.setBalance(fp(200));
+        expect(await pool.getWrappedTokenRate()).to.be.eq(fp(1));
+      });
+    });
+
+    context('with a supply of 200 and a balance of 400', () => {
+      it('returns the expected value', async () => {
+        // Set the total supply for mooDAI to get the exchange rate
+        await mockBeefyVault.setBalance(fp(400));
         expect(await pool.getWrappedTokenRate()).to.be.eq(fp(2));
       });
     });
 
     context('when Beefy reverts maliciously to impersonate a swap query', () => {
       it('reverts with MALICIOUS_QUERY_REVERT', async () => {
-        await mockLendingPool.setRevertType(RevertType.MaliciousSwapQuery);
+        await mockBeefyVault.setRevertType(RevertType.MaliciousSwapQuery);
         await expect(pool.getWrappedTokenRate()).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
       });
     });
 
     context('when Beefy reverts maliciously to impersonate a join/exit query', () => {
       it('reverts with MALICIOUS_QUERY_REVERT', async () => {
-        await mockLendingPool.setRevertType(RevertType.MaliciousJoinExitQuery);
+        await mockBeefyVault.setRevertType(RevertType.MaliciousJoinExitQuery);
         await expect(pool.getWrappedTokenRate()).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
       });
     });
@@ -187,7 +197,7 @@ describe('BeefyLinearPool', function () {
     context('when Beefy reverts maliciously to impersonate a swap query', () => {
       let rebalancer: Contract;
       beforeEach('provide initial liquidity to pool', async () => {
-        await mockLendingPool.setRevertType(RevertType.DoNotRevert);
+        await mockBeefyVault.setRevertType(RevertType.DoNotRevert);
         const poolId = await pool.getPoolId();
         await tokens.approve({ to: vault, amount: fp(100), from: lp });
         await vault.connect(lp).swap(
@@ -212,7 +222,7 @@ describe('BeefyLinearPool', function () {
       });
 
       beforeEach('make Beefy lending pool start reverting', async () => {
-        await mockLendingPool.setRevertType(RevertType.MaliciousSwapQuery);
+        await mockBeefyVault.setRevertType(RevertType.MaliciousSwapQuery);
       });
 
       it('reverts with MALICIOUS_QUERY_REVERT', async () => {

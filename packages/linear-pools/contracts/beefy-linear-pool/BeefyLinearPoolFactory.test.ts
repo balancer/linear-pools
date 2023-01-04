@@ -21,10 +21,10 @@ import TokenList from '@orbcollective/shared-dependencies/test-helpers/token/Tok
 import { actionId } from '@orbcollective/shared-dependencies/test-helpers/actions';
 
 async function deployBalancerContract(
-    task: string,
-    contractName: string,
-    deployer: SignerWithAddress,
-    args: unknown[]
+  task: string,
+  contractName: string,
+  deployer: SignerWithAddress,
+  args: unknown[]
 ): Promise<Contract> {
   const artifact = await getBalancerContractArtifact(task, contractName);
   const factory = new ethers.ContractFactory(artifact.abi, artifact.bytecode, deployer);
@@ -34,7 +34,7 @@ async function deployBalancerContract(
 }
 
 describe('BeefyLinearPoolFactory', function () {
-  let vault: Contract, tokens: TokenList, factory: Contract;
+  let authorizer: Contract, vault: Contract, tokens: TokenList, factory: Contract;
   let creationTime: BigNumber, admin: SignerWithAddress, owner: SignerWithAddress;
   let factoryVersion: string, poolVersion: string;
 
@@ -61,16 +61,15 @@ describe('BeefyLinearPoolFactory', function () {
 
     // appease the @typescript-eslint/no-unused-vars lint error
     [, admin, owner] = await ethers.getSigners();
-    ({ vault, deployer } = await setupEnvironment());
+    ({ authorizer, vault, deployer } = await setupEnvironment());
     const manager = deployer;
 
     // Deploy tokens
-    const mockLendingPool = await deployPackageContract('MockBeefyLendingPool');
     const mainToken = await deployToken('DAI', 18, deployer);
-    const wrappedTokenInstance = await deployPackageContract('MockBeefyTokenVault', {
-      args: ['mooDAI', 'mooDAI', 18, mainToken.address, mockLendingPool.address],
+    const mockBeefVault = await deployPackageContract('MockBeefyVault', {
+      args: ['mooDAI', 'mooDAI', 18, mainToken.address],
     });
-    const wrappedToken = await getPackageContractDeployedAt('TestToken', wrappedTokenInstance.address);
+    const wrappedToken = await getPackageContractDeployedAt('TestToken', mockBeefVault.address);
 
     tokens = new TokenList([mainToken, wrappedToken]).sort();
 
@@ -110,14 +109,14 @@ describe('BeefyLinearPoolFactory', function () {
     const DAI = await tokens.getTokenBySymbol('DAI');
     const yvDAI = await tokens.getTokenBySymbol('mooDAI');
     const tx = await factory.create(
-        NAME,
-        SYMBOL,
-        DAI.address,
-        yvDAI.address,
-        UPPER_TARGET,
-        POOL_SWAP_FEE_PERCENTAGE,
-        owner.address,
-        BEEFY_PROTOCOL_ID
+      NAME,
+      SYMBOL,
+      DAI.address,
+      yvDAI.address,
+      UPPER_TARGET,
+      POOL_SWAP_FEE_PERCENTAGE,
+      owner.address,
+      BEEFY_PROTOCOL_ID
     );
 
     const receipt = await tx.wait();
@@ -277,13 +276,12 @@ describe('BeefyLinearPoolFactory', function () {
       });
     });
 
-    // TODO These tests are important only for Aave Linear Pool, but should be tested properly.
-    //  To do so, we need to implement the authorizer
+    // TODO: Add these tests back in once the authorizer is implemented
 
     // context('with registered protocols', () => {
     //   beforeEach('grant permissions', async () => {
     //     const action = await actionId(factory, 'registerProtocolId');
-    //     await vault.authorizer.connect(admin).grantPermissions([action], admin.address, [factory.address]);
+    //     await (await authorizer.connect(admin)).grantPermissions([action], admin.address, [factory.address]);
     //   });
     //
     //   beforeEach('register some protocols', async () => {
@@ -295,9 +293,8 @@ describe('BeefyLinearPoolFactory', function () {
     //   it('protocol ID registration should emit an event', async () => {
     //     const OTHER_PROTOCOL_ID = 57;
     //     const OTHER_PROTOCOL_NAME = 'Protocol 57';
-    //
     //     const tx = await factory.connect(admin).registerProtocolId(OTHER_PROTOCOL_ID, OTHER_PROTOCOL_NAME);
-    //     expectEvent.inReceipt(await tx.wait(), 'AaveLinearPoolProtocolIdRegistered', {
+    //     expectEvent.inReceipt(await tx.wait(), 'BeefyLinearPoolProtocolIdRegistered', {
     //       protocolId: OTHER_PROTOCOL_ID,
     //       name: OTHER_PROTOCOL_NAME,
     //     });
