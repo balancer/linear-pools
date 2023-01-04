@@ -34,7 +34,7 @@ async function deployBalancerContract(
 }
 
 describe('ERC4626LinearPoolFactory', function () {
-  let vault: Contract, tokens: TokenList, factory: Contract;
+  let authorizer: Contract, vault: Contract, tokens: TokenList, factory: Contract;
   let creationTime: BigNumber, admin: SignerWithAddress, owner: SignerWithAddress;
   let factoryVersion: string, poolVersion: string;
 
@@ -55,7 +55,7 @@ describe('ERC4626LinearPoolFactory', function () {
 
     // appease the @typescript-eslint/no-unused-vars lint error
     [, admin, owner] = await ethers.getSigners();
-    ({ vault, deployer } = await setupEnvironment());
+    ({ authorizer, vault, deployer } = await setupEnvironment());
     const manager = deployer;
 
     // Deploy tokens
@@ -270,43 +270,36 @@ describe('ERC4626LinearPoolFactory', function () {
       });
     });
 
-    // TODO These tests are important only for Erc4626 Linear Pool, but should be tested properly.
-    //  To do so, we need to implement the authorizer
+    context('with registered protocols', () => {
+      beforeEach('grant permissions', async () => {
+        const action = await actionId(factory, 'registerProtocolId');
+        await authorizer.connect(admin).grantPermissions([action], admin.address, [factory.address]);
+      });
 
-    // context('with registered protocols', () => {
-    //   beforeEach('grant permissions', async () => {
-    //     const action = await actionId(factory, 'registerProtocolId');
-    //     await vault.authorizer.connect(admin).grantPermissions([action], admin.address, [factory.address]);
-    //   });
-    //
-    //   beforeEach('register some protocols', async () => {
-    //     await factory.connect(admin).registerProtocolId(ERC4626_PROTOCOL_ID, ERC4626_PROTOCOL_NAME);
-    //     await factory.connect(admin).registerProtocolId(BEEFY_PROTOCOL_ID, BEEFY_PROTOCOL_NAME);
-    //     await factory.connect(admin).registerProtocolId(STURDY_PROTOCOL_ID, STURDY_PROTOCOL_NAME);
-    //   });
-    //
-    //   it('protocol ID registration should emit an event', async () => {
-    //     const OTHER_PROTOCOL_ID = 57;
-    //     const OTHER_PROTOCOL_NAME = 'Protocol 57';
-    //
-    //     const tx = await factory.connect(admin).registerProtocolId(OTHER_PROTOCOL_ID, OTHER_PROTOCOL_NAME);
-    //     expectEvent.inReceipt(await tx.wait(), 'Erc4626LinearPoolProtocolIdRegistered', {
-    //       protocolId: OTHER_PROTOCOL_ID,
-    //       name: OTHER_PROTOCOL_NAME,
-    //     });
-    //   });
-    //
-    //   it('should register protocols', async () => {
-    //     expect(await factory.getProtocolName(ERC4626_PROTOCOL_ID)).to.equal(ERC4626_PROTOCOL_NAME);
-    //     expect(await factory.getProtocolName(BEEFY_PROTOCOL_ID)).to.equal(BEEFY_PROTOCOL_NAME);
-    //     expect(await factory.getProtocolName(STURDY_PROTOCOL_ID)).to.equal(STURDY_PROTOCOL_NAME);
-    //   });
-    //
-    //   it('should fail when a protocol is already registered', async () => {
-    //     await expect(
-    //       factory.connect(admin).registerProtocolId(STURDY_PROTOCOL_ID, 'Random protocol')
-    //     ).to.be.revertedWith('Protocol ID already registered');
-    //   });
-    // });
+      beforeEach('register some protocols', async () => {
+        await factory.connect(admin).registerProtocolId(ERC4626_PROTOCOL_ID, ERC4626_PROTOCOL_NAME);
+      });
+
+      it('protocol ID registration should emit an event', async () => {
+        const OTHER_PROTOCOL_ID = 57;
+        const OTHER_PROTOCOL_NAME = 'Protocol 57';
+
+        const tx = await factory.connect(admin).registerProtocolId(OTHER_PROTOCOL_ID, OTHER_PROTOCOL_NAME);
+        expectEvent.inReceipt(await tx.wait(), 'Erc4626LinearPoolProtocolIdRegistered', {
+          protocolId: OTHER_PROTOCOL_ID,
+          name: OTHER_PROTOCOL_NAME,
+        });
+      });
+
+      it('should register protocols', async () => {
+        expect(await factory.getProtocolName(ERC4626_PROTOCOL_ID)).to.equal(ERC4626_PROTOCOL_NAME);
+      });
+
+      it('should fail when a protocol is already registered', async () => {
+        await expect(
+          factory.connect(admin).registerProtocolId(ERC4626_PROTOCOL_ID, 'Random protocol')
+        ).to.be.revertedWith('Protocol ID already registered');
+      });
+    });
   });
 });
