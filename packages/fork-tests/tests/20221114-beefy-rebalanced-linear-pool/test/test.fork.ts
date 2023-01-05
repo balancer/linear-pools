@@ -1,37 +1,43 @@
 import hre from 'hardhat';
 import { expect } from 'chai';
 import { Contract } from 'ethers';
-import * as expectEvent from '@balancer-labs/v2-helpers/src/test/expectEvent';
-import { bn, fp, FP_ONE } from '@balancer-labs/v2-helpers/src/numbers';
-import { describeForkTest } from '../../../src/forkTests';
-import Task, { TaskMode } from '../../../src/task';
-import { getForkedNetwork } from '../../../src/test';
-import { getSigners, impersonate } from '../../../src/signers';
-import { MAX_UINT256 } from '@balancer-labs/v2-helpers/src/constants';
+import { setCode } from '@nomicfoundation/hardhat-network-helpers';
+import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
+import { bn, fp, FP_ONE } from '@orbcollective/shared-dependencies/numbers';
+import { MAX_UINT256 } from '@orbcollective/shared-dependencies';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
-import { SwapKind } from '@balancer-labs/balancer-js';
+
+import { impersonate, getForkedNetwork, Task, TaskMode, getSigners } from '../../../src';
+import { describeForkTest } from '../../../src/forkTests';
+
+export enum SwapKind {
+  GivenIn = 0,
+  GivenOut,
+}
 
 describeForkTest('BeefyLinearPoolFactory', 'optimism', 38313066, function () {
-  const USDC = '0x7f5c764cbc14f9669b88837ca1490cca17c31607';
-  const mooAaveUSDC = '0x920abfa9d1c99be993e5399634c6d5e1be55a3f4';
-  const USDC_HOLDER = '0xf390830df829cf22c53c8840554b98eafc5dcbc2';
-
   let owner: SignerWithAddress, holder: SignerWithAddress, other: SignerWithAddress;
   let factory: Contract, vault: Contract, usdc: Contract;
   let rebalancer: Contract;
 
   let task: Task;
 
+  const USDC = '0x7f5c764cbc14f9669b88837ca1490cca17c31607';
+  const mooAaveUSDC = '0x920abfa9d1c99be993e5399634c6d5e1be55a3f4';
+  const USDC_HOLDER = '0xf390830df829cf22c53c8840554b98eafc5dcbc2';
+
   const USDC_SCALING = bn(1e12); // USDC has 6 decimals, so its scaling factor is 1e12
 
   const SWAP_FEE_PERCENTAGE = fp(0.01); // 1%
 
   // The targets are set using 18 decimals, even if the token has fewer (as is the case for USDC);
-  const INITIAL_UPPER_TARGET = fp(1e2);
+  const INITIAL_UPPER_TARGET = fp(1e7);
 
   // The initial midpoint (upper target / 2) must be between the final lower and upper targets
-  const FINAL_LOWER_TARGET = fp(0.2e2);
-  const FINAL_UPPER_TARGET = fp(5e2);
+  const FINAL_LOWER_TARGET = fp(0.2e7);
+  const FINAL_UPPER_TARGET = fp(5e7);
+
+  const PROTOCOL_ID = 1;
 
   let pool: Contract;
   let poolId: string;
@@ -98,25 +104,33 @@ describeForkTest('BeefyLinearPoolFactory', 'optimism', 38313066, function () {
         // error in the main-wrapped conversion).
         expect(finalRecipientMainBalance.sub(initialRecipientMainBalance)).to.be.almostEqual(
           fees.div(USDC_SCALING),
-          0.0001
+          0.00000001
         );
       } else {
         // The recipient of the rebalance call will get any extra main tokens that were not utilized.
-        expect(finalRecipientMainBalance).to.be.almostEqual(initialRecipientMainBalance, 0.0001);
+        expect(finalRecipientMainBalance).to.be.almostEqual(initialRecipientMainBalance, 0.00000001);
       }
 
       const mainInfo = await vault.getPoolTokenInfo(poolId, USDC);
 
       const expectedMainBalance = lowerTarget.add(upperTarget).div(2);
-
       expect(mainInfo.cash.mul(USDC_SCALING)).to.equal(expectedMainBalance);
       expect(mainInfo.managed).to.equal(0);
     });
   }
 
-  describe('create, join, and rebalance', () => {
+  describe('create and check getters', () => {
     it('deploy a linear pool', async () => {
-      const tx = await factory.create('', '', USDC, mooAaveUSDC, INITIAL_UPPER_TARGET, SWAP_FEE_PERCENTAGE, owner.address);
+      const tx = await factory.create(
+        'USDC',
+        'mooAaveUSDC',
+        USDC,
+        mooAaveUSDC,
+        INITIAL_UPPER_TARGET,
+        SWAP_FEE_PERCENTAGE,
+        owner.address,
+        PROTOCOL_ID
+      );
       const event = expectEvent.inReceipt(await tx.wait(), 'PoolCreated');
 
       pool = await task.instanceAt('BeefyLinearPool', event.args.pool);
@@ -132,6 +146,28 @@ describeForkTest('BeefyLinearPoolFactory', 'optimism', 38313066, function () {
       await usdc.connect(holder).approve(rebalancer.address, MAX_UINT256); // To send extra main on rebalance
     });
 
+    it('check factory version', async () => {
+      const expectedFactoryVersion = {
+        name: 'BeefyLinearPoolFactory',
+        version: 1,
+        deployment: '20221114-beefy-rebalanced-linear-pool',
+      };
+
+      expect(await factory.version()).to.equal(JSON.stringify(expectedFactoryVersion));
+    });
+
+    it('check pool version', async () => {
+      const expectedPoolVersion = {
+        name: 'BeefyLinearPool',
+        version: 3,
+        deployment: '20221114-beefy-rebalanced-linear-pool',
+      };
+
+      expect(await pool.version()).to.equal(JSON.stringify(expectedPoolVersion));
+    });
+  });
+
+  describe('join, and rebalance', () => {
     it('join the pool', async () => {
       // We're going to join with enough main token to bring the Pool above its upper target, which will let us later
       // rebalance.
@@ -214,7 +250,7 @@ describeForkTest('BeefyLinearPoolFactory', 'optimism', 38313066, function () {
 
   describe('join below upper target and rebalance', () => {
     it('deposit main tokens', async () => {
-      // We're going to join with few tokens, causing for the Pool to not reach its upper target.
+      // We're going to join with few tokens, causing the Pool to not reach its upper target.
 
       const { lowerTarget, upperTarget } = await pool.getTargets();
       const midpoint = lowerTarget.add(upperTarget).div(2);

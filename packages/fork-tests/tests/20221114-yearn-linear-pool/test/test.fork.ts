@@ -34,11 +34,13 @@ describeForkTest('YearnLinearPoolFactory', 'optimism', 38556442, function () {
   const FINAL_LOWER_TARGET = fp(0.2e5);
   const FINAL_UPPER_TARGET = fp(5e5);
 
+  const PROTOCOL_ID = 3;
+
   let pool: Contract;
   let poolId: string;
 
   before('run task', async () => {
-    task = new Task('20221114-yearn-linear-pool', TaskMode.TEST, getForkedNetwork(hre));
+    task = new Task('20221114-yearn-rebalanced-linear-pool', TaskMode.TEST, getForkedNetwork(hre));
     await task.run({ force: true });
     factory = await task.deployedInstance('YearnLinearPoolFactory');
   });
@@ -65,6 +67,7 @@ describeForkTest('YearnLinearPoolFactory', 'optimism', 38556442, function () {
   function itRebalancesThePool(expectedState: LinearPoolState) {
     it('rebalance the pool', async () => {
       const { lowerTarget, upperTarget } = await pool.getTargets();
+
       const { cash } = await vault.getPoolTokenInfo(poolId, USDC);
       const scaledCash = cash.mul(USDC_SCALING);
 
@@ -113,9 +116,18 @@ describeForkTest('YearnLinearPoolFactory', 'optimism', 38556442, function () {
     });
   }
 
-  describe('create, join, and rebalance', () => {
+  describe('create and check getters', () => {
     it('deploy a linear pool', async () => {
-      const tx = await factory.create('', '', USDC, yvUSDC, INITIAL_UPPER_TARGET, SWAP_FEE_PERCENTAGE, owner.address);
+      const tx = await factory.create(
+        'USDC',
+        'yvUSDC',
+        USDC,
+        yvUSDC,
+        INITIAL_UPPER_TARGET,
+        SWAP_FEE_PERCENTAGE,
+        owner.address,
+        PROTOCOL_ID
+      );
       const event = expectEvent.inReceipt(await tx.wait(), 'PoolCreated');
 
       pool = await task.instanceAt('YearnLinearPool', event.args.pool);
@@ -131,6 +143,28 @@ describeForkTest('YearnLinearPoolFactory', 'optimism', 38556442, function () {
       await usdc.connect(holder).approve(rebalancer.address, MAX_UINT256); // To send extra main on rebalance
     });
 
+    it('check factory version', async () => {
+      const expectedFactoryVersion = {
+        name: 'YearnLinearPoolFactory',
+        version: 1,
+        deployment: '20221114-yearn-linear-pool',
+      };
+
+      expect(await factory.version()).to.equal(JSON.stringify(expectedFactoryVersion));
+    });
+
+    it('check pool version', async () => {
+      const expectedPoolVersion = {
+        name: 'YearnLinearPool',
+        version: 1,
+        deployment: '20221114-yearn-linear-pool',
+      };
+
+      expect(await pool.version()).to.equal(JSON.stringify(expectedPoolVersion));
+    });
+  });
+
+  describe('join, and rebalance', () => {
     it('join the pool', async () => {
       // We're going to join with enough main token to bring the Pool above its upper target, which will let us later
       // rebalance.
@@ -213,7 +247,7 @@ describeForkTest('YearnLinearPoolFactory', 'optimism', 38556442, function () {
 
   describe('join below upper target and rebalance', () => {
     it('deposit main tokens', async () => {
-      // We're going to join with few tokens, causing for the Pool to not reach its upper target.
+      // We're going to join with few tokens, causing the Pool to not reach its upper target.
 
       const { lowerTarget, upperTarget } = await pool.getTargets();
       const midpoint = lowerTarget.add(upperTarget).div(2);
