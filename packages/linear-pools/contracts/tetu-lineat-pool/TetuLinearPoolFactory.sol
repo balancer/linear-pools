@@ -26,10 +26,10 @@ import "@balancer-labs/v2-pool-utils/contracts/factories/BasePoolFactory.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/Create2.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ReentrancyGuard.sol";
 
-import "./GearboxLinearPool.sol";
-import "./GearboxLinearPoolRebalancer.sol";
+import "./TetuLinearPool.sol";
+import "./TetuLinearPoolRebalancer.sol";
 
-contract GearboxLinearPoolFactory is
+contract TetuLinearPoolFactory is
     ILastCreatedPoolFactory,
     IFactoryCreatedPoolVersion,
     Version,
@@ -54,11 +54,11 @@ contract GearboxLinearPoolFactory is
     mapping(uint256 => ProtocolIdData) private _protocolIds;
 
     // This event allows off-chain tools to differentiate between different protocols that use this factory
-    // to deploy Gearbox Linear Pools.
-    event GearboxLinearPoolCreated(address indexed pool, uint256 indexed protocolId);
+    // to deploy Tetu Linear Pools.
+    event TetuLinearPoolCreated(address indexed pool, uint256 indexed protocolId);
 
     // Record protocol ID registrations.
-    event GearboxLinearPoolProtocolIdRegistered(uint256 indexed protocolId, string name);
+    event TetuLinearPoolProtocolIdRegistered(uint256 indexed protocolId, string name);
 
     constructor(
         IVault vault,
@@ -74,7 +74,7 @@ contract GearboxLinearPoolFactory is
         protocolFeeProvider,
         initialPauseWindowDuration,
         bufferPeriodDuration,
-        type(GearboxLinearPool).creationCode
+        type(TetuLinearPool).creationCode
     )
     Version(factoryVersion)
     {
@@ -112,7 +112,7 @@ contract GearboxLinearPoolFactory is
     }
 
     /**
-     * @dev Deploys a new `GearboxLinearPool` with a given protocolId.
+     * @dev Deploys a new `TetuLinearPool`.
      */
     function create(
         string memory name,
@@ -123,33 +123,33 @@ contract GearboxLinearPoolFactory is
         uint256 swapFeePercentage,
         address owner,
         uint256 protocolId
-    ) external nonReentrant returns (GearboxLinearPool) {
-        // We are going to deploy both an GearboxLinearPool and an GearboxLinearPoolRebalancer set as its Asset
-        // Manager, but this creates a circular dependency problem: the Pool must know the Asset Manager's address
-        // in order to call `IVault.registerTokens` with it, and the Asset Manager must know about the Pool in order
-        // to store its Pool ID, wrapped and main tokens, etc., as immutable variables. We could forego immutable
-        // storage in the Rebalancer and simply have a two-step initialization process that uses storage, but we
-        // can keep those gas savings by instead making the deployment a bit more complicated.
+    ) external nonReentrant returns (LinearPool) {
+        // We are going to deploy both an TetuLinearPool and an TetuLinearPoolRebalancer set as its Asset Manager,
+        // but this creates a circular dependency problem: the Pool must know the Asset Manager's address in order to
+        // call `IVault.registerTokens` with it, and the Asset Manager must know about the Pool in order to store its
+        // Pool ID, wrapped and main tokens, etc., as immutable variables.
+        // We could forego immutable storage in the Rebalancer and simply have a two-step initialization process that
+        // uses storage, but we can keep those gas savings by instead making the deployment a bit more complicated.
         //
         // Note that the Pool does not interact with the Asset Manager: it only needs to know about its address.
-        // We therefore use create2 to deploy the Asset Manager, first computing the address where it will be
-        // deployed. With that knowledge, we can then create the Pool, and finally the Asset Manager. The only issue
-        // with this approach is that create2 requires the full creation code, including constructor arguments, and
-        // among those is the Pool's address. To work around this, we have the Rebalancer fetch this address from
-        // `getLastCreatedPool`, which will hold the Pool's address after we call `_create`.
+        // We therefore use create2 to deploy the Asset Manager, first computing the address where it will be deployed.
+        // With that knowledge, we can then create the Pool, and finally the Asset Manager. The only issue with this
+        // approach is that create2 requires the full creation code, including constructor arguments, and among those is
+        // the Pool's address. To work around this, we have the Rebalancer fetch this address from `getLastCreatedPool`,
+        // which will hold the Pool's address after we call `_create`.
 
         bytes32 rebalancerSalt = bytes32(_nextRebalancerSalt);
         _nextRebalancerSalt += 1;
 
         bytes memory rebalancerCreationCode = abi.encodePacked(
-            type(GearboxLinearPoolRebalancer).creationCode,
+            type(TetuLinearPoolRebalancer).creationCode,
             abi.encode(getVault(), _queries)
         );
         address expectedRebalancerAddress = Create2.computeAddress(rebalancerSalt, keccak256(rebalancerCreationCode));
 
         (uint256 pauseWindowDuration, uint256 bufferPeriodDuration) = getPauseConfiguration();
 
-        GearboxLinearPool.ConstructorArgs memory args;
+        TetuLinearPool.ConstructorArgs memory args;
         args.vault = getVault();
         args.name = name;
         args.symbol = symbol;
@@ -163,19 +163,19 @@ contract GearboxLinearPoolFactory is
         args.owner = owner;
         args.version = getPoolVersion();
 
-        GearboxLinearPool pool = GearboxLinearPool(_create(abi.encode(args)));
+        TetuLinearPool pool = TetuLinearPool(_create(abi.encode(args)));
 
         // LinearPools have a separate post-construction initialization step: we perform it here to
         // ensure deployment and initialization are atomic.
         pool.initialize();
 
-        // Not that the Linear Pool's deployment is complete, we can deploy the Rebalancer, verifying that we
-        // correctly predicted its deployment address.
+        // Not that the Linear Pool's deployment is complete, we can deploy the Rebalancer, verifying that we correctly
+        // predicted its deployment address.
         address actualRebalancerAddress = Create2.deploy(0, rebalancerSalt, rebalancerCreationCode);
         require(expectedRebalancerAddress == actualRebalancerAddress, "Rebalancer deployment failed");
 
         // Identify the protocolId associated with this pool. We do not require that the protocolId be registered.
-        emit GearboxLinearPoolCreated(address(pool), protocolId);
+        emit TetuLinearPoolCreated(address(pool), protocolId);
 
         // We don't return the Rebalancer's address, but that can be queried in the Vault by calling
         // `getPoolTokenInfo`.
@@ -195,6 +195,6 @@ contract GearboxLinearPoolFactory is
     function _registerProtocolId(uint256 protocolId, string memory name) private {
         _protocolIds[protocolId] = ProtocolIdData({ name: name, registered: true });
 
-        emit GearboxLinearPoolProtocolIdRegistered(protocolId, name);
+        emit TetuLinearPoolProtocolIdRegistered(protocolId, name);
     }
 }
