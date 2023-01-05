@@ -14,10 +14,12 @@
 
 pragma solidity >=0.7.0 <0.9.0;
 
-import "@balancer-labs/v2-interfaces/contracts/pool-linear/ITetuSmartVault.sol";
-import "@balancer-labs/v2-solidity-utils/contracts/test/TestToken.sol";
+import "../interfaces/ITetuSmartVault.sol";
+
+import "@orbcollective/shared-dependencies/contracts/MaliciousQueryReverter.sol";
+import "@orbcollective/shared-dependencies/contracts/TestToken.sol";
+
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeERC20.sol";
-import "@balancer-labs/v2-pool-utils/contracts/test/MaliciousQueryReverter.sol";
 
 contract MockTetuSmartVault is ITetuSmartVault, TestToken, MaliciousQueryReverter {
     using SafeERC20 for IERC20;
