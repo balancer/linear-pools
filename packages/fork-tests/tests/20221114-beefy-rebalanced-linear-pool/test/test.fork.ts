@@ -159,7 +159,7 @@ describeForkTest('BeefyLinearPoolFactory', 'optimism', 38313066, function () {
     it('check pool version', async () => {
       const expectedPoolVersion = {
         name: 'BeefyLinearPool',
-        version: 3,
+        version: 1,
         deployment: '20221114-beefy-rebalanced-linear-pool',
       };
 

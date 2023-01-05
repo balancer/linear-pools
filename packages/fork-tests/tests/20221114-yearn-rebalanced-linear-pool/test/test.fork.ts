@@ -1,15 +1,18 @@
 import hre from 'hardhat';
 import { expect } from 'chai';
 import { Contract } from 'ethers';
-import * as expectEvent from '@balancer-labs/v2-helpers/src/test/expectEvent';
-import { bn, fp, FP_ONE } from '@balancer-labs/v2-helpers/src/numbers';
-import { describeForkTest } from '../../../src/forkTests';
-import Task, { TaskMode } from '../../../src/task';
-import { getForkedNetwork } from '../../../src/test';
-import { getSigners, impersonate } from '../../../src/signers';
-import { MAX_UINT256 } from '@balancer-labs/v2-helpers/src/constants';
+import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
+import { bn, fp, FP_ONE } from '@orbcollective/shared-dependencies/numbers';
+import { MAX_UINT256 } from '@orbcollective/shared-dependencies';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
-import { SwapKind } from '@balancer-labs/balancer-js';
+
+import { impersonate, getForkedNetwork, Task, TaskMode, getSigners } from '../../../src';
+import { describeForkTest } from '../../../src/forkTests';
+
+export enum SwapKind {
+  GivenIn = 0,
+  GivenOut,
+}
 
 describeForkTest('YearnLinearPoolFactory', 'optimism', 38556442, function () {
   let owner: SignerWithAddress, holder: SignerWithAddress, other: SignerWithAddress;
@@ -157,7 +160,7 @@ describeForkTest('YearnLinearPoolFactory', 'optimism', 38556442, function () {
       const expectedPoolVersion = {
         name: 'YearnLinearPool',
         version: 1,
-        deployment: '20221114-yearn-linear-pool',
+        deployment: '20221114-yearn-rebalanced-linear-pool',
       };
 
       expect(await pool.version()).to.equal(JSON.stringify(expectedPoolVersion));

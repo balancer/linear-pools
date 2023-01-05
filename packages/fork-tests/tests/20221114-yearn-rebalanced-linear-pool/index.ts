@@ -1,14 +1,14 @@
 import { bn } from '@orbcollective/shared-dependencies/numbers';
 import Task, { TaskMode } from '../../src/task';
 import { TaskRunOptions } from '../../src/task-libraries/types';
-import { BeefyLinearPoolDeployment } from './input';
+import { YearnLinearPoolDeployment } from './input';
 import { ZERO_ADDRESS } from '@orbcollective/shared-dependencies';
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import { ethers } from 'hardhat';
 import { getContractDeploymentTransactionHash, saveContractDeploymentTransactionHash } from '../../src';
 
 export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise<void> => {
-  const input = task.input() as BeefyLinearPoolDeployment;
+  const input = task.input() as YearnLinearPoolDeployment;
   const args = [
     input.Vault,
     input.ProtocolFeePercentagesProvider,
@@ -19,16 +19,16 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
     input.BufferPeriodDuration,
   ];
 
-  const factory = await task.deployAndVerify('BeefyLinearPoolFactory', args, from, force);
+  const factory = await task.deployAndVerify('YearnLinearPoolFactory', args, from, force);
 
   if (task.mode === TaskMode.LIVE) {
     // We also create a Pool using the factory and verify it, to let us compute their action IDs and so that future
     // Pools are automatically verified. We however don't run any of this code in CHECK mode, since we don't care about
     // the contracts deployed here. The action IDs will be checked to be correct via a different mechanism.
 
-    // BeefyLinearPools require an Beefy Token
-    const mockMooTokenArgs = ['DO NOT USE - Mock Beefy Moo Token', 'TEST', 18, input.WETH];
-    const mockMooToken = await task.deployAndVerify('MockBeefyVault', mockMooTokenArgs, from, force);
+    // YearnLinearPools require an Yearn Token
+    const mockYearnTokenArgs = ['DO NOT USE - Mock Yearn Token', 'TEST', 18, input.WETH];
+    const mockYearnToken = await task.deployAndVerify('MockYearnTokenVault', mockYearnTokenArgs, from, force);
 
     // The assetManager, pauseWindowDuration and bufferPeriodDuration will be filled in later, but we need to declare
     // them here to appease the type system. Those are constructor arguments, but automatically provided by the factory.
@@ -37,7 +37,7 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
       name: 'DO NOT USE - Mock Linear Pool',
       symbol: 'TEST',
       mainToken: input.WETH,
-      wrappedToken: mockMooToken.address,
+      wrappedToken: mockYearnToken.address,
       assetManager: undefined,
       upperTarget: 0,
       pauseWindowDuration: undefined,
@@ -48,7 +48,7 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
     };
 
     // This mimics the logic inside task.deploy
-    if (force || !task.output({ ensure: false })['MockBeefyLinearPool']) {
+    if (force || !task.output({ ensure: false })['MockYearnLinearPool']) {
       const PROTOCOL_ID = 0;
 
       const poolCreationReceipt = await (
@@ -67,10 +67,10 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
       const mockPoolAddress = event.args.pool;
 
       await saveContractDeploymentTransactionHash(mockPoolAddress, poolCreationReceipt.transactionHash, task.network);
-      await task.save({ MockBeefyLinearPool: mockPoolAddress });
+      await task.save({ MockYearnLinearPool: mockPoolAddress });
     }
 
-    const mockPool = await task.instanceAt('BeefyLinearPool', task.output()['MockBeefyLinearPool']);
+    const mockPool = await task.instanceAt('YearnLinearPool', task.output()['MockYearnLinearPool']);
 
     // In order to verify the Pool's code, we need to complete its constructor arguments by computing the factory
     // provided arguments (asset manager and pause durations).
@@ -95,9 +95,9 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
       .sub(mockPoolArgs.pauseWindowDuration);
 
     // We are now ready to verify the Pool
-    await task.verify('BeefyLinearPool', mockPool.address, [mockPoolArgs]);
+    await task.verify('YearnLinearPool', mockPool.address, [mockPoolArgs]);
 
     // We can also verify the Asset Manager
-    await task.verify('BeefyLinearPoolRebalancer', assetManagerAddress, [input.Vault, input.BalancerQueries]);
+    await task.verify('YearnLinearPoolRebalancer', assetManagerAddress, [input.Vault, input.BalancerQueries]);
   }
 };

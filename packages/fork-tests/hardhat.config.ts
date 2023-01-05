@@ -2,7 +2,7 @@ import '@nomiclabs/hardhat-ethers';
 import '@nomiclabs/hardhat-waffle';
 import 'hardhat-local-networks-config-plugin';
 
-import './src/setupTests';
+import test from './src/test';
 
 import { task } from 'hardhat/config';
 import { TASK_TEST } from 'hardhat/builtin-tasks/task-names';
@@ -12,7 +12,6 @@ import path from 'path';
 import { existsSync, readdirSync, readFileSync, statSync } from 'fs';
 
 import { checkArtifact, extractArtifact } from './src/task-libraries/artifact';
-import test from './src/test';
 import Task, { TaskMode } from './src/task';
 import Verifier from './src/task-libraries/verifier';
 import { Logger } from './src/task-libraries/logger';
