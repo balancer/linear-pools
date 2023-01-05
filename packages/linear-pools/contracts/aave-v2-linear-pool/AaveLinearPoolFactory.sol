@@ -30,11 +30,11 @@ import "./AaveLinearPool.sol";
 import "./AaveLinearPoolRebalancer.sol";
 
 contract AaveLinearPoolFactory is
-    ILastCreatedPoolFactory,
-    IFactoryCreatedPoolVersion,
-    Version,
-    BasePoolFactory,
-    ReentrancyGuard
+ILastCreatedPoolFactory,
+IFactoryCreatedPoolVersion,
+Version,
+BasePoolFactory,
+ReentrancyGuard
 {
     // Associate a name with each registered protocol that uses this factory.
     struct ProtocolIdData {

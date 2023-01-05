@@ -28,7 +28,7 @@ contract AaveLinearPoolRebalancer is LinearPoolRebalancer {
     // the address of the Rebalancer in order to register it, and the Rebalancer must know the address of the Pool
     // during construction.
     constructor(IVault vault, IBalancerQueries queries)
-        LinearPoolRebalancer(ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()), vault, queries)
+    LinearPoolRebalancer(ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()), vault, queries)
     {
         // solhint-disable-previous-line no-empty-blocks
     }
