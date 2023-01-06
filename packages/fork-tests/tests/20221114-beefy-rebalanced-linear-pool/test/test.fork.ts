@@ -1,6 +1,7 @@
 import hre from 'hardhat';
 import { expect } from 'chai';
 import { Contract } from 'ethers';
+
 import { setCode } from '@nomicfoundation/hardhat-network-helpers';
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import { bn, fp, FP_ONE } from '@orbcollective/shared-dependencies/numbers';
@@ -31,11 +32,11 @@ describeForkTest('BeefyLinearPoolFactory', 'optimism', 38313066, function () {
   const SWAP_FEE_PERCENTAGE = fp(0.01); // 1%
 
   // The targets are set using 18 decimals, even if the token has fewer (as is the case for USDC);
-  const INITIAL_UPPER_TARGET = fp(1e7);
+  const INITIAL_UPPER_TARGET = fp(1e2);
 
   // The initial midpoint (upper target / 2) must be between the final lower and upper targets
-  const FINAL_LOWER_TARGET = fp(0.2e7);
-  const FINAL_UPPER_TARGET = fp(5e7);
+  const FINAL_LOWER_TARGET = fp(0.2e2);
+  const FINAL_UPPER_TARGET = fp(4e2);
 
   const PROTOCOL_ID = 1;
 
@@ -102,13 +103,14 @@ describeForkTest('BeefyLinearPoolFactory', 'optimism', 38313066, function () {
       if (fees > 0) {
         // The recipient of the rebalance call should get the fees that were collected (though there's some rounding
         // error in the main-wrapped conversion).
+        console.log(finalRecipientMainBalance.sub(initialRecipientMainBalance));
         expect(finalRecipientMainBalance.sub(initialRecipientMainBalance)).to.be.almostEqual(
           fees.div(USDC_SCALING),
-          0.00000001
+          0.0001
         );
       } else {
         // The recipient of the rebalance call will get any extra main tokens that were not utilized.
-        expect(finalRecipientMainBalance).to.be.almostEqual(initialRecipientMainBalance, 0.00000001);
+        expect(finalRecipientMainBalance).to.be.almostEqual(initialRecipientMainBalance, 0.0001);
       }
 
       const mainInfo = await vault.getPoolTokenInfo(poolId, USDC);

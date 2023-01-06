@@ -2,6 +2,7 @@ import '@nomiclabs/hardhat-ethers';
 import '@nomiclabs/hardhat-waffle';
 import 'hardhat-local-networks-config-plugin';
 
+import './src/setupTests';
 import test from './src/test';
 
 import { task } from 'hardhat/config';

@@ -95,7 +95,7 @@ contract BeefyLinearPool is LinearPool, Version {
         if (vaultTotalSupply != 0) {
             try _tokenVault.balance() returns (uint256 balance) {
                 // This function returns a 18 decimal fixed point number
-                uint256 rate = balance.mul(_balanceScaleFactor).divDown(vaultTotalSupply);
+                uint256 rate = (balance * _balanceScaleFactor) / vaultTotalSupply;
                 return rate;
             } catch (bytes memory revertData) {
                 // By maliciously reverting here, Beefy (or any other contract in the call stack) could trick the Pool

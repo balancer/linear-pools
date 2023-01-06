@@ -6,6 +6,7 @@ import { bn, fp, FP_ONE } from '@orbcollective/shared-dependencies/numbers';
 import { MAX_UINT256 } from '@orbcollective/shared-dependencies';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 
+
 import { impersonate, getForkedNetwork, Task, TaskMode, getSigners } from '../../../src';
 import { describeForkTest } from '../../../src/forkTests';
 
@@ -150,7 +151,7 @@ describeForkTest('YearnLinearPoolFactory', 'optimism', 38556442, function () {
       const expectedFactoryVersion = {
         name: 'YearnLinearPoolFactory',
         version: 1,
-        deployment: '20221114-yearn-linear-pool',
+        deployment: '20221114-yearn-rebalanced-linear-pool',
       };
 
       expect(await factory.version()).to.equal(JSON.stringify(expectedFactoryVersion));
