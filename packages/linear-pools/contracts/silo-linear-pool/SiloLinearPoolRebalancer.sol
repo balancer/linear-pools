@@ -15,13 +15,14 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "@balancer-labs/v2-interfaces/contracts/pool-linear/IShareToken.sol";
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeERC20.sol";
 
-import "../LinearPoolRebalancer.sol";
+import "@balancer-labs/v2-pool-linear/contracts/LinearPoolRebalancer.sol";
+
 import "./SiloHelpers.sol";
-import "@balancer-labs/v2-interfaces/contracts/pool-linear/ISilo.sol";
+import "./interfaces/IShareToken.sol";
+import "./interfaces/ISilo.sol";
 
 contract SiloLinearPoolRebalancer is LinearPoolRebalancer {
     using SafeERC20 for IERC20;

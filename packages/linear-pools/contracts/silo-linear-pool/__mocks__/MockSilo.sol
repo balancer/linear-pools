@@ -15,10 +15,7 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "@balancer-labs/v2-pool-utils/contracts/test/MaliciousQueryReverter.sol";
-
-import "@balancer-labs/v2-solidity-utils/contracts/test/TestToken.sol";
-import "@balancer-labs/v2-interfaces/contracts/pool-linear/ISilo.sol";
+import "../interfaces/ISilo.sol";
 import "./MockBaseSilo.sol";
 
 contract MockSilo is ISilo, MockBaseSilo {

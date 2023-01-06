@@ -13,9 +13,12 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.pragma solidity ^0.7.0;
 pragma solidity ^0.7.0;
 
-import "@balancer-labs/v2-interfaces/contracts/pool-linear/ISilo.sol";
-import "@balancer-labs/v2-interfaces/contracts/pool-linear/IShareToken.sol";
-import "@balancer-labs/v2-solidity-utils/contracts/test/TestToken.sol";
+import "@orbcollective/shared-dependencies/contracts/MockMaliciousQueryReverter.sol";
+
+import "@orbcollective/shared-dependencies/contracts/TestToken.sol";
+
+import "../interfaces/ISilo.sol";
+import "../interfaces/IShareToken.sol";
 
 contract MockShareToken is TestToken, IShareToken {
     ISilo private immutable _silo;

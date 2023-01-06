@@ -15,14 +15,16 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "@balancer-labs/v2-pool-utils/contracts/test/MaliciousQueryReverter.sol";
-import "@balancer-labs/v2-interfaces/contracts/pool-linear/IShareToken.sol";
-import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20.sol";
-import "../SiloHelpers.sol";
-import "@balancer-labs/v2-interfaces/contracts/pool-linear/ISilo.sol";
-import "hardhat/console.sol";
+import "@orbcollective/shared-dependencies/contracts/MockMaliciousQueryReverter.sol";
 
-contract MockBaseSilo is IBaseSilo {
+import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20.sol";
+
+import "../SiloHelpers.sol";
+
+import "../interfaces/IShareToken.sol";
+import "../interfaces/ISilo.sol";
+
+contract MockBaseSilo is IBaseSilo, MockMaliciousQueryReverter {
     // asset address for which Silo was created
     address public immutable _siloAsset;
 
@@ -34,6 +36,7 @@ contract MockBaseSilo is IBaseSilo {
     }
 
     function assetStorage(address _asset) external view override returns (AssetStorage memory) {
+        maybeRevertMaliciously();
         AssetStorage memory assetMapping = _assetStorage[_asset];
         return assetMapping;
     }

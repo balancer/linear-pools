@@ -1,80 +1,146 @@
 import { ethers } from 'hardhat';
 import { expect } from 'chai';
 import { BigNumber, Contract } from 'ethers';
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 
-import Vault from '@balancer-labs/v2-helpers/src/models/vault/Vault';
-import TokenList from '@balancer-labs/v2-helpers/src/models/tokens/TokenList';
-import * as expectEvent from '@balancer-labs/v2-helpers/src/test/expectEvent';
-import { fp, FP_ZERO } from '@balancer-labs/v2-helpers/src/numbers';
-import { deploy, deployedAt } from '@balancer-labs/v2-helpers/src/contract';
-import { MAX_UINT112 } from '@balancer-labs/v2-helpers/src/constants';
-import { advanceTime, currentTimestamp, MONTH } from '@balancer-labs/v2-helpers/src/time';
-import Token from '@balancer-labs/v2-helpers/src/models/tokens/Token';
-import {sharedBeforeEach} from "@balancer-labs/v2-common/sharedBeforeEach";
+import { fp, FP_ZERO } from '@orbcollective/shared-dependencies/numbers';
+import {
+  deployPackageContract,
+  getPackageContractDeployedAt,
+  deployToken,
+  setupEnvironment,
+  getBalancerContractArtifact,
+  MAX_UINT112,
+  ZERO_ADDRESS,
+} from '@orbcollective/shared-dependencies';
 
+import { advanceTime, currentTimestamp, MONTH } from '@orbcollective/shared-dependencies/time';
+
+import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
+import TokenList from '@orbcollective/shared-dependencies/test-helpers/token/TokenList';
+import { actionId } from '@orbcollective/shared-dependencies/test-helpers/actions';
+
+async function deployBalancerContract(
+  task: string,
+  contractName: string,
+  deployer: SignerWithAddress,
+  args: unknown[]
+): Promise<Contract> {
+  const artifact = await getBalancerContractArtifact(task, contractName);
+  const factory = new ethers.ContractFactory(artifact.abi, artifact.bytecode, deployer);
+  const contract = await factory.deploy(...args);
+
+  return contract;
+}
 
 describe('SiloLinearPoolFactory', function () {
-  let vault: Vault, tokens: TokenList, factory: Contract;
-  let mainToken: Token, wrappedToken: Token;
-  let creationTime: BigNumber, owner: SignerWithAddress;
+  let authorizer: Contract, vault: Contract, tokens: TokenList, factory: Contract;
+  let creationTime: BigNumber, admin: SignerWithAddress, owner: SignerWithAddress;
+  let factoryVersion: string, poolVersion: string;
 
   const NAME = 'Balancer Linear Pool Token';
-  const SYMBOL = 'BPT';
+  const SYMBOL = 'LPT';
   const UPPER_TARGET = fp(2000);
   const POOL_SWAP_FEE_PERCENTAGE = fp(0.01);
   const BASE_PAUSE_WINDOW_DURATION = MONTH * 3;
   const BASE_BUFFER_PERIOD_DURATION = MONTH;
-  const factoryVersion = '1.0';
-  const poolVersion = '1.0';
 
-  before('setup signers', async () => {
-    [, owner] = await ethers.getSigners();
-  });
+  const AAVE_PROTOCOL_ID = 0;
+  const BEEFY_PROTOCOL_ID = 1;
+  const STURDY_PROTOCOL_ID = 2;
+  const SILO_PROTOCOL_ID = 4;
 
-  sharedBeforeEach('deploy factory & tokens', async () => {
-    vault = await Vault.create();
+  const AAVE_PROTOCOL_NAME = 'AAVE';
+  const BEEFY_PROTOCOL_NAME = 'Beefy';
+  const STURDY_PROTOCOL_NAME = 'Sturdy';
+  const SILO_PROTOCOL_NAME = 'Silo';
 
-    const queries = await deploy('v2-standalone-utils/BalancerQueries', { args: [vault.address] });
+  beforeEach('deploy factory & tokens', async () => {
+    let deployer: SignerWithAddress;
+    let trader: SignerWithAddress;
 
-    factory = await deploy('SiloLinearPoolFactory', {
-      args: [vault.address, vault.getFeesProvider().address, queries.address, factoryVersion, poolVersion],
+    // appease the @typescript-eslint/no-unused-vars lint error
+    [, admin, owner] = await ethers.getSigners();
+    ({ authorizer, vault, deployer } = await setupEnvironment());
+    const manager = deployer;
+
+    // Deploy tokens
+    const mainToken = await deployToken('USDC', 6, deployer);
+        
+    const mockSilo = await deployPackageContract('MockSilo', {
+        args: [mainToken.address],
     });
-    creationTime = await currentTimestamp();
 
-    mainToken = await Token.create({symbol: 'USDC', decimals: 6});
-
-    const mockLendingPool = await deploy('MockSilo', {
-      args: [mainToken.address],
+    const wrappedTokenInstance = await deployPackageContract('MockShareToken', {
+        args: ['sUSDC', 'sUSDC', mockSilo.address, mainToken.address, 6],
     });
 
-    const wrappedTokenInstance = await deploy('MockShareToken', {
-      args: ['sUSDC', 'sUSDC', mockLendingPool.address, mainToken.address, 6],
-    });
+    await wrappedTokenInstance.setTotalSupply(1000000);
 
-    wrappedToken = await Token.deployedAt(wrappedTokenInstance.address);
+    const wrappedToken = await getPackageContractDeployedAt('TestToken', wrappedTokenInstance.address);
 
     tokens = new TokenList([mainToken, wrappedToken]).sort();
+
+    // Deploy Balancer Queries
+    const queriesTask = '20220721-balancer-queries';
+    const queriesContract = 'BalancerQueries';
+    const queriesArgs = [vault.address];
+    const queries = await deployBalancerContract(queriesTask, queriesContract, manager, queriesArgs);
+
+    // Deploy poolFactory
+    factoryVersion = JSON.stringify({
+      name: 'SiloLinearPoolFactory',
+      version: '1',
+      deployment: 'test-deployment',
+    });
+    poolVersion = JSON.stringify({
+      name: 'SiloLinearPool',
+      version: '1',
+      deployment: 'test-deployment',
+    });
+    factory = await deployPackageContract('SiloLinearPoolFactory', {
+      args: [
+        vault.address,
+        ZERO_ADDRESS,
+        queries.address,
+        factoryVersion,
+        poolVersion,
+        BASE_PAUSE_WINDOW_DURATION,
+        BASE_BUFFER_PERIOD_DURATION,
+      ],
+    });
+
+    creationTime = await currentTimestamp();
   });
 
   async function createPool(): Promise<Contract> {
-    const receipt = await factory.create(
-        NAME,
-        SYMBOL,
-        mainToken.instance.address,
-        wrappedToken.instance.address,
-        UPPER_TARGET,
-        POOL_SWAP_FEE_PERCENTAGE,
-        owner.address
+    const USDC = await tokens.getTokenBySymbol('USDC');
+    const sUSDC = await tokens.getTokenBySymbol('sUSDC');
+    const tx = await factory.create(
+      NAME,
+      SYMBOL,
+      USDC.address,
+      sUSDC.address,
+      UPPER_TARGET,
+      POOL_SWAP_FEE_PERCENTAGE,
+      owner.address,
+      SILO_PROTOCOL_ID
     );
-    const event = expectEvent.inReceipt(await receipt.wait(), 'PoolCreated');
-    return deployedAt('LinearPool', event.args.pool);
+
+    const receipt = await tx.wait();
+    const event = expectEvent.inReceipt(receipt, 'PoolCreated');
+    expectEvent.inReceipt(receipt, 'SiloLinearPoolCreated', {
+      pool: event.args.pool,
+      protocolId: SILO_PROTOCOL_ID,
+    });
+
+    return getPackageContractDeployedAt('SiloLinearPool', event.args.pool);
   }
 
-  describe('constructor arguments',async () => {
+  describe('constructor arguments', () => {
     let pool: Contract;
 
-    sharedBeforeEach('create pool', async () => {
+    beforeEach('create pool', async () => {
       pool = await createPool();
     });
 
@@ -86,6 +152,10 @@ describe('SiloLinearPoolFactory', function () {
       expect(await factory.version()).to.equal(factoryVersion);
     });
 
+    it('checks the pool version', async () => {
+      expect(await pool.version()).to.equal(poolVersion);
+    });
+
     it('checks the pool version in the factory', async () => {
       expect(await factory.getPoolVersion()).to.equal(poolVersion);
     });
@@ -94,9 +164,12 @@ describe('SiloLinearPoolFactory', function () {
       const poolId = await pool.getPoolId();
       const poolTokens = await vault.getPoolTokens(poolId);
 
+      const USDC = await tokens.getTokenBySymbol('USDC');
+      const sUSDC = await tokens.getTokenBySymbol('sUSDC');
+
       expect(poolTokens.tokens).to.have.lengthOf(3);
-      expect(poolTokens.tokens).to.include(mainToken.address);
-      expect(poolTokens.tokens).to.include(wrappedToken.address);
+      expect(poolTokens.tokens).to.include(USDC.address);
+      expect(poolTokens.tokens).to.include(sUSDC.address);
       expect(poolTokens.tokens).to.include(pool.address);
 
       poolTokens.tokens.forEach((token, i) => {
@@ -110,10 +183,10 @@ describe('SiloLinearPoolFactory', function () {
 
     it('sets a rebalancer as the asset manager', async () => {
       const poolId = await pool.getPoolId();
+      // We only check the first token, but this will be the asset manager for both main and wrapped
+      const { assetManager } = await vault.getPoolTokenInfo(poolId, tokens.first.address);
 
-      const { assetManager } = await vault.getPoolTokenInfo(poolId, tokens.first);
-
-      const rebalancer = await deployedAt('SiloLinearPoolRebalancer', assetManager);
+      const rebalancer = await getPackageContractDeployedAt('SiloLinearPoolRebalancer', assetManager);
 
       expect(await rebalancer.getPool()).to.equal(pool.address);
     });
@@ -139,11 +212,13 @@ describe('SiloLinearPoolFactory', function () {
     });
 
     it('sets main token', async () => {
-      expect(await pool.getMainToken()).to.equal(mainToken.address);
+      const USDC = await tokens.getTokenBySymbol('USDC');
+      expect(await pool.getMainToken()).to.equal(USDC.address);
     });
 
     it('sets wrapped token', async () => {
-      expect(await pool.getWrappedToken()).to.equal(wrappedToken.address);
+      const sUSDC = await tokens.getTokenBySymbol('sUSDC');
+      expect(await pool.getWrappedToken()).to.equal(sUSDC.address);
     });
 
     it('sets the targets', async () => {
@@ -152,10 +227,11 @@ describe('SiloLinearPoolFactory', function () {
       expect(targets.upperTarget).to.be.equal(UPPER_TARGET);
     });
   });
+
   describe('with a created pool', () => {
     let pool: Contract;
 
-    sharedBeforeEach('create pool', async () => {
+    beforeEach('create pool', async () => {
       pool = await createPool();
     });
 
@@ -196,4 +272,53 @@ describe('SiloLinearPoolFactory', function () {
       expect(bufferPeriodEndTime).to.equal(now);
     });
   });
-})
+
+  describe('protocol id', () => {
+    it('should not allow adding protocols without permission', async () => {
+      await expect(factory.registerProtocolId(SILO_PROTOCOL_ID, 'Silo')).to.be.revertedWith('BAL#401');
+    });
+
+    context('with no registered protocols', () => {
+      it('should revert when asking for an unregistered protocol name', async () => {
+        await expect(factory.getProtocolName(SILO_PROTOCOL_ID)).to.be.revertedWith('Protocol ID not registered');
+      });
+    });
+
+    context('with registered protocols', () => {
+      beforeEach('grant permissions', async () => {
+        const action = await actionId(factory, 'registerProtocolId');
+        await (await authorizer.connect(admin)).grantPermissions([action], admin.address, [factory.address]);
+      });
+
+      beforeEach('register some protocols', async () => {
+        await factory.connect(admin).registerProtocolId(AAVE_PROTOCOL_ID, AAVE_PROTOCOL_NAME);
+        await factory.connect(admin).registerProtocolId(BEEFY_PROTOCOL_ID, BEEFY_PROTOCOL_NAME);
+        await factory.connect(admin).registerProtocolId(STURDY_PROTOCOL_ID, STURDY_PROTOCOL_NAME);
+        await factory.connect(admin).registerProtocolId(SILO_PROTOCOL_ID, SILO_PROTOCOL_NAME);
+      });
+
+      it('protocol ID registration should emit an event', async () => {
+        const OTHER_PROTOCOL_ID = 57;
+        const OTHER_PROTOCOL_NAME = 'Protocol 57';
+        const tx = await factory.connect(admin).registerProtocolId(OTHER_PROTOCOL_ID, OTHER_PROTOCOL_NAME);
+        expectEvent.inReceipt(await tx.wait(), 'SiloLinearPoolProtocolIdRegistered', {
+          protocolId: OTHER_PROTOCOL_ID,
+          name: OTHER_PROTOCOL_NAME,
+        });
+      });
+
+      it('should register protocols', async () => {
+        expect(await factory.getProtocolName(AAVE_PROTOCOL_ID)).to.equal(AAVE_PROTOCOL_NAME);
+        expect(await factory.getProtocolName(BEEFY_PROTOCOL_ID)).to.equal(BEEFY_PROTOCOL_NAME);
+        expect(await factory.getProtocolName(STURDY_PROTOCOL_ID)).to.equal(STURDY_PROTOCOL_NAME);
+        expect(await factory.getProtocolName(SILO_PROTOCOL_ID)).to.equal(SILO_PROTOCOL_NAME);
+      });
+
+      it('should fail when a protocol is already registered', async () => {
+        await expect(
+          factory.connect(admin).registerProtocolId(STURDY_PROTOCOL_ID, 'Random protocol')
+        ).to.be.revertedWith('Protocol ID already registered');
+      });
+    });
+  });
+});

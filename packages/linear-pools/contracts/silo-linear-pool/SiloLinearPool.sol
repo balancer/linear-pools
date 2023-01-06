@@ -15,13 +15,14 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "@balancer-labs/v2-interfaces/contracts/pool-linear/ISilo.sol";
+import "./SiloHelpers.sol";
+
+import "./interfaces/ISilo.sol";
+import "./interfaces/IShareToken.sol";
+
 import "@balancer-labs/v2-pool-utils/contracts/lib/ExternalCallLib.sol";
 import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
-import "@balancer-labs/v2-interfaces/contracts/pool-linear/IShareToken.sol";
-
-import "./SiloHelpers.sol";
-import "../LinearPool.sol";
+import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
 
 contract SiloLinearPool is LinearPool, Version {
     ISilo private immutable _silo;
@@ -78,13 +79,19 @@ contract SiloLinearPool is LinearPool, Version {
         // @dev value hardcoded to find the exchange rate for a single _shareToken
         uint256 singleShare = 1e18;
         // @dev total amount deposited
-        uint256 totalAmount = _silo.assetStorage(_shareToken.asset()).totalDeposits;
-        // @dev total number of shares
-        uint256 totalShares = _shareToken.totalSupply();
-        // @dev toAmount function is what silo uses to calculate exchange rates during withdraw period
-        // The protocol currently does not expose an exchange rate function
-        uint256 rate = SiloHelpers.toAmount(singleShare, totalAmount, totalShares);
-
-        return rate;
+        try _silo.assetStorage(_shareToken.asset()) returns (ISilo.AssetStorage memory assetStorage) {
+            uint256 totalAmount = assetStorage.totalDeposits;
+            // @dev total number of shares
+            uint256 totalShares = _shareToken.totalSupply();
+            // @dev toAmount function is what silo uses to calculate exchange rates during withdraw period
+            // The protocol currently does not expose an exchange rate function
+            uint256 rate = SiloHelpers.toAmount(singleShare, totalAmount, totalShares);
+            return rate;
+        } catch (bytes memory revertData) {
+            // By maliciously reverting here, Aave (or any other contract in the call stack) could trick the Pool into
+            // reporting invalid data to the query mechanism for swaps/joins/exits.
+            // We then check the revert data to ensure this doesn't occur.
+            ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);
+        }
     }
 }
