@@ -170,7 +170,7 @@ export async function deployPackageContract(
 }
 
 function getPackageArtifact(contract: string): Artifact {
-  let artifactsPath = path.resolve('./artifacts');
+  const artifactsPath = path.resolve('./artifacts');
   const artifacts = new Artifacts(artifactsPath);
   return artifacts.readArtifactSync(contract.split('/').slice(-1)[0]);
 }
