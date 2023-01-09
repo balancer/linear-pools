@@ -1,8 +1,12 @@
 # Orb Collective's Linear Pool Project
 
-Tins repo...
+This repo contains implementations of all linear pools supported by Balancer.
 
-more information about boosted pools and linear pools: [LINK]
+IMPORTANT: Before developing your own Linear Pool, make sure your yield-bearing vault 
+is not ERC4626 compliant and is not a fork from Aave v2, in which cases a new linear pool
+is not required.
+
+More information about boosted pools and linear pools: [LINK]
 
 # Components of a Linear Pool
 
@@ -11,19 +15,20 @@ Every Linear Pool project should have the components below.
 ## LinearPool
 
 Linear Pool defines how the exchange rate is calculated. Notice that 
-`_getWrappedTokenRate` function has a try/catch block. That block is required
-for security issues, to avoid exploiting attacks involving the rate manipulation
+`_getWrappedTokenRate` function has a try/catch block. Calls to an external view function
+implemented by the main token and related contracts need to be encapsulated by a try/catch
+for security purposes, to avoid exploiting attacks involving the rate manipulation
 of the token.
 
 ### Unit Tests
 
-The unit tests of LinearPool file basically tests:
+The unit tests of the LinearPool should tests:
 
 1. If Pool accepts a main token that is not related to the wrapped token 
 (should not accept, except when pool is ERC4626)
 2. If asset managers are set correctly (needed to wrap/unwrap tokens)
 3. If token rate is calculated correctly
-4. If malicious query (that manipulates the token rate) is reverted
+4. If malicious queries (that manipulates the token rate) are reverted
 
 ## LinearPoolFactory
 
@@ -108,23 +113,23 @@ source to fetch the token rate.
 pool. Do not delete any test from the copied file, since that tests apply to all kinds of linear 
 pools and protocols.
 
-   1. Notice that `setup` deploys a mocked version of the token, so yu'll need to implement a mock. 
+   1. Notice that `setup` deploys a mocked version of the token, so you'll need to implement a mock. 
    If your protocol uses vault/pool contracts as well, check Aave tests to see how to deploy 
    mocked versions of vault.
 
-7. Run tests for the LinearPool test file and make sure it passes (`yarn test` in the linear-pools folder). 
+7. Run tests for the LinearPool test file and make sure they pass (`yarn test` in the linear-pools folder). 
 If tests are not running, go to root folder and run `yarn && yarn build`. Make sure your 
 node version is above 14 (preferentially 16.x)
 8. Edit LinearPoolRebalancer test file (especially beforeEach `deploy factory & tokens`) to adapt 
 to your protocol. You don't need to change the Protocol ID right now.
-9. Run tests for LinearPoolRebalancer and make sure it passes.
-10. Time to implement mock tests. In the folder `packages/fork-tests/tests`, duplicate erc4626 test 
-folder, changing the name to your protocol. Make sure the number in the folder matches YYYYMMDD 
+9. Run tests for LinearPoolRebalancer and make sure they pass.
+10. To begin forked testing navigate to `packages/fork-tests/tests` and duplicate the erc4626 test
+folder, changing the name to your protocol. Make sure the number in the folder matches YYYYMMDD
 pattern.
-11. Delete output folder of the newly reated folder, and the content of build-info.
+11. Delete the output folder and contents of the build-info folder of the newly created folder.
 12. Adapt index.ts and input.ts to your protocol name. Also change the readme.md file to match your 
 protocol name.
-13. Open `packages/linear-pools` and run `yarn hardhat compile`. In the end of this process, open the
+13. Open `packages/linear-pools` and run `yarn hardhat compile`. Once the contracts are compiled, open the
 `artifacts/build-info` folder and copy the json inside this file to 
 `packages/fork-tests/tests/YYYYMMDD-[YOUR-PROTOCOL]-linear-pool/build-info` folder 
 (don't need to rename now).
