@@ -25,10 +25,10 @@ of the token.
 The unit tests of the LinearPool should tests:
 
 1. If Pool accepts a main token that is not related to the wrapped token 
-(should not accept, except when pool is ERC4626)
-2. If asset managers are set correctly (needed to wrap/unwrap tokens)
-3. If token rate is calculated correctly
-4. If malicious queries (that manipulates the token rate) are reverted
+(should not accept, except when pool is ERC4626);
+2. If asset managers are set correctly (needed to wrap/unwrap tokens);
+3. If token rate is calculated correctly;
+4. If malicious queries (that manipulates the token rate) are reverted.
 
 ## LinearPoolFactory
 
@@ -46,13 +46,16 @@ to register a new PROTOCOL ID.
 
 ### Unit Tests
 
-The unit tests of LinearPoolFactory checks if pools are correctly created, if pool tokens 
-were correctly defined and if Protocol IDs are defined correctly (and requires permission).
+The unit tests of the LinearPoolFactory should tests:
+
+1. If pools are correctly created;
+2. If pool tokens are correctly defined;
+3. If Protocol IDs are defined correctly and requires permission to be manipulated.
 
 ## LinearPoolRebalancer
 
 LinearPoolRebalancer is the component that balances the amount of main token, available to
-swap in the pool, and the wrapped token (it means, the amount of assets transferred to the 
+swap in the pool, and the wrapped token (the amount of assets transferred to the
 yield-bearing vault of the linear pool protocol).
 
 It doesn't have unit tests. The logic of the rebalancer are tested in fork tests, since it 
@@ -69,20 +72,20 @@ following features in that protocol:
 * How many decimals the wrapped token has? Is it equal to decimals of main token?
 
 These questions will define which interfaces will need to be declared. Some protocols 
-have the rate calculated by the token contract, but deposit/withdraw functions  executed 
+have the rate calculated by the token contract, but deposit/withdraw functions executed 
 by a vault or lending pool contracts. Depending on how a protocol is implemented, more 
 interfaces need to be implemented (look at Aave and Gearbox for examples of multiple 
 interfaces).
 
 ### Mocked contracts
 
-In order to properly unit test Linear Pool contracts, some mocked token contracts need to be 
+In order to properly unit test Linear Pool contracts, mocked token contracts need to be 
 implemented. These mocks are inside `__mocks__` folder.
 
 ## Fork Tests
 
-Fork tests are required because they don't mock token contracts, so rebalancer interacts with 
-real token contracts and some integration bugs are caught. Fork tests are inside 
+Fork tests are required because they don't mock token contracts. The rebalancer interacts with
+on-chain token contracts catching potential integration bugs. Fork tests are inside 
 `packages/fork-tests` folder, and their implementation is described in the next section.
 
 # How to implement a new Linear Pool?
