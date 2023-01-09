@@ -16,7 +16,7 @@ Every Linear Pool project should have the components below.
 
 Linear Pool defines how the exchange rate is calculated. Notice that 
 `_getWrappedTokenRate` function has a try/catch block. Calls to an external view function
-implemented by the main token and related contracts need to be encapsulated by a try/catch
+implemented by the main token and related contracts need to be wrapped by try/catch blocks
 for security purposes, to avoid exploiting attacks involving the rate manipulation
 of the token.
 
@@ -87,27 +87,28 @@ real token contracts and some integration bugs are caught. Fork tests are inside
 
 # How to implement a new Linear Pool?
 
-1. Duplicate folder `packages/linear-pools/contracts/erc4626-linear-pool`, but changing the 
+1. Duplicate folder `packages/linear-pools/contracts/erc4626-linear-pool`, and change the 
 name to your protocol's name (e.g. 
 `packages/linear-pools/contracts/[YOUR_PROTOCOL]-linear-pool`)
 2. Change the name of LinearPool, LinearPoolFactory, LinearPoolRebalancer and test files to 
 suit your protocol name.
 3. Within each file, change the name of variables and classes to suit your protocol name.
 4. Inside LinearPool file, change `_getWrappedTokenRate` function implementation to adapt
-rate calculation to your protocol. Make sure the try/catch is left in there, since it avoids
-malicious rate manipulations.
+rate calculation to your protocol. Make sure to wrap any external view functions implemented 
+by the token or related contracts in try/catch blocks, to avoid malicious rate manipulations.
 
    1. NOTE: During this step, you'll probably need to define an interface for the token/vault
    of the protocol, and define the function that returns the token rate.
    
 5. Inside LinearPoolRebalancer, define the functions for `_wrapTokens` (Deposit main tokens), 
 `_unwrapTokens` (withdraw main tokens) and `_getRequiredTokensToWrap` (Given amount of wrapped tokens, 
-how many main tokens do I need?). Notice that `_getRequiredTokensToWrap` also uses the token rate,
-so make sure that LinearPool's `_getWrappedTokenRate` and `_getRequiredTokensToWrap` use the same 
-source to fetch the token rate.
+how many main tokens do I need?).
 
-   1. NOTE: During this step, the interface created in `4` will need to be expanded to include 
-   withdraw/deposit functions 
+   1. IMPORTANT: `_getRequiredTokensToWrap` also uses the token rate, so make sure that LinearPool's
+      `_getWrappedTokenRate` and `_getRequiredTokensToWrap` use the same source to fetch the token
+      rate.
+   2. IMPORTANT: During this step, the interface created in `4` will need to be expanded to include
+      withdraw/deposit functions
    
 6. Edit LinearPool test file `setup`, to make sure you're deploying and testing the right linear 
 pool. Do not delete any test from the copied file, since that tests apply to all kinds of linear 
