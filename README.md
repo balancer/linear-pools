@@ -14,15 +14,16 @@ Every Linear Pool project should have the components below.
 
 ## LinearPool
 
-Linear Pool defines how the exchange rate is calculated. Notice that 
-`_getWrappedTokenRate` function has a try/catch block. Calls to an external view function
-implemented by the main token and related contracts need to be wrapped by try/catch blocks
-for security purposes, to avoid exploiting attacks involving the rate manipulation
-of the token.
+Linear Pool defines how the exchange rate is calculated. 
+
+* NOTE: `_getWrappedTokenRate` function has a try/catch block. Calls to an external view 
+function implemented by the main token and related contracts need to be wrapped by 
+try/catch blocks for security purposes, to avoid exploiting attacks involving the rate 
+manipulation of the token.
 
 ### Unit Tests
 
-The unit tests of the LinearPool should tests:
+The unit tests of the LinearPool should test:
 
 1. If Pool accepts a main token that is not related to the wrapped token 
 (should not accept, except when pool is ERC4626);
@@ -37,16 +38,16 @@ of the created pools.
 
 ### Protocol ID
 
-Aave has multiple forked tokens from different protocols, and ERC4626 is implemented by a 
-bunch of protocols too. PROTOCOL ID exists to differentiate such protocols in a factory.
+Aave has multiple forked tokens from different protocols. ERC4626 is implemented by 
+many protocols as well. PROTOCOL ID exists to differentiate such protocols in a factory.
 Therefore, each protocol must have its own factory, even if the pool code is shared.
 
 New PROTOCOL IDs should be approved by governance vote, so talk to us in case you need
-to register a new PROTOCOL ID.
+to register a new PROTOCOL ID. [EMAIL]
 
 ### Unit Tests
 
-The unit tests of the LinearPoolFactory should tests:
+The unit tests of the LinearPoolFactory should test:
 
 1. If pools are correctly created;
 2. If pool tokens are correctly defined;
