@@ -68,15 +68,15 @@ contract ERC4626LinearPoolFactory is
         string memory poolVersion,
         uint256 initialPauseWindowDuration,
         uint256 bufferPeriodDuration
-    ) 
-    BasePoolFactory(
-        vault,
-        protocolFeeProvider,
-        initialPauseWindowDuration,
-        bufferPeriodDuration,
-        type(ERC4626LinearPool).creationCode
     )
-    Version(factoryVersion)
+        BasePoolFactory(
+            vault,
+            protocolFeeProvider,
+            initialPauseWindowDuration,
+            bufferPeriodDuration,
+            type(ERC4626LinearPool).creationCode
+        )
+        Version(factoryVersion)
     {
         _queries = queries;
         _poolVersion = poolVersion;
@@ -88,7 +88,7 @@ contract ERC4626LinearPoolFactory is
     function getLastCreatedPool() external view override returns (address) {
         return _lastCreatedPool;
     }
-    
+
     /**
      * @dev Return the pool version deployed by this factory.
      */

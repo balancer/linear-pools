@@ -40,20 +40,20 @@ contract AaveLinearPool is LinearPool, Version {
     }
 
     constructor(ConstructorArgs memory args)
-    LinearPool(
-        args.vault,
-        args.name,
-        args.symbol,
-        args.mainToken,
-        args.wrappedToken,
-        args.upperTarget,
-        _toAssetManagerArray(args),
-        args.swapFeePercentage,
-        args.pauseWindowDuration,
-        args.bufferPeriodDuration,
-        args.owner
-    )
-    Version(args.version)
+        LinearPool(
+            args.vault,
+            args.name,
+            args.symbol,
+            args.mainToken,
+            args.wrappedToken,
+            args.upperTarget,
+            _toAssetManagerArray(args),
+            args.swapFeePercentage,
+            args.pauseWindowDuration,
+            args.bufferPeriodDuration,
+            args.owner
+        )
+        Version(args.version)
     {
         _lendingPool = IStaticAToken(address(args.wrappedToken)).LENDING_POOL();
         _require(address(args.mainToken) == IStaticAToken(address(args.wrappedToken)).ASSET(), Errors.TOKENS_MISMATCH);

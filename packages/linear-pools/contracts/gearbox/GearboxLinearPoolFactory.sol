@@ -69,14 +69,14 @@ contract GearboxLinearPoolFactory is
         uint256 initialPauseWindowDuration,
         uint256 bufferPeriodDuration
     )
-    BasePoolFactory(
-        vault,
-        protocolFeeProvider,
-        initialPauseWindowDuration,
-        bufferPeriodDuration,
-        type(GearboxLinearPool).creationCode
-    )
-    Version(factoryVersion)
+        BasePoolFactory(
+            vault,
+            protocolFeeProvider,
+            initialPauseWindowDuration,
+            bufferPeriodDuration,
+            type(GearboxLinearPool).creationCode
+        )
+        Version(factoryVersion)
     {
         _queries = queries;
         _poolVersion = poolVersion;

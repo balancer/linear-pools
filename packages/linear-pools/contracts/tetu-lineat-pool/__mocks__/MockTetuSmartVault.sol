@@ -16,14 +16,10 @@ pragma solidity >=0.7.0 <0.9.0;
 
 import "../interfaces/ITetuSmartVault.sol";
 
-import "@orbcollective/shared-dependencies/contracts/MaliciousQueryReverter.sol";
+import "@orbcollective/shared-dependencies/contracts/MockMaliciousQueryReverter.sol";
 import "@orbcollective/shared-dependencies/contracts/TestToken.sol";
 
-import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeERC20.sol";
-
-contract MockTetuSmartVault is ITetuSmartVault, TestToken, MaliciousQueryReverter {
-    using SafeERC20 for IERC20;
-
+contract MockTetuSmartVault is ITetuSmartVault, TestToken, MockMaliciousQueryReverter {
     IERC20 public underlyingAsset;
     uint256 underlyingDecimals;
     uint256 private _pricePerFullShare;
@@ -57,18 +53,11 @@ contract MockTetuSmartVault is ITetuSmartVault, TestToken, MaliciousQueryReverte
         return underlyingAsset.balanceOf(address(this));
     }
 
-    function deposit(uint256 amount) external override {
-        underlyingAsset.safeTransferFrom(msg.sender, address(this), amount);
-        _mint(msg.sender, amount);
-    }
+    function deposit(uint256 amount) external override {}
 
-    function withdraw(uint256 numberOfShares) external override {
-        underlyingAsset.transfer(msg.sender, numberOfShares);
-    }
+    function withdraw(uint256 numberOfShares) external override {}
 
-    function transferUnderlying(uint256 amount, address to) public {
-        underlyingAsset.transfer(to, amount);
-    }
+    function transferUnderlying(uint256 amount, address to) public {}
 
     function underlying() external view override returns (address) {
         return address(underlyingAsset);

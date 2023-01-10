@@ -17,7 +17,8 @@ pragma experimental ABIEncoderV2;
 
 import "./interfaces/ITetuSmartVault.sol";
 import "./interfaces/ITetuStrategy.sol";
-import "./interfaces/ILastCreatedPoolFactory.sol";
+
+import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
 
 import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeERC20.sol";

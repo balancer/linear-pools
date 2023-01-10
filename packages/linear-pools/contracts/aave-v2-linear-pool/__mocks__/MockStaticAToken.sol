@@ -18,7 +18,7 @@ import "../interfaces/IStaticAToken.sol";
 import "@orbcollective/shared-dependencies/contracts/TestToken.sol";
 
 contract MockStaticAToken is TestToken, IStaticAToken {
-    address private immutable _ASSET;
+    address private immutable _asset;
     ILendingPool private immutable _lendingPool;
 
     constructor(
@@ -28,13 +28,13 @@ contract MockStaticAToken is TestToken, IStaticAToken {
         address underlyingAsset,
         ILendingPool lendingPool
     ) TestToken(name, symbol, decimals) {
-        _ASSET = underlyingAsset;
+        _asset = underlyingAsset;
         _lendingPool = lendingPool;
     }
 
     // solhint-disable-next-line func-name-mixedcase
     function ASSET() external view override returns (address) {
-        return _ASSET;
+        return _asset;
     }
 
     // solhint-disable-next-line func-name-mixedcase

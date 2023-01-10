@@ -69,14 +69,14 @@ contract TetuLinearPoolFactory is
         uint256 initialPauseWindowDuration,
         uint256 bufferPeriodDuration
     )
-    BasePoolFactory(
-        vault,
-        protocolFeeProvider,
-        initialPauseWindowDuration,
-        bufferPeriodDuration,
-        type(TetuLinearPool).creationCode
-    )
-    Version(factoryVersion)
+        BasePoolFactory(
+            vault,
+            protocolFeeProvider,
+            initialPauseWindowDuration,
+            bufferPeriodDuration,
+            type(TetuLinearPool).creationCode
+        )
+        Version(factoryVersion)
     {
         _queries = queries;
         _poolVersion = poolVersion;

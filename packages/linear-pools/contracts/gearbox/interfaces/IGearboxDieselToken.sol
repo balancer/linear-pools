@@ -38,7 +38,11 @@ interface IGearboxVault {
      */
     function fromDiesel(uint256) external view returns (uint256);
 
-    function addLiquidity(uint256, address, uint256) external;
+    function addLiquidity(
+        uint256,
+        address,
+        uint256
+    ) external;
 
     function removeLiquidity(uint256, address) external;
 }
