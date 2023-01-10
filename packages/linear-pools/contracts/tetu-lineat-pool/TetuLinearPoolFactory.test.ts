@@ -1,21 +1,42 @@
 import { ethers } from 'hardhat';
 import { expect } from 'chai';
 import { BigNumber, Contract } from 'ethers';
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 
-import Vault from '@balancer-labs/v2-helpers/src/models/vault/Vault';
-import TokenList from '@balancer-labs/v2-helpers/src/models/tokens/TokenList';
-import * as expectEvent from '@balancer-labs/v2-helpers/src/test/expectEvent';
-import { fp } from '@balancer-labs/v2-helpers/src/numbers';
-import { deploy, deployedAt } from '@balancer-labs/v2-helpers/src/contract';
-import { MAX_UINT112 } from '@balancer-labs/v2-helpers/src/constants';
-import { advanceTime, currentTimestamp, MONTH } from '@balancer-labs/v2-helpers/src/time';
-import Token from '@balancer-labs/v2-helpers/src/models/tokens/Token';
-import { sharedBeforeEach } from '@balancer-labs/v2-common/sharedBeforeEach';
+import { fp, FP_ZERO } from '@orbcollective/shared-dependencies/numbers';
+import {
+  deployPackageContract,
+  getPackageContractDeployedAt,
+  deployToken,
+  setupEnvironment,
+  getBalancerContractArtifact,
+  MAX_UINT112,
+  ZERO_ADDRESS,
+} from '@orbcollective/shared-dependencies';
+
+import { advanceTime, currentTimestamp, MONTH } from '@orbcollective/shared-dependencies/time';
+
+import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
+import TokenList from '@orbcollective/shared-dependencies/test-helpers/token/TokenList';
+import { actionId } from '@orbcollective/shared-dependencies/test-helpers/actions';
+
+async function deployBalancerContract(
+  task: string,
+  contractName: string,
+  deployer: SignerWithAddress,
+  args: unknown[]
+): Promise<Contract> {
+  const artifact = await getBalancerContractArtifact(task, contractName);
+  const factory = new ethers.ContractFactory(artifact.abi, artifact.bytecode, deployer);
+  const contract = await factory.deploy(...args);
+
+  return contract;
+}
 
 describe('TetuLinearPoolFactory', function () {
-  let vault: Vault, tokens: TokenList, factory: Contract;
-  let creationTime: BigNumber, owner: SignerWithAddress;
+  let authorizer: Contract, vault: Contract, tokens: TokenList, factory: Contract;
+  let creationTime: BigNumber, admin: SignerWithAddress, owner: SignerWithAddress;
+  let factoryVersion: string, poolVersion: string;
 
   const NAME = 'Balancer Linear Pool Token';
   const SYMBOL = 'LPT';
@@ -24,46 +45,91 @@ describe('TetuLinearPoolFactory', function () {
   const BASE_PAUSE_WINDOW_DURATION = MONTH * 3;
   const BASE_BUFFER_PERIOD_DURATION = MONTH;
 
-  before('setup signers', async () => {
-    [, owner] = await ethers.getSigners();
-  });
+  const TETU_PROTOCOL_ID = 0;
+  const BEEFY_PROTOCOL_ID = 1;
+  const STURDY_PROTOCOL_ID = 2;
 
-  sharedBeforeEach('deploy factory & tokens', async () => {
-    vault = await Vault.create();
-    const queries = await deploy('v2-standalone-utils/BalancerQueries', { args: [vault.address] });
-    factory = await deploy('TetuLinearPoolFactory', {
-      args: [vault.address, vault.getFeesProvider().address, queries.address],
-    });
-    creationTime = await currentTimestamp();
+  const TETU_PROTOCOL_NAME = 'TETU';
+  const BEEFY_PROTOCOL_NAME = 'Beefy';
+  const STURDY_PROTOCOL_NAME = 'Sturdy';
 
-    const mainToken = await Token.create('DAI');
-    const wrappedTokenInstance = await deploy('MockTetuSmartVault', {
-      args: ['cDAI', 'cDAI', 18, mainToken.address, fp(1.05)],
+  beforeEach('deploy factory & tokens', async () => {
+    let deployer: SignerWithAddress;
+
+    // appease the @typescript-eslint/no-unused-vars lint error
+    [, admin, owner] = await ethers.getSigners();
+    ({ authorizer, vault, deployer } = await setupEnvironment());
+    const manager = deployer;
+
+    // Deploy tokens
+    const mainToken = await deployToken('DAI', 18, deployer);
+    const tetuVault = await deployPackageContract('MockTetuSmartVault', {
+      args: ['cDAI', 'cDAI', 18, mainToken.address, fp(1)],
     });
-    const wrappedToken = await Token.deployedAt(wrappedTokenInstance.address);
+    const wrappedToken = await getPackageContractDeployedAt('TestToken', tetuVault.address);
 
     tokens = new TokenList([mainToken, wrappedToken]).sort();
+
+    // Deploy Balancer Queries
+    const queriesTask = '20220721-balancer-queries';
+    const queriesContract = 'BalancerQueries';
+    const queriesArgs = [vault.address];
+    const queries = await deployBalancerContract(queriesTask, queriesContract, manager, queriesArgs);
+
+    // Deploy poolFactory
+    factoryVersion = JSON.stringify({
+      name: 'TetuLinearPoolFactory',
+      version: '3',
+      deployment: 'test-deployment',
+    });
+    poolVersion = JSON.stringify({
+      name: 'TetuLinearPool',
+      version: '1',
+      deployment: 'test-deployment',
+    });
+    factory = await deployPackageContract('TetuLinearPoolFactory', {
+      args: [
+        vault.address,
+        ZERO_ADDRESS,
+        queries.address,
+        factoryVersion,
+        poolVersion,
+        BASE_PAUSE_WINDOW_DURATION,
+        BASE_BUFFER_PERIOD_DURATION,
+      ],
+    });
+
+    creationTime = await currentTimestamp();
   });
 
   async function createPool(): Promise<Contract> {
-    const receipt = await factory.create(
+    const DAI = await tokens.getTokenBySymbol('DAI');
+    const cDAI = await tokens.getTokenBySymbol('cDAI');
+    const tx = await factory.create(
       NAME,
       SYMBOL,
-      tokens.DAI.address,
-      tokens.CDAI.address,
+      DAI.address,
+      cDAI.address,
       UPPER_TARGET,
       POOL_SWAP_FEE_PERCENTAGE,
-      owner.address
+      owner.address,
+      TETU_PROTOCOL_ID
     );
 
-    const event = expectEvent.inReceipt(await receipt.wait(), 'PoolCreated');
-    return deployedAt('LinearPool', event.args.pool);
+    const receipt = await tx.wait();
+    const event = expectEvent.inReceipt(receipt, 'PoolCreated');
+    expectEvent.inReceipt(receipt, 'TetuLinearPoolCreated', {
+      pool: event.args.pool,
+      protocolId: TETU_PROTOCOL_ID,
+    });
+
+    return getPackageContractDeployedAt('TetuLinearPool', event.args.pool);
   }
 
   describe('constructor arguments', () => {
     let pool: Contract;
 
-    sharedBeforeEach('create pool', async () => {
+    beforeEach('create pool', async () => {
       pool = await createPool();
     });
 
@@ -71,13 +137,28 @@ describe('TetuLinearPoolFactory', function () {
       expect(await pool.getVault()).to.equal(vault.address);
     });
 
+    it('checks the factory version', async () => {
+      expect(await factory.version()).to.equal(factoryVersion);
+    });
+
+    it('checks the pool version', async () => {
+      expect(await pool.version()).to.equal(poolVersion);
+    });
+
+    it('checks the pool version in the factory', async () => {
+      expect(await factory.getPoolVersion()).to.equal(poolVersion);
+    });
+
     it('registers tokens in the vault', async () => {
       const poolId = await pool.getPoolId();
       const poolTokens = await vault.getPoolTokens(poolId);
 
+      const DAI = await tokens.getTokenBySymbol('DAI');
+      const cDAI = await tokens.getTokenBySymbol('cDAI');
+
       expect(poolTokens.tokens).to.have.lengthOf(3);
-      expect(poolTokens.tokens).to.include(tokens.DAI.address);
-      expect(poolTokens.tokens).to.include(tokens.CDAI.address);
+      expect(poolTokens.tokens).to.include(DAI.address);
+      expect(poolTokens.tokens).to.include(cDAI.address);
       expect(poolTokens.tokens).to.include(pool.address);
 
       poolTokens.tokens.forEach((token, i) => {
@@ -92,9 +173,9 @@ describe('TetuLinearPoolFactory', function () {
     it('sets a rebalancer as the asset manager', async () => {
       const poolId = await pool.getPoolId();
       // We only check the first token, but this will be the asset manager for both main and wrapped
-      const { assetManager } = await vault.getPoolTokenInfo(poolId, tokens.first);
+      const { assetManager } = await vault.getPoolTokenInfo(poolId, tokens.first.address);
 
-      const rebalancer = await deployedAt('TetuLinearPoolRebalancer', assetManager);
+      const rebalancer = await getPackageContractDeployedAt('TetuLinearPoolRebalancer', assetManager);
 
       expect(await rebalancer.getPool()).to.equal(pool.address);
     });
@@ -120,16 +201,18 @@ describe('TetuLinearPoolFactory', function () {
     });
 
     it('sets main token', async () => {
-      expect(await pool.getMainToken()).to.equal(tokens.DAI.address);
+      const DAI = await tokens.getTokenBySymbol('DAI');
+      expect(await pool.getMainToken()).to.equal(DAI.address);
     });
 
     it('sets wrapped token', async () => {
-      expect(await pool.getWrappedToken()).to.equal(tokens.CDAI.address);
+      const cDAI = await tokens.getTokenBySymbol('cDAI');
+      expect(await pool.getWrappedToken()).to.equal(cDAI.address);
     });
 
     it('sets the targets', async () => {
       const targets = await pool.getTargets();
-      expect(targets.lowerTarget).to.be.equal(fp(0));
+      expect(targets.lowerTarget).to.be.equal(FP_ZERO);
       expect(targets.upperTarget).to.be.equal(UPPER_TARGET);
     });
   });
@@ -137,7 +220,7 @@ describe('TetuLinearPoolFactory', function () {
   describe('with a created pool', () => {
     let pool: Contract;
 
-    sharedBeforeEach('create pool', async () => {
+    beforeEach('create pool', async () => {
       pool = await createPool();
     });
 
@@ -176,6 +259,54 @@ describe('TetuLinearPoolFactory', function () {
 
       expect(pauseWindowEndTime).to.equal(now);
       expect(bufferPeriodEndTime).to.equal(now);
+    });
+  });
+
+  describe('protocol id', () => {
+    it('should not allow adding protocols without permission', async () => {
+      await expect(factory.registerProtocolId(TETU_PROTOCOL_ID, 'TETU')).to.be.revertedWith('BAL#401');
+    });
+
+    context('with no registered protocols', () => {
+      it('should revert when asking for an unregistered protocol name', async () => {
+        await expect(factory.getProtocolName(TETU_PROTOCOL_ID)).to.be.revertedWith('Protocol ID not registered');
+      });
+    });
+
+    context('with registered protocols', () => {
+      beforeEach('grant permissions', async () => {
+        const action = await actionId(factory, 'registerProtocolId');
+        await (await authorizer.connect(admin)).grantPermissions([action], admin.address, [factory.address]);
+      });
+
+      beforeEach('register some protocols', async () => {
+        await factory.connect(admin).registerProtocolId(TETU_PROTOCOL_ID, TETU_PROTOCOL_NAME);
+        await factory.connect(admin).registerProtocolId(BEEFY_PROTOCOL_ID, BEEFY_PROTOCOL_NAME);
+        await factory.connect(admin).registerProtocolId(STURDY_PROTOCOL_ID, STURDY_PROTOCOL_NAME);
+      });
+
+      it('protocol ID registration should emit an event', async () => {
+        const OTHER_PROTOCOL_ID = 57;
+        const OTHER_PROTOCOL_NAME = 'Protocol 57';
+
+        const tx = await factory.connect(admin).registerProtocolId(OTHER_PROTOCOL_ID, OTHER_PROTOCOL_NAME);
+        expectEvent.inReceipt(await tx.wait(), 'TetuLinearPoolProtocolIdRegistered', {
+          protocolId: OTHER_PROTOCOL_ID,
+          name: OTHER_PROTOCOL_NAME,
+        });
+      });
+
+      it('should register protocols', async () => {
+        expect(await factory.getProtocolName(TETU_PROTOCOL_ID)).to.equal(TETU_PROTOCOL_NAME);
+        expect(await factory.getProtocolName(BEEFY_PROTOCOL_ID)).to.equal(BEEFY_PROTOCOL_NAME);
+        expect(await factory.getProtocolName(STURDY_PROTOCOL_ID)).to.equal(STURDY_PROTOCOL_NAME);
+      });
+
+      it('should fail when a protocol is already registered', async () => {
+        await expect(
+          factory.connect(admin).registerProtocolId(STURDY_PROTOCOL_ID, 'Random protocol')
+        ).to.be.revertedWith('Protocol ID already registered');
+      });
     });
   });
 });
