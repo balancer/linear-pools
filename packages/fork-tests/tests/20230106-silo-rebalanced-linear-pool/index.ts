@@ -26,9 +26,10 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
     // Pools are automatically verified. We however don't run any of this code in CHECK mode, since we don't care about
     // the contracts deployed here. The action IDs will be checked to be correct via a different mechanism.
 
+    // TODO: Fix Mocks
     // SiloLinearPools require an Silo Token
-    const mockSiloTokenArgs = ['DO NOT USE - Mock Silo Token', 'TEST', 18, input.WETH];
-    const mockShareToken = await task.deployAndVerify('MockShareToken', mockSiloTokenArgs, from, force);
+    const mockShareTokenArgs = ['DO NOT USE - Mock Share Token', 'TEST', 18, input.WETH];
+    const mockShareToken = await task.deployAndVerify('MockShareToken', mockShareTokenArgs, from, force);
 
     // The assetManager, pauseWindowDuration and bufferPeriodDuration will be filled in later, but we need to declare
     // them here to appease the type system. Those are constructor arguments, but automatically provided by the factory.

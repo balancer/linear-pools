@@ -12,14 +12,17 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 pragma solidity >=0.7.0 <0.9.0;
+import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
 
 library SiloHelpers {
+    using Math for uint256;
+
     function toShare(uint256 amount, uint256 totalAmount, uint256 totalShares) internal pure returns (uint256) {
         if (totalShares == 0 || totalAmount == 0) {
             return amount;
         }
 
-        uint256 result = (amount * totalShares) / totalAmount;
+        uint256 result = amount.mul(totalShares).divDown(totalAmount);
 
         // Prevent rounding error
         if (result == 0 && amount != 0) {
@@ -34,8 +37,8 @@ library SiloHelpers {
             return amount;
         }
 
-        uint256 numerator = amount * totalShares;
-        uint256 result = numerator / totalAmount;
+        uint256 numerator = amount.mul(totalShares);
+        uint256 result = numerator.divDown(totalAmount);
 
         // Round up
         if (numerator % totalAmount != 0) {
@@ -50,7 +53,7 @@ library SiloHelpers {
             return 0;
         }
 
-        uint256 result = (share * totalAmount) / totalShares;
+        uint256 result = share.mul(totalAmount).divDown(totalShares);
 
         // Prevent rounding error
         if (result == 0 && share != 0) {

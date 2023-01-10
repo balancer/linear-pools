@@ -15,7 +15,7 @@ export enum SwapKind {
   GivenOut,
 }
 
-describeForkTest('SiloLinearPoolFactory', 'mainnet', 16015018, function () {
+describeForkTest('SiloLinearPoolFactory', 'mainnet', 15989794, function () {
   let owner: SignerWithAddress, holder: SignerWithAddress, other: SignerWithAddress;
   let factory: Contract, vault: Contract, usdc: Contract;
   let rebalancer: Contract;
@@ -27,7 +27,7 @@ describeForkTest('SiloLinearPoolFactory', 'mainnet', 16015018, function () {
   // Share Token address for USDC
   const sUSDC = '0x416DE9AD46C53AAAb2352F91120952393946d2ac';
   // USDC holder address
-  const USDC_HOLDER = '0x72124e30d5a501c77079bf0c9f7e6330e0b7acba';
+  const USDC_HOLDER = '0xdfd5293d8e347dfe59e90efd55b2956a1343963d';
 
   // Scaling factory is 1e12 due to USDC only having 6 decimals
   const USDC_SCALING = bn(1e12);
@@ -35,11 +35,11 @@ describeForkTest('SiloLinearPoolFactory', 'mainnet', 16015018, function () {
   const SWAP_FEE_PERCENTAGE = fp(0.01); // 1%
 
   // The targets are set using 18 decimals, even if the token has fewer (as is the case for USDC);
-  const INITIAL_UPPER_TARGET = fp(1e2);
+  const INITIAL_UPPER_TARGET = fp(1e6);
 
   // The initial midpoint (upper target / 2) must be between the final lower and upper targets
-  const FINAL_LOWER_TARGET = fp(0.2e2);
-  const FINAL_UPPER_TARGET = fp(5e2);
+  const FINAL_LOWER_TARGET = fp(0.2e6);
+  const FINAL_UPPER_TARGET = fp(5e6);
 
   const PROTOCOL_ID = 5;
 
@@ -55,7 +55,7 @@ describeForkTest('SiloLinearPoolFactory', 'mainnet', 16015018, function () {
   before('load signers', async () => {
     [, owner, other] = await getSigners();
 
-    holder = await impersonate(USDC_HOLDER, fp(100));
+    holder = await impersonate(USDC_HOLDER, fp(1000000000000));
   });
 
   before('setup contracts', async () => {
@@ -177,7 +177,8 @@ describeForkTest('SiloLinearPoolFactory', 'mainnet', 16015018, function () {
       // rebalance.
 
       const joinAmount = INITIAL_UPPER_TARGET.mul(2).div(USDC_SCALING);
-
+      console.log(`Join amount: ${joinAmount}`);
+      console.log(`User balance: ${await owner.getBalance()}`);
       await vault.connect(holder).swap(
         {
           kind: SwapKind.GivenIn,
