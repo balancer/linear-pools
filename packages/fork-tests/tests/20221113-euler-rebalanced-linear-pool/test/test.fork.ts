@@ -5,7 +5,11 @@ import { setCode } from '@nomicfoundation/hardhat-network-helpers';
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 
 import { bn, fp, FP_ONE } from '@orbcollective/shared-dependencies/numbers';
-import { MAX_UINT256 } from '@orbcollective/shared-dependencies';
+import { 
+  MAX_UINT256,
+  getExternalPackageDeployedAt,
+  getExternalPackageArtifact,
+} from '@orbcollective/shared-dependencies';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 
 import { describeForkTest } from '../../../src/forkTests';
@@ -309,7 +313,7 @@ describeForkTest('EulerLinearPoolFactory', 'mainnet', 15961400, function () {
     itRebalancesThePool(LinearPoolState.BALANCED);
   });
 
-  /* describe('rebalancer query protection', () => {
+  describe('rebalancer query protection', () => {
     it('reverts with a malicious lending pool',async () => {
       const { cash } = await vault.getPoolTokenInfo(poolId, USDC);
       const scaledCash = cash.mul(USDC_SCALING);
@@ -331,11 +335,11 @@ describeForkTest('EulerLinearPoolFactory', 'mainnet', 15961400, function () {
         MAX_UINT256
       );
 
-      await setCode(eUSDC, getArtifact('v2-pool-linear/MockEulerToken').deployedBytecode);
-      const mockMaliciousEulerToken = await deployedAt('v2-pool-linear/MockEulerToken', eUSDC);
+      await setCode(eUSDC, getExternalPackageArtifact('linear-pools/MockEulerToken').deployedBytecode);
+      const mockMaliciousEulerToken = await getExternalPackageDeployedAt('linear-pools/MockEulerToken', eUSDC);
 
       await mockMaliciousEulerToken.setRevertType(2); // Type 2 is malicious swap query revert
       await expect(rebalancer.rebalance(other.address)).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
     })
-  }) */
+  })
 });
