@@ -174,3 +174,22 @@ function getPackageArtifact(contract: string): Artifact {
   const artifacts = new Artifacts(artifactsPath);
   return artifacts.readArtifactSync(contract.split('/').slice(-1)[0]);
 }
+
+export async function getExternalPackageDeployedAt(contract: string, address: string): Promise<Contract> {
+  const artifact = getExternalPackageArtifact(contract);
+  return ethers.getContractAt(artifact.abi, address) as unknown as Contract;
+}
+
+export function getExternalPackageArtifact(contract: string): Artifact {
+  let artifactsPath: string;
+  if (!contract.includes('/')) {
+    artifactsPath = path.resolve('./artifacts');
+  } else {
+    const packageName = `@orbcollective/${contract.split('/')[0]}`;
+    const packagePath = path.dirname(require.resolve(`${packageName}/package.json`));
+    artifactsPath = `${packagePath}/artifacts`;
+  }
+
+  const artifacts = new Artifacts(artifactsPath);
+  return artifacts.readArtifactSync(contract.split('/').slice(-1)[0]);
+}
