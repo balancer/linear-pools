@@ -16,7 +16,7 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
     input.FactoryVersion,
     input.PoolVersion,
     input.InitialPauseWindowDuration,
-    input.BufferPeriodDuration,
+    input.BufferPeriodDuration
   ];
 
   const factory = await task.deployAndVerify('SiloLinearPoolFactory', args, from, force);
@@ -99,6 +99,6 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
     await task.verify('SiloLinearPool', mockSilo.address, [mockPoolArgs]);
 
     // We can also verify the Asset Manager
-    await task.verify('SiloLinearPoolRebalancer', assetManagerAddress, [input.Vault, input.BalancerQueries]);
+    await task.verify('SiloLinearPoolRebalancer', assetManagerAddress, [input.Vault, input.BalancerQueries, mockShareToken.address]);
   }
 };

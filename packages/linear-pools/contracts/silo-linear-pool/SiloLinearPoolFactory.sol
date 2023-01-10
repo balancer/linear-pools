@@ -50,7 +50,7 @@ contract SiloLinearPoolFactory is
 
     address private _lastCreatedPool;
     string private _poolVersion;
-
+  
     // Maintain a set of recognized protocolIds
     mapping(uint256 => ProtocolIdData) private _protocolIds;
 
@@ -140,7 +140,7 @@ contract SiloLinearPoolFactory is
 
         bytes memory rebalancerCreationCode = abi.encodePacked(
             type(SiloLinearPoolRebalancer).creationCode,
-            abi.encode(getVault(), _queries)
+            abi.encode(getVault(), _queries, address(wrappedToken))
         );
         address expectedRebalancerAddress = Create2.computeAddress(rebalancerSalt, keccak256(rebalancerCreationCode));
 

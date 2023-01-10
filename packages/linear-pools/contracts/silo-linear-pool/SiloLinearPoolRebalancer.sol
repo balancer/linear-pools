@@ -31,45 +31,42 @@ contract SiloLinearPoolRebalancer is LinearPoolRebalancer {
     using SafeERC20 for IERC20;
     using Math for uint256;
 
+    IShareToken private _shareToken;
+    ISilo private _silo;
+
     // These Rebalancers can only be deployed from a factory to work around a circular dependency: the Pool must know
     // the address of the Rebalancer in order to register it, and the Rebalancer must know the address of the Pool
     // during construction.
     constructor(
         IVault vault,
-        IBalancerQueries queries
+        IBalancerQueries queries,
+        address wrappedToken
     ) LinearPoolRebalancer(ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()), vault, queries) {
-        // solhint-disable-previous-line no-empty-blocks
+        _shareToken = IShareToken(address(wrappedToken));
+        _silo = ISilo(_shareToken.silo());
     }
 
     function _wrapTokens(uint256 amount) internal override {
         // @dev In order to receive a sharesToken that can gain interest false must be entered for collateralOnly
-        // deposit however, we need to approve the wrapper in the underlying token.
-        _mainToken.safeApprove(address(_wrappedToken), amount);
-
-        IShareToken shareToken = IShareToken(address(_wrappedToken));
-        console.log("Main token address: %s", address(_mainToken));
-        ISilo(shareToken.silo()).deposit(address(_mainToken), amount, false);
+        // deposit however, we need to approve the silo where we will be depositing our tokens to.
+        _mainToken.safeApprove(address(_silo), amount);
+        _silo.deposit(address(_mainToken), amount, false);
     }
 
     function _unwrapTokens(uint256 amount) internal override {
         // Withdrawing into underlying (i.e. DAI, USDC, etc. instead of sDAI or sUSDC). Approvals are not necessary here
         // as the wrapped token is simply burnt.
-        IShareToken shareToken = IShareToken(address(_wrappedToken));
-
-        ISilo(shareToken.silo()).withdraw(address(_mainToken), amount, false);
+        _silo.withdraw(address(_mainToken), amount, false);
     }
 
     function _getRequiredTokensToWrap(uint256 wrappedAmount) internal view override returns (uint256) {
-        // Get the silo associated with the wrappedToken
-        IShareToken shareToken = IShareToken(address(_wrappedToken));
-        ISilo silo = ISilo(shareToken.silo());
 
         // @dev value hardcoding to find the exchange rate for a single _shareToken
         uint256 singleShare = 1e18;
         // @dev total amount deposited
-        uint256 totalAmount = silo.assetStorage(shareToken.asset()).totalDeposits;
+        uint256 totalAmount = _silo.assetStorage(_shareToken.asset()).totalDeposits;
         // @dev total number of shares
-        uint256 totalShares = shareToken.totalSupply();
+        uint256 totalShares = _shareToken.totalSupply();
         // @dev toAmount function is what silo uses to calculate exchange rates during withdraw period
         // The protocol currently does not expose an exchange rate function
         uint256 rate = SiloHelpers.toAmount(singleShare, totalAmount, totalShares);

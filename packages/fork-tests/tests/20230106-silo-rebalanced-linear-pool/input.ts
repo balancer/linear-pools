@@ -10,6 +10,7 @@ export type SiloLinearPoolDeployment = {
   PoolVersion: string;
   InitialPauseWindowDuration: number;
   BufferPeriodDuration: number;
+
 };
 
 const Vault = new Task('20210418-vault', TaskMode.READ_ONLY);
