@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build": "yarn compile",
-    "compile": "hardhat compile",
+    "compile": "rm -rf artifacts/ cache/ && hardhat clean && hardhat compile",
     "compile:watch": "nodemon --ext sol --exec yarn compile",
     "lint": "yarn prettier && yarn lint:solidity && yarn lint:typescript",
     "lint:solidity": "solhint --fix 'contracts/**/*.sol'",

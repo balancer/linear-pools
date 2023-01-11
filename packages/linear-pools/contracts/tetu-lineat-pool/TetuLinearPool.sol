@@ -16,6 +16,7 @@ pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
 import "./interfaces/ITetuSmartVault.sol";
+import "./interfaces/ITetuStrategy.sol";
 
 import "@balancer-labs/v2-pool-utils/contracts/lib/ExternalCallLib.sol";
 import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
@@ -23,6 +24,8 @@ import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
 import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
 
 contract TetuLinearPool is LinearPool, Version {
+    IERC20 private immutable _mainToken;
+    IERC20 private immutable _wrappedToken;
     ITetuSmartVault private immutable _tokenVault;
 
     uint256 private immutable _rateScaleFactor;
@@ -59,7 +62,8 @@ contract TetuLinearPool is LinearPool, Version {
         Version(args.version)
     {
         ITetuSmartVault tokenVault = ITetuSmartVault(address(args.wrappedToken));
-
+        _mainToken = args.mainToken;
+        _wrappedToken = args.wrappedToken;
         _tokenVault = tokenVault;
 
         _rateScaleFactor = 10**(SafeMath.sub(18, ERC20(tokenVault.underlying()).decimals()));
@@ -77,8 +81,23 @@ contract TetuLinearPool is LinearPool, Version {
     }
 
     function _getWrappedTokenRate() internal view override returns (uint256) {
-        try _tokenVault.getPricePerFullShare() returns (uint256 ppfs) {
-            return ppfs * _rateScaleFactor;
+        if (_wrappedToken.totalSupply() == 0) {
+            return 0;
+        }
+        try _mainToken.balanceOf(address(_wrappedToken)) returns (uint256 underlyingBalanceInVault) {
+            address strategy = ITetuSmartVault(address(_wrappedToken)).strategy();
+            if (address(strategy) == address(0)) {
+                return (10**18 * underlyingBalanceInVault/ _wrappedToken.totalSupply()) + 1;
+            }
+
+            try ITetuStrategy(strategy).investedUnderlyingBalance() returns (uint256 strategyInvestedUnderlyingBalance) {
+                return (10**18 * (underlyingBalanceInVault + strategyInvestedUnderlyingBalance) / _wrappedToken.totalSupply()) + 1;
+            } catch (bytes memory revertData) {
+                // By maliciously reverting here, TetuVault (or any other contract in the call stack)
+                // could trick the Pool into reporting invalid data to the query mechanism for swaps/joins/exits.
+                // We then check the revert data to ensure this doesn't occur.
+                ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);
+            }
         } catch (bytes memory revertData) {
             // By maliciously reverting here, TetuVault (or any other contract in the call stack)
             // could trick the Pool into reporting invalid data to the query mechanism for swaps/joins/exits.
