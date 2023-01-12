@@ -17,6 +17,7 @@
     "lint": "yarn workspaces foreach --parallel --verbose run lint",
     "test": "yarn workspaces foreach --parallel --verbose run test"
   },
+  "private": true,
   "workspaces": [
     "packages/*"
   ]
