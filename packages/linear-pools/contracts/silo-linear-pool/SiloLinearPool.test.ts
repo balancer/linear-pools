@@ -130,7 +130,7 @@ describe('SiloLinearPool', function () {
 
   describe('constructor', () => {
     it('do not revert if the mainToken is not the ASSET of the wrappedToken', async () => {
-      const otherToken = await deployToken('USDC', 18, manager);
+      const otherToken = await deployToken('USDC', 6, manager);
 
       await expect(
         poolFactory.create(

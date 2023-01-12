@@ -41,7 +41,7 @@ describeForkTest('SiloLinearPoolFactory', 'mainnet', 15989794, function () {
   const SWAP_FEE_PERCENTAGE = fp(0.01); // 1%
 
   // The targets are set using 18 decimals, even if the token has fewer (as is the case for USDC);
-  const INITIAL_UPPER_TARGET = fp(1e1);
+  const INITIAL_UPPER_TARGET = fp(2e1);
 
   // The initial midpoint (upper target / 2) must be between the final lower and upper targets
   const FINAL_LOWER_TARGET = fp(0.2e1);

@@ -27,6 +27,7 @@ import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
 contract SiloLinearPool is LinearPool, Version {
     ISilo private immutable _silo;
     IShareToken private immutable _shareToken;
+    uint8 private immutable _decimals;
 
     struct ConstructorArgs {
         IVault vault;
@@ -63,6 +64,7 @@ contract SiloLinearPool is LinearPool, Version {
     {
         _shareToken = IShareToken(address(args.wrappedToken));
         _silo = ISilo(IShareToken(address(args.wrappedToken)).silo());
+        _decimals = ERC20(address(args.wrappedToken)).decimals();
         _require(address(args.mainToken) == IShareToken(address(args.wrappedToken)).asset(), Errors.TOKENS_MISMATCH);
     }
 
@@ -76,8 +78,8 @@ contract SiloLinearPool is LinearPool, Version {
     }
 
     function _getWrappedTokenRate() internal view override returns (uint256) {
-        // @dev value hardcoded to find the exchange rate for a single _shareToken
-        uint256 singleShare = 1e6;
+        // @dev value a single _shareToken
+        uint256 singleShare = 10 ** _decimals;
         // @dev total amount deposited
         try _silo.assetStorage(_shareToken.asset()) returns (ISilo.AssetStorage memory assetStorage) {
             uint256 totalAmount = assetStorage.totalDeposits;
@@ -86,7 +88,10 @@ contract SiloLinearPool is LinearPool, Version {
             // @dev toAmount function is what silo uses to calculate exchange rates during withdraw period
             // The protocol currently does not expose an exchange rate function
             uint256 rate = SiloHelpers.toAmount(singleShare, totalAmount, totalShares);
-            return rate * 1e12;
+
+            uint256 scalingAmount = 10 ** (18 - _decimals);
+
+            return rate * scalingAmount;
         } catch (bytes memory revertData) {
             // By maliciously reverting here, Aave (or any other contract in the call stack) could trick the Pool into
             // reporting invalid data to the query mechanism for swaps/joins/exits.
