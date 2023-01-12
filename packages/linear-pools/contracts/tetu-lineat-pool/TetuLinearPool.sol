@@ -81,19 +81,20 @@ contract TetuLinearPool is LinearPool, Version {
     }
 
     function _getWrappedTokenRate() internal view override returns (uint256) {
-        if (_wrappedToken.totalSupply() == 0) {
+        uint256 wrappedTotalSupply = _wrappedToken.totalSupply();
+        if (wrappedTotalSupply == 0) {
             return 0;
         }
         // We couldn't use tetuVault.getPricePerFullShare function, since it introduces rounding issues in tokens
         // with a small number of decimals. Therefore, we're calculating the rate using balance and suply
-        try _mainToken.balanceOf(address(_wrappedToken)) returns (uint256 underlyingBalanceInVault) {
+        try ITetuSmartVault(address(_wrappedToken)).underlyingBalanceInVault() returns (uint256 underlyingBalanceInVault) {
             address strategy = ITetuSmartVault(address(_wrappedToken)).strategy();
             if (address(strategy) == address(0)) {
-                return (10**18 * underlyingBalanceInVault/ _wrappedToken.totalSupply()) + 1;
+                return (10**18 * underlyingBalanceInVault/ wrappedTotalSupply) + 1;
             }
 
             try ITetuStrategy(strategy).investedUnderlyingBalance() returns (uint256 strategyInvestedUnderlyingBalance) {
-                return (10**18 * (underlyingBalanceInVault + strategyInvestedUnderlyingBalance) / _wrappedToken.totalSupply()) + 1;
+                return (10**18 * (underlyingBalanceInVault + strategyInvestedUnderlyingBalance) / wrappedTotalSupply) + 1;
             } catch (bytes memory revertData) {
                 // By maliciously reverting here, TetuVault (or any other contract in the call stack)
                 // could trick the Pool into reporting invalid data to the query mechanism for swaps/joins/exits.

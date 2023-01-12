@@ -49,9 +49,10 @@ async function createTetuTokens({
   wrappedTokenSymbol: string;
   wrappedTokenDecimals: number;
 }): Promise<{ mainToken: Contract; tetuVault: Contract; tokens: TokenList; wrappedToken: Contract }> {
+  const tetuStrategy = await deployPackageContract('MockTetuStrategy');
   const mainToken = await deployToken(mainTokenSymbol, mainTokenDecimals, deployer);
   const tetuVault = await deployPackageContract('MockTetuSmartVault', {
-    args: [wrappedTokenSymbol, wrappedTokenSymbol, wrappedTokenDecimals, mainToken.address, fp(1)],
+    args: [wrappedTokenSymbol, wrappedTokenSymbol, wrappedTokenDecimals, mainToken.address, tetuStrategy.address],
   });
   const wrappedToken = await getPackageContractDeployedAt('TestToken', tetuVault.address);
 
@@ -248,11 +249,11 @@ describe('TetuLinearPool', function () {
 
       it('should calculate rate correctly', async () => {
         // 1e6 implies a 1:1 exchange rate between main and wrapped token
-        await usdcTetuVault.setPricePerFullShare(bn(1e6));
+        await usdcTetuVault.setRate(bn(1e6));
         expect(await usdcPool.getWrappedTokenRate()).to.be.eq(fp(1));
 
         // We now double the exchange rate to 2:1
-        await usdcTetuVault.setPricePerFullShare(bn(2e6));
+        await usdcTetuVault.setRate(bn(2e6));
         expect(await usdcPool.getWrappedTokenRate()).to.be.eq(fp(2));
       });
     });
@@ -285,11 +286,11 @@ describe('TetuLinearPool', function () {
 
       it('should calculate rate correctly', async () => {
         // 1e8 implies a 1:1 exchange rate between main and wrapped token
-        await wbtcTetuVault.setPricePerFullShare(bn(1e8));
+        await wbtcTetuVault.setRate(bn(1e8));
         expect(await wbtcPool.getWrappedTokenRate()).to.be.eq(fp(1));
 
         // We now double the exchange rate to 2:1
-        await wbtcTetuVault.setPricePerFullShare(bn(2e8));
+        await wbtcTetuVault.setRate(bn(2e8));
         expect(await wbtcPool.getWrappedTokenRate()).to.be.eq(fp(2));
       });
     });
@@ -322,11 +323,11 @@ describe('TetuLinearPool', function () {
 
       it('should calculate rate correctly', async () => {
         // 1e8 implies a 1:1 exchange rate between main and wrapped token
-        await daiTetuVault.setPricePerFullShare(bn(1e18));
+        await daiTetuVault.setRate(bn(1e18));
         expect(await daiPool.getWrappedTokenRate()).to.be.eq(fp(1));
 
         // We now double the exchange rate to 2:1
-        await daiTetuVault.setPricePerFullShare(bn(2e18));
+        await daiTetuVault.setRate(bn(2e18));
         expect(await daiPool.getWrappedTokenRate()).to.be.eq(fp(2));
       });
     });

@@ -62,9 +62,10 @@ describe('TetuLinearPoolFactory', function () {
     const manager = deployer;
 
     // Deploy tokens
+    const tetuStrategy = await deployPackageContract('MockTetuStrategy');
     const mainToken = await deployToken('DAI', 18, deployer);
     const tetuVault = await deployPackageContract('MockTetuSmartVault', {
-      args: ['cDAI', 'cDAI', 18, mainToken.address, fp(1)],
+      args: ['cDAI', 'cDAI', 18, mainToken.address, tetuStrategy.address],
     });
     const wrappedToken = await getPackageContractDeployedAt('TestToken', tetuVault.address);
 

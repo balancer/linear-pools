@@ -16,37 +16,47 @@ pragma solidity >=0.7.0 <0.9.0;
 
 import "../interfaces/ITetuSmartVault.sol";
 
+import "./MockTetuStrategy.sol";
+
 import "@orbcollective/shared-dependencies/contracts/MockMaliciousQueryReverter.sol";
 import "@orbcollective/shared-dependencies/contracts/TestToken.sol";
 
 contract MockTetuSmartVault is ITetuSmartVault, TestToken, MockMaliciousQueryReverter {
     IERC20 public underlyingAsset;
     uint256 underlyingDecimals;
-    uint256 private _pricePerFullShare;
+    uint256 private _underlyingBalanceInVault = 0;
+    MockTetuStrategy private immutable _tetuStrategy;
 
     constructor(
         string memory name,
         string memory symbol,
         uint8 decimals,
         address _underlyingAsset,
-        uint256 fullSharePrice
+        MockTetuStrategy tetuStrategy
     ) TestToken(name, symbol, decimals) {
         underlyingAsset = IERC20(_underlyingAsset);
         underlyingDecimals = decimals;
-        _pricePerFullShare = fullSharePrice;
+        _tetuStrategy = tetuStrategy;
     }
 
     function getPricePerFullShare() external view override returns (uint256) {
-        maybeRevertMaliciously();
-        return _pricePerFullShare;
+        revert("Should not call this");
     }
 
-    function setPricePerFullShare(uint256 _newPricePerFullShare) public {
-        _pricePerFullShare = _newPricePerFullShare;
+    // Should pass rate with decimals from underlyingToken
+    function setRate(uint256 newRate) public {
+        uint256 totalSupply = this.totalSupply();
+        // arbitrary number, just to make sure that both Vault and Invested values compose the rate.
+        uint8 vaultInvestedRatio = 3;
+        _underlyingBalanceInVault = newRate * totalSupply / (vaultInvestedRatio * 10**underlyingDecimals);
+        _tetuStrategy.setInvestedUnderlyingBalance(
+            (vaultInvestedRatio - 1) * newRate * totalSupply / (vaultInvestedRatio * 10**underlyingDecimals)
+        );
     }
 
     function underlyingBalanceInVault() external view override returns (uint256) {
-        return underlyingAsset.balanceOf(address(this));
+        maybeRevertMaliciously();
+        return _underlyingBalanceInVault;
     }
 
     function underlyingBalanceWithInvestmentForHolder(address) external view override returns (uint256) {
@@ -67,7 +77,7 @@ contract MockTetuSmartVault is ITetuSmartVault, TestToken, MockMaliciousQueryRev
         return 10**underlyingDecimals;
     }
 
-    function strategy() external pure override returns (address) {
-        return address(0);
+    function strategy() external view override returns (address) {
+        return address(_tetuStrategy);
     }
 }
