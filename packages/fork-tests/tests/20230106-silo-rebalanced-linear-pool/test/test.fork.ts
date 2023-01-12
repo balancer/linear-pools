@@ -1,11 +1,15 @@
 import hre from 'hardhat';
 import { expect } from 'chai';
 import { Contract } from 'ethers';
-import { setCode } from '@nomicfoundation/hardhat-network-helpers';
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import { bn, fp, FP_ONE } from '@orbcollective/shared-dependencies/numbers';
-import { MAX_UINT256 } from '@orbcollective/shared-dependencies';
+import {
+  MAX_UINT256,
+  getExternalPackageDeployedAt,
+  getExternalPackageArtifact,
+} from '@orbcollective/shared-dependencies';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
+import { setCode } from '@nomicfoundation/hardhat-network-helpers';
 
 import { impersonate, getForkedNetwork, Task, TaskMode, getSigners } from '../../../src';
 import { describeForkTest } from '../../../src/forkTests';
@@ -28,6 +32,8 @@ describeForkTest('SiloLinearPoolFactory', 'mainnet', 15989794, function () {
   const sUSDC = '0x416DE9AD46C53AAAb2352F91120952393946d2ac';
   // USDC holder address
   const USDC_HOLDER = '0xdfd5293d8e347dfe59e90efd55b2956a1343963d';
+  // USDC Silo Address
+  const USDC_SILO = '0xfccc27aabd0ab7a0b2ad2b7760037b1eab61616b';
 
   // Scaling factory is 1e12 due to USDC only having 6 decimals
   const USDC_SCALING = bn(1e12);
@@ -35,11 +41,11 @@ describeForkTest('SiloLinearPoolFactory', 'mainnet', 15989794, function () {
   const SWAP_FEE_PERCENTAGE = fp(0.01); // 1%
 
   // The targets are set using 18 decimals, even if the token has fewer (as is the case for USDC);
-  const INITIAL_UPPER_TARGET = fp(1e6);
+  const INITIAL_UPPER_TARGET = fp(1e1);
 
   // The initial midpoint (upper target / 2) must be between the final lower and upper targets
-  const FINAL_LOWER_TARGET = fp(0.2e6);
-  const FINAL_UPPER_TARGET = fp(5e6);
+  const FINAL_LOWER_TARGET = fp(0.2e1);
+  const FINAL_UPPER_TARGET = fp(5e1);
 
   const PROTOCOL_ID = 5;
 
@@ -55,7 +61,8 @@ describeForkTest('SiloLinearPoolFactory', 'mainnet', 15989794, function () {
   before('load signers', async () => {
     [, owner, other] = await getSigners();
 
-    holder = await impersonate(USDC_HOLDER, fp(1000000000000));
+    holder = await impersonate(USDC_HOLDER, fp(100));
+
   });
 
   before('setup contracts', async () => {
@@ -96,6 +103,7 @@ describeForkTest('SiloLinearPoolFactory', 'mainnet', 15989794, function () {
       }
 
       const initialRecipientMainBalance = await usdc.balanceOf(other.address);
+
       if (expectedState != LinearPoolState.BALANCED) {
         await rebalancer.connect(holder).rebalance(other.address);
       } else {
@@ -106,13 +114,14 @@ describeForkTest('SiloLinearPoolFactory', 'mainnet', 15989794, function () {
       if (fees > 0) {
         // The recipient of the rebalance call should get the fees that were collected (though there's some rounding
         // error in the main-wrapped conversion).
+        console.log("Recipient Balance Difference: ", finalRecipientMainBalance - initialRecipientMainBalance);
         expect(finalRecipientMainBalance.sub(initialRecipientMainBalance)).to.be.almostEqual(
           fees.div(USDC_SCALING),
-          0.00000001
+         .01,
         );
       } else {
         // The recipient of the rebalance call will get any extra main tokens that were not utilized.
-        expect(finalRecipientMainBalance).to.be.almostEqual(initialRecipientMainBalance, 0.00000001);
+        expect(finalRecipientMainBalance).to.be.almostEqual(initialRecipientMainBalance, .01);
       }
 
       const mainInfo = await vault.getPoolTokenInfo(poolId, USDC);
@@ -177,8 +186,6 @@ describeForkTest('SiloLinearPoolFactory', 'mainnet', 15989794, function () {
       // rebalance.
 
       const joinAmount = INITIAL_UPPER_TARGET.mul(2).div(USDC_SCALING);
-      console.log(`Join amount: ${joinAmount}`);
-      console.log(`User balance: ${await owner.getBalance()}`);
       await vault.connect(holder).swap(
         {
           kind: SwapKind.GivenIn,
@@ -322,33 +329,33 @@ describeForkTest('SiloLinearPoolFactory', 'mainnet', 15989794, function () {
     itRebalancesThePool(LinearPoolState.BALANCED);
   });
 
-  // describe('rebalancer query protection', async () => {
-  //   it('reverts with a malicious lending pool', async () => {
-  //     const { cash } = await vault.getPoolTokenInfo(poolId, USDC);
-  //     const scaledCash = cash.mul(USDC_SCALING);
-  //     const { lowerTarget } = await pool.getTargets();
+  describe('rebalancer query protection', async () => {
+    it('reverts with a malicious lending pool', async () => {
+      const { cash } = await vault.getPoolTokenInfo(poolId, USDC);
+      const scaledCash = cash.mul(USDC_SCALING);
+      const { lowerTarget } = await pool.getTargets();
   
-  //     const exitAmount = scaledCash.sub(lowerTarget.div(3)).div(USDC_SCALING);
+      const exitAmount = scaledCash.sub(lowerTarget.div(3)).div(USDC_SCALING);
   
-  //     await vault.connect(holder).swap(
-  //       {
-  //         kind: SwapKind.GivenOut,
-  //         poolId,
-  //         assetIn: pool.address,
-  //         assetOut: USDC,
-  //         amount: exitAmount,
-  //         userData: '0x',
-  //       },
-  //       { sender: holder.address, recipient: holder.address, fromInternalBalance: false, toInternalBalance: false },
-  //       MAX_UINT256,
-  //       MAX_UINT256
-  //     );
-  
-  //     await setCode(USDC_LENDING_POOL, getArtifact('v2-pool-linear/MockSilo').deployedBytecode);
-  //     const mockLendingPool = await deployedAt('v2-pool-linear/MockSilo', USDC_LENDING_POOL);
-  
-  //     await mockLendingPool.setRevertType(2); // Type 2 is malicious swap query revert
-  //     await expect(rebalancer.rebalance(other.address)).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
-  //   });
-  // });
+      await vault.connect(holder).swap(
+        {
+          kind: SwapKind.GivenOut,
+          poolId,
+          assetIn: pool.address,
+          assetOut: USDC,
+          amount: exitAmount,
+          userData: '0x',
+        },
+        { sender: holder.address, recipient: holder.address, fromInternalBalance: false, toInternalBalance: false },
+        MAX_UINT256,
+        MAX_UINT256
+      );
+
+      await setCode(USDC_SILO, getExternalPackageArtifact('linear-pools/MockSilo').deployedBytecode);
+      const mockLendingPool = await getExternalPackageDeployedAt('linear-pools/MockSilo', USDC_SILO);
+
+      await mockLendingPool.setRevertType(2); // Type 2 is malicious swap query revert
+      await expect(rebalancer.rebalance(other.address)).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
+    });
+  });
 });

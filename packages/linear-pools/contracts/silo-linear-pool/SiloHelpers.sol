@@ -22,7 +22,7 @@ library SiloHelpers {
             return amount;
         }
 
-        uint256 result = amount.mul(totalShares).divDown(totalAmount);
+        uint256 result = amount * totalShares / totalAmount;
 
         // Prevent rounding error
         if (result == 0 && amount != 0) {
@@ -37,8 +37,8 @@ library SiloHelpers {
             return amount;
         }
 
-        uint256 numerator = amount.mul(totalShares);
-        uint256 result = numerator.divDown(totalAmount);
+        uint256 numerator = amount * totalShares;
+        uint256 result = numerator / totalAmount;
 
         // Round up
         if (numerator % totalAmount != 0) {
@@ -53,7 +53,7 @@ library SiloHelpers {
             return 0;
         }
 
-        uint256 result = share.mul(totalAmount).divDown(totalShares);
+        uint256 result = share * totalAmount / totalShares;
 
         // Prevent rounding error
         if (result == 0 && share != 0) {

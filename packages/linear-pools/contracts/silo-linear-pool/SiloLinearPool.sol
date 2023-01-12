@@ -77,7 +77,7 @@ contract SiloLinearPool is LinearPool, Version {
 
     function _getWrappedTokenRate() internal view override returns (uint256) {
         // @dev value hardcoded to find the exchange rate for a single _shareToken
-        uint256 singleShare = 1e18;
+        uint256 singleShare = 1e6;
         // @dev total amount deposited
         try _silo.assetStorage(_shareToken.asset()) returns (ISilo.AssetStorage memory assetStorage) {
             uint256 totalAmount = assetStorage.totalDeposits;
@@ -86,7 +86,7 @@ contract SiloLinearPool is LinearPool, Version {
             // @dev toAmount function is what silo uses to calculate exchange rates during withdraw period
             // The protocol currently does not expose an exchange rate function
             uint256 rate = SiloHelpers.toAmount(singleShare, totalAmount, totalShares);
-            return rate;
+            return rate * 1e12;
         } catch (bytes memory revertData) {
             // By maliciously reverting here, Aave (or any other contract in the call stack) could trick the Pool into
             // reporting invalid data to the query mechanism for swaps/joins/exits.
