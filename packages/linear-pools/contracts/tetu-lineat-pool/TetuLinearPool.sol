@@ -84,6 +84,8 @@ contract TetuLinearPool is LinearPool, Version {
         if (_wrappedToken.totalSupply() == 0) {
             return 0;
         }
+        // We couldn't use tetuVault.getPricePerFullShare function, since it introduces rounding issues in tokens
+        // with a small number of decimals. Therefore, we're calculating the rate using balance and suply
         try _mainToken.balanceOf(address(_wrappedToken)) returns (uint256 underlyingBalanceInVault) {
             address strategy = ITetuSmartVault(address(_wrappedToken)).strategy();
             if (address(strategy) == address(0)) {
