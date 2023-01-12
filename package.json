@@ -14,8 +14,8 @@
   },
   "scripts": {
     "build": "yarn workspaces foreach --parallel --verbose run build",
-    "lint": "yarn workspaces --parallel --verbose run lint",
-    "test": "yarn workspaces --parallel --verbose run test"
+    "lint": "yarn workspaces foreach --parallel --verbose run lint",
+    "test": "yarn workspaces foreach --parallel --verbose run test"
   },
   "private": true,
   "workspaces": [

@@ -42,10 +42,10 @@ contract MockERC4626Token is TestToken, IERC4626, MockMaliciousQueryReverter {
 
         uint256 assetDecimals = TestToken(asset).decimals();
         uint256 assetDecimalsDifference = Math.sub(18, assetDecimals);
-        _scaleAssetsToFP = FixedPoint.ONE * 10 ** assetDecimalsDifference;
+        _scaleAssetsToFP = FixedPoint.ONE * 10**assetDecimalsDifference;
 
         uint256 shareDecimalsDifference = Math.sub(18, uint256(decimals));
-        _scaleSharesToFP = FixedPoint.ONE * 10 ** shareDecimalsDifference;
+        _scaleSharesToFP = FixedPoint.ONE * 10**shareDecimalsDifference;
     }
 
     function setRate(uint256 newRate) external {
@@ -75,7 +75,11 @@ contract MockERC4626Token is TestToken, IERC4626, MockMaliciousQueryReverter {
         return shares;
     }
 
-    function redeem(uint256 shares, address, address owner) external override returns (uint256) {
+    function redeem(
+        uint256 shares,
+        address,
+        address owner
+    ) external override returns (uint256) {
         uint256 assets = _convertToAssets(shares);
         _burn(owner, shares);
         _totalAssets = _totalAssets.sub(assets);

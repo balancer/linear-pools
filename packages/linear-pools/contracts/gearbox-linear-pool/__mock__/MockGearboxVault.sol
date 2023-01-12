@@ -27,9 +27,7 @@ contract MockGearboxVault is IGearboxVault, MockMaliciousQueryReverter {
     uint256 private _rate = 1e27;
     address private immutable _ASSET;
 
-    constructor(
-        address underlyingAsset
-    ) {
+    constructor(address underlyingAsset) {
         _ASSET = underlyingAsset;
     }
 
@@ -47,7 +45,7 @@ contract MockGearboxVault is IGearboxVault, MockMaliciousQueryReverter {
         _rate = rate;
     }
 
-    function fromDiesel(uint256 amountDiesel) external view override returns (uint256){
+    function fromDiesel(uint256 amountDiesel) external view override returns (uint256) {
         return amountDiesel.mulDown(_rate) / 10**9;
     }
 
@@ -57,8 +55,5 @@ contract MockGearboxVault is IGearboxVault, MockMaliciousQueryReverter {
         uint256
     ) external pure override {}
 
-    function removeLiquidity(
-        uint256,
-        address
-    ) external pure override {}
+    function removeLiquidity(uint256, address) external pure override {}
 }

@@ -13,6 +13,7 @@
     "url": "https://github.com/orbcollective/linear-pools/issues"
   },
   "scripts": {
+    "lint": "eslint . --fix --ext .ts --ignore-path ../../.eslintignore  --max-warnings 0",
     "test": "hardhat test ./**/test/*.ts"
   },
   "dependencies": {

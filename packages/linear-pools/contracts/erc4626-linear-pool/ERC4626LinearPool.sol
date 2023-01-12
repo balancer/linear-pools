@@ -83,7 +83,7 @@ contract ERC4626LinearPool is LinearPool, Version {
 
         // This is always positive because we only accept tokens with <= 18 decimals
         uint256 digitsDifference = Math.add(18, wrappedTokenDecimals).sub(mainTokenDecimals);
-        _rateScaleFactor = 10 ** digitsDifference;
+        _rateScaleFactor = 10**digitsDifference;
     }
 
     function _toAssetManagerArray(ConstructorArgs memory args) private pure returns (address[] memory) {

@@ -69,14 +69,14 @@ contract GearboxLinearPoolFactory is
         uint256 initialPauseWindowDuration,
         uint256 bufferPeriodDuration
     )
-    BasePoolFactory(
-        vault,
-        protocolFeeProvider,
-        initialPauseWindowDuration,
-        bufferPeriodDuration,
-        type(GearboxLinearPool).creationCode
-    )
-    Version(factoryVersion)
+        BasePoolFactory(
+            vault,
+            protocolFeeProvider,
+            initialPauseWindowDuration,
+            bufferPeriodDuration,
+            type(GearboxLinearPool).creationCode
+        )
+        Version(factoryVersion)
     {
         _queries = queries;
         _poolVersion = poolVersion;
@@ -137,7 +137,6 @@ contract GearboxLinearPoolFactory is
         // with this approach is that create2 requires the full creation code, including constructor arguments, and
         // among those is the Pool's address. To work around this, we have the Rebalancer fetch this address from
         // `getLastCreatedPool`, which will hold the Pool's address after we call `_create`.
-
 
         bytes32 rebalancerSalt = bytes32(_nextRebalancerSalt);
         _nextRebalancerSalt += 1;
