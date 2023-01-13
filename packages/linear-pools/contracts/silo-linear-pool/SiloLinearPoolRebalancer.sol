@@ -58,12 +58,6 @@ contract SiloLinearPoolRebalancer is LinearPoolRebalancer {
     }
 
     function _getRequiredTokensToWrap(uint256 wrappedAmount) internal view override returns (uint256) {
-        // @dev total amount deposited
-        uint256 totalAmount = _silo.assetStorage(_shareToken.asset()).totalDeposits;
-        // @dev total number of shares
-        uint256 totalShares = _shareToken.totalSupply();
-        // @dev toAmount function is what silo uses to calculate exchange rates during withdraw period
-        // The protocol currently does not expose an exchange rate function
-        return SiloHelpers.toAmount(wrappedAmount, totalAmount, totalShares) + 1;
+        return SiloHelpers.calculateExchangeValue(wrappedAmount, _shareToken) + 1;
     }
 }

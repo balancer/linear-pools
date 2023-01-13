@@ -14,21 +14,17 @@
 
 pragma solidity >=0.7.0 <0.9.0;
 
-import "./ISilo.sol";
+import "./IInterestRateModel.sol";
 
-interface IShareToken {
-    /**
-     * @dev returns the underlying asset
-     */
-    function asset() external view returns (address);
+interface ISiloRepository {
+    /// @notice Get Interest Rate Model address for asset in given Silo
+    /// @dev If dedicated config is not set, method returns default config
+    /// @param silo address of Silo
+    /// @param asset address of an asset
+    /// @return address of interest rate model
+    function getInterestRateModel(address silo, address asset) external view returns (IInterestRateModel);
 
-    /**
-     * @dev returns the address of the silo
-     */
-    function silo() external view returns (ISilo);
-
-    /**
-     * @dev returns the supply of the shareToken
-     */
-    function totalSupply() external view returns (uint256);
+    /// @dev Get protocol share fee
+    /// @return protocol share fee in precision points (Solvency._PRECISION_DECIMALS == 100%)
+    function protocolShareFee() external view returns (uint256);
 }

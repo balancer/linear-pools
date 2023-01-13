@@ -16,8 +16,15 @@ pragma solidity >=0.7.0 <0.9.0;
 pragma experimental ABIEncoderV2;
 
 import "./IShareToken.sol";
+import "./ISiloRepository.sol";
 
 interface IBaseSilo {
+    enum AssetStatus {
+        Undefined,
+        Active,
+        Removed
+    }
+
     /// Storage struct that holds all required data for a single token market
     struct AssetStorage {
         // Token that represents a share in totalDeposits of Silo
@@ -36,11 +43,36 @@ interface IBaseSilo {
         uint256 totalBorrowAmount;
     }
 
+    /// @dev Storage struct that holds data related to fees and interest
+    struct AssetInterestData {
+        // Total amount of already harvested protocol fees
+        uint256 harvestedProtocolFees;
+        // Total amount (ever growing) of asset token that has been earned by the protocol from
+        // generated interest.
+        uint256 protocolFees;
+        // Timestamp of the last time `interestRate` has been updated in storage.
+        uint64 interestRateTimestamp;
+        // True if asset was removed from the protocol. If so, deposit and borrow functions are disabled
+        // for that asset
+        AssetStatus status;
+    }
+
     /**
      * @dev returns the asset storage struct
      * @dev AssetStorage struct contains necessary information for calculating shareToken exchange rates
      */
     function assetStorage(address _asset) external view returns (AssetStorage memory);
+
+    /**
+     * @dev returns the interest data struct
+     * @dev Interest data struct helps us update necessary asset storage data closer to the time that it is
+     * updated on Silo's protocol during deposits and withdraws
+     */
+    function interestData(address _asset) external view returns (AssetInterestData memory);
+
+    /// @notice Get Silo Repository contract address
+    /// @return Silo Repository contract address
+    function siloRepository() external view returns (ISiloRepository);
 }
 
 interface ISilo is IBaseSilo {

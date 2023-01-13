@@ -28,8 +28,14 @@ contract MockBaseSilo is IBaseSilo, MockMaliciousQueryReverter {
     // asset address for which Silo was created
     address public immutable _siloAsset;
 
+    // TODO: Change to immutable and create implementation
+    ISiloRepository public _siloRepository;
+
     /// @dev asset => AssetStorage
     mapping(address => AssetStorage) private _assetStorage;
+
+    /// @dev asset => AssetInterestData
+    mapping(address => AssetInterestData) private _interestData;
 
     constructor(address siloAsset) {
         _siloAsset = siloAsset;
@@ -41,8 +47,16 @@ contract MockBaseSilo is IBaseSilo, MockMaliciousQueryReverter {
         return assetMapping;
     }
 
+    function interestData(address _asset) external view override returns (AssetInterestData memory) {
+        return _interestData[_asset];
+    }
+
     function siloAsset() external view returns (address) {
         return _siloAsset;
+    }
+
+    function siloRepository() external view override returns (ISiloRepository) {
+        return _siloRepository;
     }
 
     function setAssetStorage(
@@ -64,5 +78,22 @@ contract MockBaseSilo is IBaseSilo, MockMaliciousQueryReverter {
         );
 
         _assetStorage[interestBarringAsset] = storageValue;
+    }
+
+    function setInterestData(
+        address interestBarringAsset,
+        uint256 harvestedProtocolFees,
+        uint256 protocolFees,
+        uint64 interestRateTimestamp,
+        AssetStatus status
+    ) external {
+        AssetInterestData memory interestValue = AssetInterestData(
+            harvestedProtocolFees,
+            protocolFees,
+            interestRateTimestamp,
+            status
+        );
+
+        _interestData[interestBarringAsset] = interestValue;
     }
 }

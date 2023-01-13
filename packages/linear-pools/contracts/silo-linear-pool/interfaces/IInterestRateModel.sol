@@ -14,21 +14,15 @@
 
 pragma solidity >=0.7.0 <0.9.0;
 
-import "./ISilo.sol";
-
-interface IShareToken {
-    /**
-     * @dev returns the underlying asset
-     */
-    function asset() external view returns (address);
-
-    /**
-     * @dev returns the address of the silo
-     */
-    function silo() external view returns (ISilo);
-
-    /**
-     * @dev returns the supply of the shareToken
-     */
-    function totalSupply() external view returns (uint256);
+interface IInterestRateModel {
+    /// @dev get compound interest rate
+    /// @param silo address of Silo
+    /// @param asset address of an asset in Silo for which interest rate should be calculated
+    /// @param blockTimestamp current block timestamp
+    /// @return rcomp compounded interest rate from last update until now (1e18 == 100%)
+    function getCompoundInterestRate(
+        address silo,
+        address asset,
+        uint256 blockTimestamp
+    ) external view returns (uint256 rcomp);
 }
