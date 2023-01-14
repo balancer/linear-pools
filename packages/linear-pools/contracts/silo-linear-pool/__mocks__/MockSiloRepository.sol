@@ -15,28 +15,19 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "../interfaces/ISilo.sol";
 import "../interfaces/ISiloRepository.sol";
-import "./MockBaseSilo.sol";
+import "../interfaces/IInterestRateModel.sol";
 
-contract MockSilo is ISilo, MockBaseSilo {
-    constructor(ISiloRepository _siloRepository, address _siloAsset) MockBaseSilo(_siloRepository, _siloAsset) {
-        // initial setup is done in BaseSilo, nothing to do here
+contract MockSiloRepository is ISiloRepository {
+    uint256 private _protocolShareFee;
+
+    function getInterestRateModel(address silo, address asset) external view override returns (IInterestRateModel) {}
+
+    function protocolShareFee() external view override returns (uint256) {
+        return _protocolShareFee;
     }
 
-    function deposit(
-        address /*_asset*/,
-        uint256 /*_amount*/,
-        bool /*_collateralOnly*/
-    ) external pure override returns (uint256 collateralAmount, uint256 collateralShare) {
-        return (0, 0);
-    }
-
-    function withdraw(
-        address /*_asset*/,
-        uint256 /*_amount*/,
-        bool /*_collateralOnly*/
-    ) external pure override returns (uint256 withdrawnAmount, uint256 withdrawnShare) {
-        return (0, 0);
+    function setProtocolShareFee(uint256 shareFee) external {
+        _protocolShareFee = shareFee;
     }
 }

@@ -22,14 +22,15 @@ import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20.sol";
 import "../SiloHelpers.sol";
 
 import "../interfaces/IShareToken.sol";
+import "../interfaces/ISiloRepository.sol";
 import "../interfaces/ISilo.sol";
 
 contract MockBaseSilo is IBaseSilo, MockMaliciousQueryReverter {
     // asset address for which Silo was created
-    address public immutable _siloAsset;
+    address private immutable _siloAsset;
 
     // TODO: Change to immutable and create implementation
-    ISiloRepository public _siloRepository;
+    ISiloRepository private immutable _siloRepository;
 
     /// @dev asset => AssetStorage
     mapping(address => AssetStorage) private _assetStorage;
@@ -37,7 +38,8 @@ contract MockBaseSilo is IBaseSilo, MockMaliciousQueryReverter {
     /// @dev asset => AssetInterestData
     mapping(address => AssetInterestData) private _interestData;
 
-    constructor(address siloAsset) {
+    constructor(ISiloRepository siloRepository, address siloAsset) {
+        _siloRepository = siloRepository;
         _siloAsset = siloAsset;
     }
 

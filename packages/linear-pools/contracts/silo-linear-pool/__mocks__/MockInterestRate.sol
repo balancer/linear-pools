@@ -15,28 +15,33 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "../interfaces/ISilo.sol";
-import "../interfaces/ISiloRepository.sol";
-import "./MockBaseSilo.sol";
+import "../interfaces/IInterestRateModel.sol";
 
-contract MockSilo is ISilo, MockBaseSilo {
-    constructor(ISiloRepository _siloRepository, address _siloAsset) MockBaseSilo(_siloRepository, _siloAsset) {
-        // initial setup is done in BaseSilo, nothing to do here
+contract MockInterestRateModel is IInterestRateModel {
+    uint256 private _rcomp;
+    uint256 private _rcur;
+
+    function getCompoundInterestRate(
+        address /*_silo*/,
+        address /*_asset*/,
+        uint256 /*_blockTimestamp*/
+    ) external view override returns (uint256 rcomp) {
+        return _rcomp;
     }
 
-    function deposit(
+    function getCurrentInterestRate(
+        address /*_silo*/,
         address /*_asset*/,
-        uint256 /*_amount*/,
-        bool /*_collateralOnly*/
-    ) external pure override returns (uint256 collateralAmount, uint256 collateralShare) {
-        return (0, 0);
+        uint256 /*_blockTimestamp*/
+    ) external view override returns (uint256 rcur) {
+        return _rcur;
     }
 
-    function withdraw(
-        address /*_asset*/,
-        uint256 /*_amount*/,
-        bool /*_collateralOnly*/
-    ) external pure override returns (uint256 withdrawnAmount, uint256 withdrawnShare) {
-        return (0, 0);
+    function setCompoundInterestRate(uint256 rate) external {
+        _rcomp = rate;
+    }
+
+    function setCurrentInterestRate(uint256 rate) external {
+        _rcur = rate;
     }
 }
