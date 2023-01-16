@@ -24,6 +24,7 @@ import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
 import "./SiloHelpers.sol";
 import "./interfaces/IShareToken.sol";
 import "./interfaces/ISilo.sol";
+import "./SiloExchangeRateModel.sol";
 
 contract SiloLinearPoolRebalancer is LinearPoolRebalancer {
     using SafeERC20 for IERC20;
@@ -31,6 +32,7 @@ contract SiloLinearPoolRebalancer is LinearPoolRebalancer {
 
     IShareToken private _shareToken;
     ISilo private _silo;
+    SiloExchangeRateModel private _exchangeRateModel;
 
     // These Rebalancers can only be deployed from a factory to work around a circular dependency: the Pool must know
     // the address of the Rebalancer in order to register it, and the Rebalancer must know the address of the Pool
@@ -42,6 +44,7 @@ contract SiloLinearPoolRebalancer is LinearPoolRebalancer {
     ) LinearPoolRebalancer(ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()), vault, queries) {
         _shareToken = IShareToken(address(wrappedToken));
         _silo = ISilo(_shareToken.silo());
+        _exchangeRateModel = new SiloExchangeRateModel();
     }
 
     function _wrapTokens(uint256 amount) internal override {
@@ -58,6 +61,8 @@ contract SiloLinearPoolRebalancer is LinearPoolRebalancer {
     }
 
     function _getRequiredTokensToWrap(uint256 wrappedAmount) internal view override returns (uint256) {
-        return SiloHelpers.calculateExchangeValue(wrappedAmount, _shareToken) + 1;
+        ISilo.AssetStorage memory assetStorage = _silo.assetStorage(_shareToken.asset());
+        ISilo.AssetInterestData memory interestData = _silo.interestData(_shareToken.asset());
+        return _exchangeRateModel.calculateExchangeValue(wrappedAmount, _shareToken, assetStorage, interestData) + 1;
     }
 }

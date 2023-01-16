@@ -15,10 +15,9 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "./SiloHelpers.sol";
-
 import "./interfaces/ISilo.sol";
 import "./interfaces/IShareToken.sol";
+import "./SiloExchangeRateModel.sol";
 
 import "@balancer-labs/v2-pool-utils/contracts/lib/ExternalCallLib.sol";
 import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
@@ -27,6 +26,7 @@ import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
 contract SiloLinearPool is LinearPool, Version {
     ISilo private immutable _silo;
     IShareToken private immutable _shareToken;
+    SiloExchangeRateModel private _exchangeRateModel;
     uint8 private immutable _decimals;
 
     struct ConstructorArgs {
@@ -65,6 +65,7 @@ contract SiloLinearPool is LinearPool, Version {
         _shareToken = IShareToken(address(args.wrappedToken));
         _silo = ISilo(IShareToken(address(args.wrappedToken)).silo());
         _decimals = ERC20(address(args.wrappedToken)).decimals();
+        _exchangeRateModel = new SiloExchangeRateModel();
         _require(address(args.mainToken) == IShareToken(address(args.wrappedToken)).asset(), Errors.TOKENS_MISMATCH);
     }
 
@@ -79,10 +80,15 @@ contract SiloLinearPool is LinearPool, Version {
 
     // Todo: add try catches with the calculateExchangeValue contract
     function _getWrappedTokenRate() internal view override returns (uint256) {
+        ISilo.AssetStorage memory assetStorage = _silo.assetStorage(_shareToken.asset());
+        ISilo.AssetInterestData memory interestData = _silo.interestData(_shareToken.asset());
+
         // @dev value a single _shareToken
         uint256 singleShare = 10 ** _decimals;
         uint256 scalingAmount = 10 ** (18 - _decimals);
 
-        return SiloHelpers.calculateExchangeValue(singleShare, _shareToken) * scalingAmount;
+        return
+            _exchangeRateModel.calculateExchangeValue(singleShare, _shareToken, assetStorage, interestData) *
+            scalingAmount;
     }
 }

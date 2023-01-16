@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { Contract } from 'ethers';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 
-import { bn, fp } from '@orbcollective/shared-dependencies/numbers';
+import { bn, fp, FP_ONE } from '@orbcollective/shared-dependencies/numbers';
 import {
   deployPackageContract,
   getPackageContractDeployedAt,
@@ -14,7 +14,7 @@ import {
   ZERO_ADDRESS,
 } from '@orbcollective/shared-dependencies';
 
-import { MONTH } from '@orbcollective/shared-dependencies/time';
+import { currentTimestamp, MONTH } from '@orbcollective/shared-dependencies/time';
 
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import TokenList from '@orbcollective/shared-dependencies/test-helpers/token/TokenList';
@@ -29,6 +29,12 @@ enum RevertType {
   NonMalicious,
   MaliciousSwapQuery,
   MaliciousJoinExitQuery,
+}
+
+enum AssetStatus {
+  Undefined,
+  Active,
+  Removed
 }
 
 async function deployBalancerContract(
@@ -49,6 +55,7 @@ describe('SiloLinearPool', function () {
     vault: Contract,
     tokens: TokenList,
     mainToken: Contract,
+    mockRepository: Contract,
     mockSilo: Contract,
     wrappedToken: Contract;
   let poolFactory: Contract;
@@ -75,9 +82,12 @@ describe('SiloLinearPool', function () {
 
     // Deploy tokens
     mainToken = await deployToken('USDC', 6, deployer);
-        
+    
+    // Deploy the mock repository
+    mockRepository = await deployPackageContract('MockSiloRepository',{});
+    // Deploy the Silo (Liquidity Pool)    
     mockSilo = await deployPackageContract('MockSilo', {
-        args: [mainToken.address],
+        args: [mockRepository.address, mainToken.address],
     });
 
     const wrappedTokenInstance = await deployPackageContract('MockShareToken', {
@@ -110,7 +120,6 @@ describe('SiloLinearPool', function () {
         BASE_BUFFER_PERIOD_DURATION
       ],
     });
-
     // Deploy and initialize pool
     const tx = await poolFactory.create(
       'Balancer Pool Token',
@@ -178,6 +187,14 @@ describe('SiloLinearPool', function () {
           100,
           9000
         );
+
+        await mockSilo.setInterestData(
+          mainToken.address,
+          0,
+          0,
+          0,
+          AssetStatus.Active
+        )
         
         // Calculate the expected rate and compare to the getWrappedToken return value
         const assetStorage = await mockSilo.assetStorage(mainToken.address);

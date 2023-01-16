@@ -66,9 +66,12 @@ describe('SiloLinearPoolFactory', function () {
 
     // Deploy tokens
     const mainToken = await deployToken('USDC', 6, deployer);
-        
+    
+    // Deploy the mock repository
+    const mockRepository = await deployPackageContract('MockSiloRepository');
+
     const mockSilo = await deployPackageContract('MockSilo', {
-        args: [mainToken.address],
+        args: [mockRepository.address, mainToken.address],
     });
 
     const wrappedTokenInstance = await deployPackageContract('MockShareToken', {

@@ -29,6 +29,7 @@ import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ReentrancyGuard.
 
 import "./SiloLinearPool.sol";
 import "./SiloLinearPoolRebalancer.sol";
+import "hardhat/console.sol";
 
 contract SiloLinearPoolFactory is
     ILastCreatedPoolFactory,
@@ -50,7 +51,7 @@ contract SiloLinearPoolFactory is
 
     address private _lastCreatedPool;
     string private _poolVersion;
-  
+
     // Maintain a set of recognized protocolIds
     mapping(uint256 => ProtocolIdData) private _protocolIds;
 
@@ -137,11 +138,11 @@ contract SiloLinearPoolFactory is
 
         bytes32 rebalancerSalt = bytes32(_nextRebalancerSalt);
         _nextRebalancerSalt += 1;
-
         bytes memory rebalancerCreationCode = abi.encodePacked(
             type(SiloLinearPoolRebalancer).creationCode,
             abi.encode(getVault(), _queries, address(wrappedToken))
         );
+
         address expectedRebalancerAddress = Create2.computeAddress(rebalancerSalt, keccak256(rebalancerCreationCode));
 
         (uint256 pauseWindowDuration, uint256 bufferPeriodDuration) = getPauseConfiguration();
