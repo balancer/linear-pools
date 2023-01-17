@@ -20,6 +20,12 @@ import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import TokenList from '@orbcollective/shared-dependencies/test-helpers/token/TokenList';
 import { actionId } from '@orbcollective/shared-dependencies/test-helpers/actions';
 
+enum AssetStatus {
+  Undefined,
+  Active,
+  Removed
+}
+
 async function deployBalancerContract(
   task: string,
   contractName: string,
@@ -78,11 +84,29 @@ describe('SiloLinearPoolFactory', function () {
         args: ['sUSDC', 'sUSDC', mockSilo.address, mainToken.address, 6],
     });
 
-    await wrappedTokenInstance.setTotalSupply(1000000);
-
     const wrappedToken = await getPackageContractDeployedAt('TestToken', wrappedTokenInstance.address);
 
     tokens = new TokenList([mainToken, wrappedToken]).sort();
+
+    await wrappedTokenInstance.setTotalSupply(fp(10000));
+    // initalize the asset storage mapping within the Silo for the main token
+    await mockSilo.setAssetStorage(
+      mainToken.address, // interestBarringAsset
+      wrappedToken.address, // CollateralToken
+      wrappedToken.address, // CollateralOnlyToken (using wrapped token as a placeholder)
+      wrappedToken.address, // debtToken (using wrapped token as a placeholder)
+      fp(20000), // totalDeposits
+      fp(100), // collateralOnlyDeposits
+      fp(9000) // totalBorrowAmount
+    );
+
+    await mockSilo.setInterestData(
+      mainToken.address, // interestBarringAsset
+      0, // harvestedProtocolFees
+      0, // protocolFees
+      0, // interestRateTimestamp
+      AssetStatus.Active // status
+    );
 
     // Deploy Balancer Queries
     const queriesTask = '20220721-balancer-queries';

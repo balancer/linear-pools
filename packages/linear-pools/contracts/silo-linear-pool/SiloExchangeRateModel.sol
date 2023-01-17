@@ -15,6 +15,8 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
+import "@balancer-labs/v2-pool-utils/contracts/lib/ExternalCallLib.sol";
+
 import "./interfaces/ISilo.sol";
 import "./interfaces/IInterestRateModel.sol";
 import "./SiloHelpers.sol";
@@ -35,39 +37,56 @@ contract SiloExchangeRateModel {
         // rcomp: compound interest rate from the last update until now
         // Use getCompoundInterestRate() instead of getCompoundInterestRateAndUpdate becasue we are operating within
         //      a view function and cannot manipute state
-        uint256 rcomp = getModel(shareToken.silo(), shareToken.asset()).getCompoundInterestRate(
-            address(shareToken.silo()),
-            shareToken.asset(),
-            block.timestamp
-        );
+        try
+            getModel(shareToken.silo(), shareToken.asset()).getCompoundInterestRate(
+                address(shareToken.silo()),
+                shareToken.asset(),
+                block.timestamp
+            )
+        returns (uint256 rcomp) {
+            uint256 accruedInterest = (assetStorage.totalBorrowAmount * rcomp) / 1e18;
+            try shareToken.silo().siloRepository().protocolShareFee() returns (uint256 protocolShareFee) {
+                // If we overflow on multiplication it should not revert tx, we will get lower fees
+                uint256 protocolShare = (accruedInterest * protocolShareFee) / 1e18;
+                // interestData.protocolFees + protocolShare = to newProtocolFees
+                // Cut variable in order to be able to compile
+                if (interestData.protocolFees + protocolShare < interestData.protocolFees) {
+                    protocolShare = type(uint256).max - interestData.protocolFees;
+                }
 
-        uint256 accruedInterest = (assetStorage.totalBorrowAmount * rcomp) / 1e18;
+                // Instead of updating contract state which is not allowed due to the function being accessed within view functions (_getWrappedTokenRate && _getRequiredTokensToWrap),
+                // it is necessary to create new variables to store the final values used to calculate exchange rates
+                // localDeposits represenents _assetState.totalDeposits
+                // accruedInterest - protocolShare is the depositorsShare. No variable used to save memory
+                uint256 localDeposits = assetStorage.totalDeposits + accruedInterest - protocolShare;
+                // total number of shares
+                uint256 totalShares = assetStorage.collateralToken.totalSupply();
 
-        // If we overflow on multiplication it should not revert tx, we will get lower fees
-        uint256 protocolShare = (accruedInterest * shareToken.silo().siloRepository().protocolShareFee()) / 1e18;
-
-        // interestData.protocolFees + protocolShare = to newProtocolFees
-        // Cut variable in order to be able to compile
-        if (interestData.protocolFees + protocolShare < interestData.protocolFees) {
-            protocolShare = type(uint256).max - interestData.protocolFees;
+                // Use the newly created variables to calculate exchange rates
+                return SiloHelpers.toAmount(amount, localDeposits, totalShares);
+            } catch (bytes memory revertData) {
+                // By maliciously reverting here, Aave (or any other contract in the call stack) could trick the Pool into
+                // reporting invalid data to the query mechanism for swaps/joins/exits.
+                // We then check the revert data to ensure this doesn't occur.
+                ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);
+            }
+        } catch (bytes memory revertData) {
+            // By maliciously reverting here, Aave (or any other contract in the call stack) could trick the Pool into
+            // reporting invalid data to the query mechanism for swaps/joins/exits.
+            // We then check the revert data to ensure this doesn't occur.
+            ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);
         }
-
-        //_depositorsShare = accruedInterest - protocolShare;
-
-        // Instead of updating contract state which is not allowed due to the function being accessed within view functions (_getWrappedTokenRate && _getRequiredTokensToWrap),
-        // it is necessary to create new variables to store the final values used to calculate exchange rates
-        // localDeposits represenents _assetState.totalDeposits
-        // accruedInterest - protocolShare is the depositorsShare. No variable used to save memory
-        uint256 localDeposits = assetStorage.totalDeposits + accruedInterest - protocolShare;
-        // total number of shares
-        uint256 totalShares = assetStorage.collateralToken.totalSupply();
-
-        // Use the newly created variables to calculate exchange rates
-        return SiloHelpers.toAmount(amount, localDeposits, totalShares);
     }
 
     // Gets the interest rate model for a given asset
     function getModel(ISilo silo, address asset) internal view returns (IInterestRateModel) {
-        return IInterestRateModel(silo.siloRepository().getInterestRateModel(address(silo), asset));
+        try silo.siloRepository().getInterestRateModel(address(silo), asset) returns (IInterestRateModel model) {
+            return model;
+        } catch (bytes memory revertData) {
+            // By maliciously reverting here, Aave (or any other contract in the call stack) could trick the Pool into
+            // reporting invalid data to the query mechanism for swaps/joins/exits.
+            // We then check the revert data to ensure this doesn't occur.
+            ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);
+        }
     }
 }

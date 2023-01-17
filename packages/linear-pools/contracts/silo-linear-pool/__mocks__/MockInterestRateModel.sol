@@ -16,16 +16,23 @@ pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
 import "../interfaces/IInterestRateModel.sol";
+import "@orbcollective/shared-dependencies/contracts/MockMaliciousQueryReverter.sol";
 
-contract MockInterestRateModel is IInterestRateModel {
+contract MockInterestRateModel is IInterestRateModel, MockMaliciousQueryReverter {
     uint256 private _rcomp;
     uint256 private _rcur;
+
+    constructor(uint256 comp, uint256 cur) {
+        _rcomp = comp;
+        _rcur = cur;
+    }
 
     function getCompoundInterestRate(
         address /*_silo*/,
         address /*_asset*/,
         uint256 /*_blockTimestamp*/
     ) external view override returns (uint256 rcomp) {
+        maybeRevertMaliciously();
         return _rcomp;
     }
 

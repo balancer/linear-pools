@@ -17,13 +17,25 @@ pragma experimental ABIEncoderV2;
 
 import "../interfaces/ISiloRepository.sol";
 import "../interfaces/IInterestRateModel.sol";
+import "./MockInterestRateModel.sol";
 
-contract MockSiloRepository is ISiloRepository {
+import "@orbcollective/shared-dependencies/contracts/MockMaliciousQueryReverter.sol";
+
+contract MockSiloRepository is ISiloRepository, MockMaliciousQueryReverter {
     uint256 private _protocolShareFee;
+    // Hardcode a interest rate model to use for testing
+    MockInterestRateModel private _model = new MockInterestRateModel(0, 0);
 
-    function getInterestRateModel(address silo, address asset) external view override returns (IInterestRateModel) {}
+    function getInterestRateModel(
+        address /*silo*/,
+        address /*asset*/
+    ) external view override returns (IInterestRateModel) {
+        maybeRevertMaliciously();
+        return _model;
+    }
 
     function protocolShareFee() external view override returns (uint256) {
+        maybeRevertMaliciously();
         return _protocolShareFee;
     }
 

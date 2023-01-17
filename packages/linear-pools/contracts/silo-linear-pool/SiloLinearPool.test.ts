@@ -94,13 +94,31 @@ describe('SiloLinearPool', function () {
         args: ['sUSDC', 'sUSDC', mockSilo.address, mainToken.address, 6],
     });
 
-    await wrappedTokenInstance.setTotalSupply(1000000);
-
     wrappedToken = await getPackageContractDeployedAt('TestToken', wrappedTokenInstance.address);
 
     tokens = new TokenList([mainToken, wrappedToken]).sort();
 
     await tokens.mint({ to: [lp, trader], amount: fp(100) });
+
+    await wrappedTokenInstance.setTotalSupply(fp(10000));
+    // initalize the asset storage mapping within the Silo for the main token
+    await mockSilo.setAssetStorage(
+      mainToken.address, // interestBarringAsset
+      wrappedToken.address, // CollateralToken
+      wrappedToken.address, // CollateralOnlyToken (using wrapped token as a placeholder)
+      wrappedToken.address, // debtToken (using wrapped token as a placeholder)
+      fp(20000), // totalDeposits
+      fp(100), // collateralOnlyDeposits
+      fp(9000) // totalBorrowAmount
+    );
+
+    await mockSilo.setInterestData(
+      mainToken.address, // interestBarringAsset
+      0, // harvestedProtocolFees
+      0, // protocolFees
+      0, // interestRateTimestamp
+      AssetStatus.Active // status
+    );
 
     // Deploy Balancer Queries
     const queriesTask = '20220721-balancer-queries';
@@ -177,25 +195,7 @@ describe('SiloLinearPool', function () {
   describe('getWrappedTokenRate', () => {
     context('under normal operation', () => {
       it('returns the expected value', async () => {
-        // initalize the asset storage mapping within the Silo for the main token
-        await mockSilo.setAssetStorage(
-          mainToken.address,
-          wrappedToken.address,
-          wrappedToken.address,
-          wrappedToken.address,
-          20000,
-          100,
-          9000
-        );
 
-        await mockSilo.setInterestData(
-          mainToken.address,
-          0,
-          0,
-          0,
-          AssetStatus.Active
-        )
-        
         // Calculate the expected rate and compare to the getWrappedToken return value
         const assetStorage = await mockSilo.assetStorage(mainToken.address);
         // Get the 4th member from the struct 'total deposits'

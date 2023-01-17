@@ -20,7 +20,7 @@ import "@orbcollective/shared-dependencies/contracts/TestToken.sol";
 import "../interfaces/ISilo.sol";
 import "../interfaces/IShareToken.sol";
 
-contract MockShareToken is TestToken, IShareToken {
+contract MockShareToken is TestToken, IShareToken, MockMaliciousQueryReverter {
     ISilo private immutable _silo;
     address private immutable _asset;
     uint256 public supply;
@@ -42,10 +42,12 @@ contract MockShareToken is TestToken, IShareToken {
     }
 
     function asset() external view override returns (address) {
+        maybeRevertMaliciously();
         return _asset;
     }
 
     function silo() external view override returns (ISilo) {
+        maybeRevertMaliciously();
         return _silo;
     }
 

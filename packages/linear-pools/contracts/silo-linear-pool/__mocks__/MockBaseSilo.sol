@@ -50,6 +50,7 @@ contract MockBaseSilo is IBaseSilo, MockMaliciousQueryReverter {
     }
 
     function interestData(address _asset) external view override returns (AssetInterestData memory) {
+        maybeRevertMaliciously();
         return _interestData[_asset];
     }
 
