@@ -25,6 +25,7 @@ import "./SiloHelpers.sol";
 import "./interfaces/IShareToken.sol";
 import "./interfaces/ISilo.sol";
 import "./SiloExchangeRateModel.sol";
+import "hardhat/console.sol";
 
 contract SiloLinearPoolRebalancer is LinearPoolRebalancer {
     using SafeERC20 for IERC20;
@@ -57,12 +58,19 @@ contract SiloLinearPoolRebalancer is LinearPoolRebalancer {
     function _unwrapTokens(uint256 amount) internal override {
         // Withdrawing into underlying (i.e. DAI, USDC, etc. instead of sDAI or sUSDC). Approvals are not necessary here
         // as the wrapped token is simply burnt.
-        _silo.withdraw(address(_mainToken), amount, false);
+        // Adding one the amount to unwrap to account for rounding issues
+        _silo.withdraw(address(_mainToken), amount + 1, false);
     }
 
     function _getRequiredTokensToWrap(uint256 wrappedAmount) internal view override returns (uint256) {
         ISilo.AssetStorage memory assetStorage = _silo.assetStorage(_shareToken.asset());
         ISilo.AssetInterestData memory interestData = _silo.interestData(_shareToken.asset());
-        return _exchangeRateModel.calculateExchangeValue(wrappedAmount, _shareToken, assetStorage, interestData) + 1;
+        uint256 tokens = _exchangeRateModel.calculateExchangeValue(
+            wrappedAmount,
+            _shareToken,
+            assetStorage,
+            interestData
+        ) + 1;
+        return tokens;
     }
 }

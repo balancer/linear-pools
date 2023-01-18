@@ -19,7 +19,7 @@ export enum SwapKind {
   GivenOut,
 }
 
-describeForkTest('SiloLinearPoolFactory', 'mainnet', 15989794, function () {
+describeForkTest('SiloLinearPoolFactory', 'mainnet', 16406683 , function () {
   let owner: SignerWithAddress, holder: SignerWithAddress, other: SignerWithAddress;
   let factory: Contract, vault: Contract, usdc: Contract;
   let rebalancer: Contract;
@@ -31,7 +31,7 @@ describeForkTest('SiloLinearPoolFactory', 'mainnet', 15989794, function () {
   // Share Token address for USDC
   const sUSDC = '0x416DE9AD46C53AAAb2352F91120952393946d2ac';
   // USDC holder address
-  const USDC_HOLDER = '0xdfd5293d8e347dfe59e90efd55b2956a1343963d';
+  const USDC_HOLDER = '0xda9ce944a37d218c3302f6b82a094844c6eceb17';
   // USDC Silo Address
   const USDC_SILO = '0xfccc27aabd0ab7a0b2ad2b7760037b1eab61616b';
 
@@ -41,11 +41,11 @@ describeForkTest('SiloLinearPoolFactory', 'mainnet', 15989794, function () {
   const SWAP_FEE_PERCENTAGE = fp(0.01); // 1%
 
   // The targets are set using 18 decimals, even if the token has fewer (as is the case for USDC);
-  const INITIAL_UPPER_TARGET = fp(1e1);
+  const INITIAL_UPPER_TARGET = fp(1e2);
 
   // The initial midpoint (upper target / 2) must be between the final lower and upper targets
-  const FINAL_LOWER_TARGET = fp(0.2e1);
-  const FINAL_UPPER_TARGET = fp(5e1);
+  const FINAL_LOWER_TARGET = fp(0.2e2);
+  const FINAL_UPPER_TARGET = fp(5e2);
 
   const PROTOCOL_ID = 5;
 
