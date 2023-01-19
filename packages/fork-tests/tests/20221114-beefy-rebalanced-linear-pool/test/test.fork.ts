@@ -103,7 +103,6 @@ describeForkTest('BeefyLinearPoolFactory', 'optimism', 38313066, function () {
       if (fees > 0) {
         // The recipient of the rebalance call should get the fees that were collected (though there's some rounding
         // error in the main-wrapped conversion).
-        console.log(finalRecipientMainBalance.sub(initialRecipientMainBalance));
         expect(finalRecipientMainBalance.sub(initialRecipientMainBalance)).to.be.almostEqual(
           fees.div(USDC_SCALING),
           0.0001

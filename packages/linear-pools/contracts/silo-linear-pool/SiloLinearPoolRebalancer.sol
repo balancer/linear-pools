@@ -25,7 +25,6 @@ import "./SiloHelpers.sol";
 import "./interfaces/IShareToken.sol";
 import "./interfaces/ISilo.sol";
 import "./SiloExchangeRateModel.sol";
-import "hardhat/console.sol";
 
 contract SiloLinearPoolRebalancer is LinearPoolRebalancer {
     using SafeERC20 for IERC20;

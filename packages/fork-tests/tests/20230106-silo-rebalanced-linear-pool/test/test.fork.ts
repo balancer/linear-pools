@@ -19,7 +19,7 @@ export enum SwapKind {
   GivenOut,
 }
 
-describeForkTest('SiloLinearPoolFactory', 'mainnet', 16406683 , function () {
+describeForkTest('SiloLinearPoolFactory', 'mainnet', 16406683, function () {
   let owner: SignerWithAddress, holder: SignerWithAddress, other: SignerWithAddress;
   let factory: Contract, vault: Contract, usdc: Contract;
   let rebalancer: Contract;
@@ -62,7 +62,6 @@ describeForkTest('SiloLinearPoolFactory', 'mainnet', 16406683 , function () {
     [, owner, other] = await getSigners();
 
     holder = await impersonate(USDC_HOLDER, fp(100));
-
   });
 
   before('setup contracts', async () => {
@@ -114,14 +113,13 @@ describeForkTest('SiloLinearPoolFactory', 'mainnet', 16406683 , function () {
       if (fees > 0) {
         // The recipient of the rebalance call should get the fees that were collected (though there's some rounding
         // error in the main-wrapped conversion).
-        console.log("Recipient Balance Difference: ", finalRecipientMainBalance - initialRecipientMainBalance);
         expect(finalRecipientMainBalance.sub(initialRecipientMainBalance)).to.be.almostEqual(
           fees.div(USDC_SCALING),
-         .01,
+          0.01
         );
       } else {
         // The recipient of the rebalance call will get any extra main tokens that were not utilized.
-        expect(finalRecipientMainBalance).to.be.almostEqual(initialRecipientMainBalance, .01);
+        expect(finalRecipientMainBalance).to.be.almostEqual(initialRecipientMainBalance, 0.01);
       }
 
       const mainInfo = await vault.getPoolTokenInfo(poolId, USDC);
@@ -334,9 +332,9 @@ describeForkTest('SiloLinearPoolFactory', 'mainnet', 16406683 , function () {
       const { cash } = await vault.getPoolTokenInfo(poolId, USDC);
       const scaledCash = cash.mul(USDC_SCALING);
       const { lowerTarget } = await pool.getTargets();
-  
+
       const exitAmount = scaledCash.sub(lowerTarget.div(3)).div(USDC_SCALING);
-  
+
       await vault.connect(holder).swap(
         {
           kind: SwapKind.GivenOut,

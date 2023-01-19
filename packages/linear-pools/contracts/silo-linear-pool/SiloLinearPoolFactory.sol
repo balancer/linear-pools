@@ -29,7 +29,6 @@ import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ReentrancyGuard.
 
 import "./SiloLinearPool.sol";
 import "./SiloLinearPoolRebalancer.sol";
-import "hardhat/console.sol";
 
 contract SiloLinearPoolFactory is
     ILastCreatedPoolFactory,
