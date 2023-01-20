@@ -16,6 +16,7 @@ pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
 import "@balancer-labs/v2-pool-utils/contracts/lib/ExternalCallLib.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
 
 import "./interfaces/ISilo.sol";
 import "./interfaces/IInterestRateModel.sol";
@@ -24,6 +25,8 @@ import "./SiloHelpers.sol";
 // Created in order to decrease exchange rate timelag when wrapping and unwrapping tokens
 // between Silo Linear Pools and the Silo Protocol
 contract SiloExchangeRateModel {
+    using FixedPoint for uint256;
+
     /**
      * @dev This function is similar to _accrueInterest function in the Silo's BaseSilo.sol contract
      * which is used to update state data that is necessary
@@ -32,7 +35,8 @@ contract SiloExchangeRateModel {
         uint256 amount,
         IShareToken shareToken,
         ISilo.AssetStorage memory assetStorage,
-        ISilo.AssetInterestData memory interestData
+        ISilo.AssetInterestData memory interestData,
+        bool isRate
     ) external view returns (uint256) {
         // rcomp: compound interest rate from the last update until now
         // Use getCompoundInterestRate() instead of getCompoundInterestRateAndUpdate becasue we are operating within
@@ -44,10 +48,9 @@ contract SiloExchangeRateModel {
                 block.timestamp
             )
         returns (uint256 rcomp) {
-            uint256 accruedInterest = (assetStorage.totalBorrowAmount * rcomp) / 1e18;
+            uint256 accruedInterest = assetStorage.totalBorrowAmount.mulDown(rcomp);
             try shareToken.silo().siloRepository().protocolShareFee() returns (uint256 protocolShareFee) {
-                // If we overflow on multiplication it should not revert tx, we will get lower fees
-                uint256 protocolShare = (accruedInterest * protocolShareFee) / 1e18;
+                uint256 protocolShare = accruedInterest.mulDown(protocolShareFee);
                 // interestData.protocolFees + protocolShare = to newProtocolFees
                 // Cut variable in order to be able to compile
                 if (interestData.protocolFees + protocolShare < interestData.protocolFees) {
@@ -62,8 +65,12 @@ contract SiloExchangeRateModel {
                 // total number of shares
                 uint256 totalShares = assetStorage.collateralToken.totalSupply();
 
-                // Use the newly created variables to calculate exchange rates
-                return SiloHelpers.toAmount(amount, localDeposits, totalShares);
+                if (isRate != true) {
+                    return SiloHelpers.toAmount(amount, localDeposits, totalShares);
+                } else {
+                    // Use the newly created variables to calculate exchange rates
+                    return SiloHelpers.toShareRoundUp(amount, localDeposits, totalShares);
+                }
             } catch (bytes memory revertData) {
                 // By maliciously reverting here, Aave (or any other contract in the call stack) could trick the Pool into
                 // reporting invalid data to the query mechanism for swaps/joins/exits.

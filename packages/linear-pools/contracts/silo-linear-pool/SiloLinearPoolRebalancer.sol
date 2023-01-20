@@ -33,6 +33,7 @@ contract SiloLinearPoolRebalancer is LinearPoolRebalancer {
     IShareToken private _shareToken;
     ISilo private _silo;
     SiloExchangeRateModel private _exchangeRateModel;
+    bool private _overrideRate;
 
     // These Rebalancers can only be deployed from a factory to work around a circular dependency: the Pool must know
     // the address of the Rebalancer in order to register it, and the Rebalancer must know the address of the Pool
@@ -56,19 +57,24 @@ contract SiloLinearPoolRebalancer is LinearPoolRebalancer {
 
     function _unwrapTokens(uint256 amount) internal override {
         // Withdrawing into underlying (i.e. DAI, USDC, etc. instead of sDAI or sUSDC). Approvals are not necessary here
-        // as the wrapped token is simply burnt.
-        // Adding one the amount to unwrap to account for rounding issues
-        _silo.withdraw(address(_mainToken), amount + 1, false);
+        // as the wrapped token is simply burnt
+        _overrideRate = true;
+        uint256 tokens = _getRequiredTokensToWrap(amount);
+        _overrideRate = false;
+        console.log("Main tokens to withdraw", tokens);
+        _silo.withdraw(address(_mainToken), tokens, false);
     }
 
     function _getRequiredTokensToWrap(uint256 wrappedAmount) internal view override returns (uint256) {
         ISilo.AssetStorage memory assetStorage = _silo.assetStorage(_shareToken.asset());
         ISilo.AssetInterestData memory interestData = _silo.interestData(_shareToken.asset());
+        bool rate = (_overrideRate) ? true : false;
         uint256 tokens = _exchangeRateModel.calculateExchangeValue(
             wrappedAmount,
             _shareToken,
             assetStorage,
-            interestData
+            interestData,
+            rate
         ) + 1;
         return tokens;
     }

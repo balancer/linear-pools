@@ -78,7 +78,6 @@ contract SiloLinearPool is LinearPool, Version {
         return assetManagers;
     }
 
-    // Todo: add try catches with the calculateExchangeValue contract
     function _getWrappedTokenRate() internal view override returns (uint256) {
         try _silo.assetStorage(_shareToken.asset()) returns (ISilo.AssetStorage memory assetStorage) {
             try _silo.interestData(_shareToken.asset()) returns (ISilo.AssetInterestData memory interestData) {
@@ -87,8 +86,13 @@ contract SiloLinearPool is LinearPool, Version {
                 uint256 scalingAmount = 10 ** (18 - _decimals);
 
                 return
-                    _exchangeRateModel.calculateExchangeValue(singleShare, _shareToken, assetStorage, interestData) *
-                    scalingAmount;
+                    _exchangeRateModel.calculateExchangeValue(
+                        singleShare,
+                        _shareToken,
+                        assetStorage,
+                        interestData,
+                        true
+                    ) * scalingAmount;
             } catch (bytes memory revertData) {
                 // By maliciously reverting here, Aave (or any other contract in the call stack) could trick the Pool into
                 // reporting invalid data to the query mechanism for swaps/joins/exits.
