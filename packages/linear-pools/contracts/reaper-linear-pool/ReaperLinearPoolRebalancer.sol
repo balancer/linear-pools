@@ -15,7 +15,8 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "@balancer-labs/v2-interfaces/contracts/pool-linear/IReaperTokenVault.sol";
+import "./interfaces/IReaperTokenVault.sol";
+
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeERC20.sol";
@@ -54,9 +55,11 @@ contract ReaperLinearPoolRebalancer is LinearPoolRebalancer {
     }
 
     function _getRequiredTokensToWrap(uint256 wrappedAmount) internal view override returns (uint256) {
+        IReaperTokenVault tokenVault = IReaperTokenVault(address(_wrappedToken));
+
         // We round up to ensure the returned value will always be enough to get `wrappedAmount` when unwrapping.
         // This might result in some dust being left in the Rebalancer.
-        // wrappedAmount * pricePerFullShare / 10^decimals
-        return wrappedAmount.mul(IReaperTokenVault(address(_wrappedToken)).getPricePerFullShare()).divUp(_divisor);
+        // wrappedAmount * vaultBalance / vaultTotalSupply
+        return wrappedAmount.mul(tokenVault.balance()).divUp(tokenVault.totalSupply());
     }
 }

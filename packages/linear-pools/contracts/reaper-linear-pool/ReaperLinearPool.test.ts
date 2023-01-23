@@ -154,19 +154,19 @@ describe('ReaperLinearPool', function () {
   });
 
   describe('getWrappedTokenRate', () => {
-    context('with a price per full share price of 0.25', () => {
+    context('with a balance of 200 and a total supply of 200', () => {
       it('returns the expected value', async () => {
         // Set the total supply for rpDAI to get the exchange rate
-        await mockReaperVault.setPricePerFullShare(fp(0.25));        
-        expect(await pool.getWrappedTokenRate()).to.be.eq(fp(0.25));
+        await mockReaperVault.setBalance(fp(200)); 
+        expect(await pool.getWrappedTokenRate()).to.be.eq(fp(1));
       });
     });
 
-    context('with a price per full share price of 1.5', () => {
+    context('with a balance of 100 and a total supply of 200', () => {
       it('returns the expected value', async () => {
         // Set the total supply for rpDAI to get the exchange rate
-        await mockReaperVault.setPricePerFullShare(fp(1.5));        
-        expect(await pool.getWrappedTokenRate()).to.be.eq(fp(1.5));
+        await mockReaperVault.setBalance(fp(100));        
+        expect(await pool.getWrappedTokenRate()).to.be.eq(fp(0.5));
       });
     });
 

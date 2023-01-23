@@ -29,6 +29,11 @@ interface IReaperTokenVault is IERC20 {
     function token() external view returns (address);
 
     /**
+     * @dev returns the balance of mainToken deposited to the vault
+     */
+    function balance() external view returns (uint256);
+
+    /**
      * @dev returns the price for a single Vault share (ie rf-scfUSDT). The getPricePerFullShare is always in 1e18
      */
     function getPricePerFullShare() external view returns (uint256);

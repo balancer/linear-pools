@@ -22,6 +22,8 @@ import "@orbcollective/shared-dependencies/contracts/MockMaliciousQueryReverter.
 contract MockReaperVault is TestToken, MockMaliciousQueryReverter {
     address public immutable token;
     uint256 private _pricePerFullShare;
+    uint256 private _balance;
+    uint256 private _totalSupply;
 
     constructor(
         string memory name,
@@ -37,6 +39,15 @@ contract MockReaperVault is TestToken, MockMaliciousQueryReverter {
     function getPricePerFullShare() external view returns (uint256) {
         maybeRevertMaliciously();
         return _pricePerFullShare;
+    }
+
+    function balance() external view returns (uint256) {
+        maybeRevertMaliciously();
+        return _balance;
+    }
+
+    function setBalance(uint256 amount) public {
+        _balance = amount;
     }
 
     function setPricePerFullShare(uint256 _newPricePerFullShare) public {

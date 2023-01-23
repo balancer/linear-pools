@@ -19,19 +19,19 @@ export enum SwapKind {
   GivenOut,
 }
 
-describeForkTest('ReaperLinearPoolFactory', 'optimism', 65364741, function () {
+describeForkTest('ReaperLinearPoolFactory', 'optimism', 69793811, function () {
   let owner: SignerWithAddress, holder: SignerWithAddress, other: SignerWithAddress;
   let factory: Contract, vault: Contract, mainToken: Contract;
   let rebalancer: Contract;
 
   let task: Task;
 
-  const WETH = '0x4200000000000000000000000000000000000006';
-  const rfaWETH = '0xdf2D2c477078D2cD563648abbb913dA3Db247c00';
+  const DAI = '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1';
+  const rfsoDAI = '0x19Ca00D242e96A30A1cad12f08C375cAa989628F';
 
-  const WETH_SCALING = bn(1); // WETH has 18 decimals, so its scaling factor is 1
+  const DAI_SCALING = bn(1); // DAI has 18 decimals, so its scaling factor is 1
 
-  const WETH_HOLDER = '0xba12222222228d8ba445958a75a0704d566bf2c8';
+  const DAI_HOLDER = '0xad32aa4bff8b61b4ae07e3ba437cf81100af0cd7';
 
   const SWAP_FEE_PERCENTAGE = fp(0.01); // 1%
 
@@ -56,13 +56,13 @@ describeForkTest('ReaperLinearPoolFactory', 'optimism', 65364741, function () {
   before('load signers', async () => {
     [, owner, other] = await getSigners();
 
-    holder = await impersonate(WETH_HOLDER, fp(100));
+    holder = await impersonate(DAI_HOLDER, fp(100));
   });
 
   before('setup contracts', async () => {
     vault = await new Task('20210418-vault', TaskMode.READ_ONLY, getForkedNetwork(hre)).deployedInstance('Vault');
 
-    mainToken = await task.instanceAt('IERC20', WETH);
+    mainToken = await task.instanceAt('IERC20', DAI);
     await mainToken.connect(holder).approve(vault.address, MAX_UINT256);
   });
 
@@ -76,8 +76,8 @@ describeForkTest('ReaperLinearPoolFactory', 'optimism', 65364741, function () {
     it('rebalance the pool', async () => {
       const { lowerTarget, upperTarget } = await pool.getTargets();
 
-      const { cash } = await vault.getPoolTokenInfo(poolId, WETH);
-      const scaledCash = cash.mul(WETH_SCALING);
+      const { cash } = await vault.getPoolTokenInfo(poolId, DAI);
+      const scaledCash = cash.mul(DAI_SCALING);
 
       let fees;
       if (scaledCash.gt(upperTarget)) {
@@ -108,7 +108,7 @@ describeForkTest('ReaperLinearPoolFactory', 'optimism', 65364741, function () {
         // The recipient of the rebalance call should get the fees that were collected (though there's some rounding
         // error in the main-wrapped conversion).
         expect(finalRecipientMainBalance.sub(initialRecipientMainBalance)).to.be.almostEqual(
-          fees.div(WETH_SCALING),
+          fees.div(DAI_SCALING),
           0.00000001
         );
       } else {
@@ -116,10 +116,10 @@ describeForkTest('ReaperLinearPoolFactory', 'optimism', 65364741, function () {
         expect(finalRecipientMainBalance).to.be.almostEqual(initialRecipientMainBalance, 0.00000001);
       }
 
-      const mainInfo = await vault.getPoolTokenInfo(poolId, WETH);
+      const mainInfo = await vault.getPoolTokenInfo(poolId, DAI);
 
       const expectedMainBalance = lowerTarget.add(upperTarget).div(2);
-      expect(mainInfo.cash.mul(WETH_SCALING)).to.equal(expectedMainBalance);
+      expect(mainInfo.cash.mul(DAI_SCALING)).to.equal(expectedMainBalance);
       expect(mainInfo.managed).to.equal(0);
     });
   }
@@ -127,10 +127,10 @@ describeForkTest('ReaperLinearPoolFactory', 'optimism', 65364741, function () {
   describe('create and check getters', () => {
     it('deploy a linear pool', async () => {
       const tx = await factory.create(
-        'WETH',
-        'rf-a-WETH',
-        WETH,
-        rfaWETH,
+        'DAI',
+        'rf-a-DAI',
+        DAI,
+        rfsoDAI,
         INITIAL_UPPER_TARGET,
         SWAP_FEE_PERCENTAGE,
         owner.address,
@@ -145,7 +145,7 @@ describeForkTest('ReaperLinearPoolFactory', 'optimism', 65364741, function () {
       const [registeredAddress] = await vault.getPool(poolId);
       expect(registeredAddress).to.equal(pool.address);
 
-      const { assetManager } = await vault.getPoolTokenInfo(poolId, WETH); // We could query for either WETH or rfToken
+      const { assetManager } = await vault.getPoolTokenInfo(poolId, DAI); // We could query for either DAI or rfToken
       rebalancer = await task.instanceAt('ReaperLinearPoolRebalancer', assetManager);
 
       await mainToken.connect(holder).approve(rebalancer.address, MAX_UINT256); // To send extra main on rebalance
@@ -177,13 +177,13 @@ describeForkTest('ReaperLinearPoolFactory', 'optimism', 65364741, function () {
       // We're going to join with enough main token to bring the Pool above its upper target, which will let us later
       // rebalance.
 
-      const joinAmount = INITIAL_UPPER_TARGET.mul(2).div(WETH_SCALING);
+      const joinAmount = INITIAL_UPPER_TARGET.mul(2).div(DAI_SCALING);
 
       await vault.connect(holder).swap(
         {
           kind: SwapKind.GivenIn,
           poolId,
-          assetIn: WETH,
+          assetIn: DAI,
           assetOut: pool.address,
           amount: joinAmount,
           userData: '0x',
@@ -194,10 +194,10 @@ describeForkTest('ReaperLinearPoolFactory', 'optimism', 65364741, function () {
       );
 
       // Assert join amount - some fees will be collected as we're going over the upper target.
-      const excess = joinAmount.mul(WETH_SCALING).sub(INITIAL_UPPER_TARGET);
+      const excess = joinAmount.mul(DAI_SCALING).sub(INITIAL_UPPER_TARGET);
       const joinCollectedFees = excess.mul(SWAP_FEE_PERCENTAGE).div(FP_ONE);
 
-      const expectedBPT = joinAmount.mul(WETH_SCALING).sub(joinCollectedFees);
+      const expectedBPT = joinAmount.mul(DAI_SCALING).sub(joinCollectedFees);
       console.log(expectedBPT);
       expect(await pool.balanceOf(holder.address)).to.equal(expectedBPT);
     });
@@ -215,13 +215,13 @@ describeForkTest('ReaperLinearPoolFactory', 'optimism', 65364741, function () {
       // rebalance.
 
       const { upperTarget } = await pool.getTargets();
-      const joinAmount = upperTarget.mul(5).div(WETH_SCALING);
+      const joinAmount = upperTarget.mul(5).div(DAI_SCALING);
 
       await vault.connect(holder).swap(
         {
           kind: SwapKind.GivenIn,
           poolId,
-          assetIn: WETH,
+          assetIn: DAI,
           assetOut: pool.address,
           amount: joinAmount,
           userData: '0x',
@@ -240,18 +240,18 @@ describeForkTest('ReaperLinearPoolFactory', 'optimism', 65364741, function () {
       // We're going to withdraw enough man token to bring the Pool below its lower target, which will let us later
       // rebalance.
 
-      const { cash } = await vault.getPoolTokenInfo(poolId, WETH);
-      const scaledCash = cash.mul(WETH_SCALING);
+      const { cash } = await vault.getPoolTokenInfo(poolId, DAI);
+      const scaledCash = cash.mul(DAI_SCALING);
       const { lowerTarget } = await pool.getTargets();
 
-      const exitAmount = scaledCash.sub(lowerTarget.div(3)).div(WETH_SCALING);
+      const exitAmount = scaledCash.sub(lowerTarget.div(3)).div(DAI_SCALING);
 
       await vault.connect(holder).swap(
         {
           kind: SwapKind.GivenOut,
           poolId,
           assetIn: pool.address,
-          assetOut: WETH,
+          assetOut: DAI,
           amount: exitAmount,
           userData: '0x',
         },
@@ -271,13 +271,13 @@ describeForkTest('ReaperLinearPoolFactory', 'optimism', 65364741, function () {
       const { lowerTarget, upperTarget } = await pool.getTargets();
       const midpoint = lowerTarget.add(upperTarget).div(2);
 
-      const joinAmount = midpoint.div(100).div(WETH_SCALING);
+      const joinAmount = midpoint.div(100).div(DAI_SCALING);
 
       await vault.connect(holder).swap(
         {
           kind: SwapKind.GivenIn,
           poolId,
-          assetIn: WETH,
+          assetIn: DAI,
           assetOut: pool.address,
           amount: joinAmount,
           userData: '0x',
@@ -298,14 +298,14 @@ describeForkTest('ReaperLinearPoolFactory', 'optimism', 65364741, function () {
       const { lowerTarget, upperTarget } = await pool.getTargets();
       const midpoint = lowerTarget.add(upperTarget).div(2);
 
-      const exitAmount = midpoint.div(100).div(WETH_SCALING);
+      const exitAmount = midpoint.div(100).div(DAI_SCALING);
 
       await vault.connect(holder).swap(
         {
           kind: SwapKind.GivenOut,
           poolId,
           assetIn: pool.address,
-          assetOut: WETH,
+          assetOut: DAI,
           amount: exitAmount,
           userData: '0x',
         },
@@ -323,33 +323,33 @@ describeForkTest('ReaperLinearPoolFactory', 'optimism', 65364741, function () {
     itRebalancesThePool(LinearPoolState.BALANCED);
   });
 
-  // describe('rebalancer query protection', async () => {
-  //   it('reverts with a malicious lending pool', async () => {
-  //     const { cash } = await vault.getPoolTokenInfo(poolId, WETH);
-  //     const scaledCash = cash.mul(WETH_SCALING);
-  //     const { lowerTarget } = await pool.getTargets();
-  
-  //     const exitAmount = scaledCash.sub(lowerTarget.div(3)).div(WETH_SCALING);
-  
-  //     await vault.connect(holder).swap(
-  //       {
-  //         kind: SwapKind.GivenOut,
-  //         poolId,
-  //         assetIn: pool.address,
-  //         assetOut: WETH,
-  //         amount: exitAmount,
-  //         userData: '0x',
-  //       },
-  //       { sender: holder.address, recipient: holder.address, fromInternalBalance: false, toInternalBalance: false },
-  //       MAX_UINT256,
-  //       MAX_UINT256
-  //     );
-  
-  //     await setCode(USDC_LENDING_POOL, getArtifact('v2-pool-linear/MockReaperVault').deployedBytecode);
-  //     const mockLendingPool = await deployedAt('v2-pool-linear/MockReaperVault', USDC_LENDING_POOL);
-  
-  //     await mockLendingPool.setRevertType(2); // Type 2 is malicious swap query revert
-  //     await expect(rebalancer.rebalance(other.address)).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
-  //   });
-  // });
+  describe('rebalancer query protection', async () => {
+    it('reverts with a malicious lending pool', async () => {
+      const { cash } = await vault.getPoolTokenInfo(poolId, DAI);
+      const scaledCash = cash.mul(DAI_SCALING);
+      const { lowerTarget } = await pool.getTargets();
+
+      const exitAmount = scaledCash.sub(lowerTarget.div(3)).div(DAI_SCALING);
+
+      await vault.connect(holder).swap(
+        {
+          kind: SwapKind.GivenOut,
+          poolId,
+          assetIn: pool.address,
+          assetOut: DAI,
+          amount: exitAmount,
+          userData: '0x',
+        },
+        { sender: holder.address, recipient: holder.address, fromInternalBalance: false, toInternalBalance: false },
+        MAX_UINT256,
+        MAX_UINT256
+      );
+
+      await setCode(rfsoDAI, getExternalPackageArtifact('linear-pools/MockReaperVault').deployedBytecode);
+      const mockLendingPool = await getExternalPackageDeployedAt('linear-pools/MockReaperVault', rfsoDAI);
+
+      await mockLendingPool.setRevertType(2); // Type 2 is malicious swap query revert
+      await expect(rebalancer.rebalance(other.address)).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
+    });
+  });
 });

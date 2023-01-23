@@ -15,16 +15,20 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "@balancer-labs/v2-interfaces/contracts/pool-linear/IReaperTokenVault.sol";
+import "./interfaces/IReaperTokenVault.sol";
+
 import "@balancer-labs/v2-pool-utils/contracts/lib/ExternalCallLib.sol";
 import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
 
 import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
+import "hardhat/console.sol";
 
 contract ReaperLinearPool is LinearPool, Version {
+    using Math for uint256;
     IReaperTokenVault private immutable _tokenVault;
 
-    uint256 private immutable _rateScaleFactor;
+    uint256 private immutable _balanceScaleFactor;
 
     struct ConstructorArgs {
         IVault vault;
@@ -72,7 +76,7 @@ contract ReaperLinearPool is LinearPool, Version {
         // represented as 1e18 by the LinearPool. Since the rfUSDC is already 18 decimals,
         // but in a different representation, we need to account for that in our wrappedTokenRate.
         // Since we only accept tokens with <= 18 decimals, we know the smallest this can be is 10^0 === 1
-        _rateScaleFactor = 10 ** (SafeMath.sub(18, ERC20(tokenVault.token()).decimals()));
+        _balanceScaleFactor = 10 ** (SafeMath.add(18, SafeMath.sub(18, ERC20(tokenVault.token()).decimals())));
 
         _require(address(args.mainToken) == tokenVault.token(), Errors.TOKENS_MISMATCH);
     }
@@ -87,8 +91,19 @@ contract ReaperLinearPool is LinearPool, Version {
     }
 
     function _getWrappedTokenRate() internal view override returns (uint256) {
-        try _tokenVault.getPricePerFullShare() returns (uint256 rate) {
-            return rate * _rateScaleFactor;
+        try _tokenVault.totalSupply() returns (uint256 totalSupply) {
+            if (totalSupply != 0) {
+                try _tokenVault.balance() returns (uint256 balance) {
+                    return balance.mul(_balanceScaleFactor).divDown(totalSupply);
+                } catch (bytes memory revertData) {
+                    // By maliciously reverting here, Beefy (or any other contract in the call stack) could trick the Pool
+                    // into reporting invalid data to the query mechanism for swaps/joins/exits.
+                    // We then check the revert data to ensure this doesn't occur.
+                    ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);
+                }
+            } else {
+                return _balanceScaleFactor;
+            }
         } catch (bytes memory revertData) {
             // By maliciously reverting here, Beefy (or any other contract in the call stack) could trick the Pool
             // into reporting invalid data to the query mechanism for swaps/joins/exits.
