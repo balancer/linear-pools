@@ -3,7 +3,11 @@ import { expect } from 'chai';
 import { Contract } from 'ethers';
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import { bn, fp, FP_ONE } from '@orbcollective/shared-dependencies/numbers';
-import { MAX_UINT256 } from '@orbcollective/shared-dependencies';
+import { setCode } from '@nomicfoundation/hardhat-network-helpers';
+import { 
+  MAX_UINT256, 
+  getExternalPackageArtifact, 
+  getExternalPackageDeployedAt } from '@orbcollective/shared-dependencies';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 
 
@@ -301,5 +305,35 @@ describeForkTest('YearnLinearPoolFactory', 'optimism', 38556442, function () {
   describe('rebalance repeatedly', () => {
     itRebalancesThePool(LinearPoolState.BALANCED);
     itRebalancesThePool(LinearPoolState.BALANCED);
+  });
+
+  describe('rebalancer query protection', async () => {
+    it('reverts with a malicious lending pool', async () => {
+      const { cash } = await vault.getPoolTokenInfo(poolId, USDC);
+      const scaledCash = cash.mul(USDC_SCALING);
+      const { lowerTarget } = await pool.getTargets();
+
+      const exitAmount = scaledCash.sub(lowerTarget.div(3)).div(USDC_SCALING);
+
+      await vault.connect(holder).swap(
+        {
+          kind: SwapKind.GivenOut,
+          poolId,
+          assetIn: pool.address,
+          assetOut: USDC,
+          amount: exitAmount,
+          userData: '0x',
+        },
+        { sender: holder.address, recipient: holder.address, fromInternalBalance: false, toInternalBalance: false },
+        MAX_UINT256,
+        MAX_UINT256
+      );
+
+      await setCode(yvUSDC, getExternalPackageArtifact('linear-pools/MockYearnTokenVault').deployedBytecode);
+      const mockLendingPool = await getExternalPackageDeployedAt('linear-pools/MockYearnTokenVault', yvUSDC);
+
+      await mockLendingPool.setRevertType(2); // Type 2 is malicious swap query revert
+      await expect(rebalancer.rebalance(other.address)).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
+    });
   });
 });
