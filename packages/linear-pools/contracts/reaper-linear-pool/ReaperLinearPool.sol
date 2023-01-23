@@ -22,7 +22,6 @@ import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
 
 import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
-import "hardhat/console.sol";
 
 contract ReaperLinearPool is LinearPool, Version {
     using Math for uint256;

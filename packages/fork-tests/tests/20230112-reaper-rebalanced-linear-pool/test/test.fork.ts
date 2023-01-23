@@ -198,7 +198,7 @@ describeForkTest('ReaperLinearPoolFactory', 'optimism', 69793811, function () {
       const joinCollectedFees = excess.mul(SWAP_FEE_PERCENTAGE).div(FP_ONE);
 
       const expectedBPT = joinAmount.mul(DAI_SCALING).sub(joinCollectedFees);
-      console.log(expectedBPT);
+
       expect(await pool.balanceOf(holder.address)).to.equal(expectedBPT);
     });
 
