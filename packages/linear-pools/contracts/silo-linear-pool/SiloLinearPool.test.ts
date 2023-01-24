@@ -34,7 +34,7 @@ enum RevertType {
 enum AssetStatus {
   Undefined,
   Active,
-  Removed
+  Removed,
 }
 
 async function deployBalancerContract(
@@ -82,16 +82,16 @@ describe('SiloLinearPool', function () {
 
     // Deploy tokens
     mainToken = await deployToken('USDC', 6, deployer);
-    
+
     // Deploy the mock repository
-    mockRepository = await deployPackageContract('MockSiloRepository',{});
-    // Deploy the Silo (Liquidity Pool)    
+    mockRepository = await deployPackageContract('MockSiloRepository', {});
+    // Deploy the Silo (Liquidity Pool)
     mockSilo = await deployPackageContract('MockSilo', {
-        args: [mockRepository.address, mainToken.address],
+      args: [mockRepository.address, mainToken.address],
     });
 
     const wrappedTokenInstance = await deployPackageContract('MockShareToken', {
-        args: ['sUSDC', 'sUSDC', mockSilo.address, mainToken.address, 6],
+      args: ['sUSDC', 'sUSDC', mockSilo.address, mainToken.address, 6],
     });
 
     wrappedToken = await getPackageContractDeployedAt('TestToken', wrappedTokenInstance.address);
@@ -135,7 +135,7 @@ describe('SiloLinearPool', function () {
         'factoryVersion',
         'poolVersion',
         BASE_PAUSE_WINDOW_DURATION,
-        BASE_BUFFER_PERIOD_DURATION
+        BASE_BUFFER_PERIOD_DURATION,
       ],
     });
     // Deploy and initialize pool
@@ -195,7 +195,6 @@ describe('SiloLinearPool', function () {
   describe('getWrappedTokenRate', () => {
     context('under normal operation', () => {
       it('returns the expected value', async () => {
-
         // Calculate the expected rate and compare to the getWrappedToken return value
         const assetStorage = await mockSilo.assetStorage(mainToken.address);
         // Get the 4th member from the struct 'total deposits'
@@ -203,7 +202,7 @@ describe('SiloLinearPool', function () {
 
         const totalShares: number = await wrappedToken.totalSupply();
 
-        const expectedRate: number = (1 * totalAmount) / totalShares;
+        const expectedRate: number = totalAmount / totalShares;
 
         expect(await pool.getWrappedTokenRate()).to.equal(fp(expectedRate));
       });

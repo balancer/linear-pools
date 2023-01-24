@@ -19,7 +19,7 @@ export enum SwapKind {
   GivenOut,
 }
 
-describeForkTest('SiloLinearPoolFactory', 'mainnet', 16406683, function () {
+describeForkTest('SiloLinearPoolFactory', 'mainnet', 16478568, function () {
   let owner: SignerWithAddress, holder: SignerWithAddress, other: SignerWithAddress;
   let factory: Contract, vault: Contract, usdc: Contract;
   let rebalancer: Contract;
@@ -41,11 +41,11 @@ describeForkTest('SiloLinearPoolFactory', 'mainnet', 16406683, function () {
   const SWAP_FEE_PERCENTAGE = fp(0.01); // 1%
 
   // The targets are set using 18 decimals, even if the token has fewer (as is the case for USDC);
-  const INITIAL_UPPER_TARGET = fp(1e2);
+  const INITIAL_UPPER_TARGET = fp(1e6);
 
   // The initial midpoint (upper target / 2) must be between the final lower and upper targets
-  const FINAL_LOWER_TARGET = fp(0.2e2);
-  const FINAL_UPPER_TARGET = fp(5e2);
+  const FINAL_LOWER_TARGET = fp(0.2e6);
+  const FINAL_UPPER_TARGET = fp(5e6);
 
   const PROTOCOL_ID = 5;
 
@@ -85,6 +85,7 @@ describeForkTest('SiloLinearPoolFactory', 'mainnet', 16406683, function () {
       const scaledCash = cash.mul(USDC_SCALING);
 
       let fees;
+
       if (scaledCash.gt(upperTarget)) {
         expect(expectedState).to.equal(LinearPoolState.MAIN_EXCESS);
 
@@ -115,11 +116,11 @@ describeForkTest('SiloLinearPoolFactory', 'mainnet', 16406683, function () {
         // error in the main-wrapped conversion).
         expect(finalRecipientMainBalance.sub(initialRecipientMainBalance)).to.be.almostEqual(
           fees.div(USDC_SCALING),
-          0.01
+          0.000001
         );
       } else {
         // The recipient of the rebalance call will get any extra main tokens that were not utilized.
-        expect(finalRecipientMainBalance).to.be.almostEqual(initialRecipientMainBalance, 0.01);
+        expect(finalRecipientMainBalance).to.be.almostEqual(initialRecipientMainBalance, 0.000001);
       }
 
       const mainInfo = await vault.getPoolTokenInfo(poolId, USDC);

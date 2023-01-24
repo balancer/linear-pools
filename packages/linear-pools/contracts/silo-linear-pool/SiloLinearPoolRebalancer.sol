@@ -19,16 +19,15 @@ import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactor
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeERC20.sol";
 
 import "@balancer-labs/v2-pool-linear/contracts/LinearPoolRebalancer.sol";
-import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
 
-import "./SiloHelpers.sol";
 import "./interfaces/IShareToken.sol";
 import "./interfaces/ISilo.sol";
 import "./SiloExchangeRateModel.sol";
 
 contract SiloLinearPoolRebalancer is LinearPoolRebalancer {
     using SafeERC20 for IERC20;
-    using Math for uint256;
+    using FixedPoint for uint256;
 
     IShareToken private _shareToken;
     ISilo private _silo;
@@ -55,27 +54,23 @@ contract SiloLinearPoolRebalancer is LinearPoolRebalancer {
         _silo.deposit(address(_mainToken), amount, false);
     }
 
-    function _unwrapTokens(uint256 amount) internal override {
+    function _unwrapTokens(uint256 wrappedAmount) internal override {
         // Withdrawing into underlying (i.e. DAI, USDC, etc. instead of sDAI or sUSDC). Approvals are not necessary here
         // as the wrapped token is simply burnt
-        _overrideRate = true;
-        uint256 tokens = _getRequiredTokensToWrap(amount);
-        _overrideRate = false;
-        console.log("Main tokens to withdraw", tokens);
-        _silo.withdraw(address(_mainToken), tokens, false);
+        uint256 mainAmount = _getRequiredTokensToWrap(wrappedAmount);
+        // Same way we round up requiredTokensToWrap, we need to round down the main amount,
+        // to make sure we have enough tokens to unwrap.
+        _silo.withdraw(address(_mainToken), mainAmount, false);
     }
 
     function _getRequiredTokensToWrap(uint256 wrappedAmount) internal view override returns (uint256) {
         ISilo.AssetStorage memory assetStorage = _silo.assetStorage(_shareToken.asset());
         ISilo.AssetInterestData memory interestData = _silo.interestData(_shareToken.asset());
-        bool rate = (_overrideRate) ? true : false;
-        uint256 tokens = _exchangeRateModel.calculateExchangeValue(
-            wrappedAmount,
+        uint256 rate = _exchangeRateModel.calculateExchangeValue(
             _shareToken,
             assetStorage,
-            interestData,
-            rate
-        ) + 1;
-        return tokens;
+            interestData
+        );
+        return wrappedAmount.mulDown(rate) + 1;
     }
 }

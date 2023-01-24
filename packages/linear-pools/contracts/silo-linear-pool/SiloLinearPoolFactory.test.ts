@@ -23,7 +23,7 @@ import { actionId } from '@orbcollective/shared-dependencies/test-helpers/action
 enum AssetStatus {
   Undefined,
   Active,
-  Removed
+  Removed,
 }
 
 async function deployBalancerContract(
@@ -72,16 +72,16 @@ describe('SiloLinearPoolFactory', function () {
 
     // Deploy tokens
     const mainToken = await deployToken('USDC', 6, deployer);
-    
+
     // Deploy the mock repository
     const mockRepository = await deployPackageContract('MockSiloRepository');
 
     const mockSilo = await deployPackageContract('MockSilo', {
-        args: [mockRepository.address, mainToken.address],
+      args: [mockRepository.address, mainToken.address],
     });
 
     const wrappedTokenInstance = await deployPackageContract('MockShareToken', {
-        args: ['sUSDC', 'sUSDC', mockSilo.address, mainToken.address, 6],
+      args: ['sUSDC', 'sUSDC', mockSilo.address, mainToken.address, 6],
     });
 
     const wrappedToken = await getPackageContractDeployedAt('TestToken', wrappedTokenInstance.address);
@@ -133,7 +133,7 @@ describe('SiloLinearPoolFactory', function () {
         factoryVersion,
         poolVersion,
         BASE_PAUSE_WINDOW_DURATION,
-        BASE_BUFFER_PERIOD_DURATION
+        BASE_BUFFER_PERIOD_DURATION,
       ],
     });
 
