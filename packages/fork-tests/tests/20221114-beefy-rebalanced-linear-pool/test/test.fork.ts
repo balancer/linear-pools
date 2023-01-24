@@ -1,11 +1,13 @@
 import hre from 'hardhat';
 import { expect } from 'chai';
 import { Contract } from 'ethers';
-
-import { setCode } from '@nomicfoundation/hardhat-network-helpers';
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import { bn, fp, FP_ONE } from '@orbcollective/shared-dependencies/numbers';
-import { MAX_UINT256 } from '@orbcollective/shared-dependencies';
+import { setCode } from '@nomicfoundation/hardhat-network-helpers';
+import { 
+  MAX_UINT256, 
+  getExternalPackageArtifact, 
+  getExternalPackageDeployedAt } from '@orbcollective/shared-dependencies';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 
 import { impersonate, getForkedNetwork, Task, TaskMode, getSigners } from '../../../src';
@@ -103,7 +105,6 @@ describeForkTest('BeefyLinearPoolFactory', 'optimism', 38313066, function () {
       if (fees > 0) {
         // The recipient of the rebalance call should get the fees that were collected (though there's some rounding
         // error in the main-wrapped conversion).
-        console.log(finalRecipientMainBalance.sub(initialRecipientMainBalance));
         expect(finalRecipientMainBalance.sub(initialRecipientMainBalance)).to.be.almostEqual(
           fees.div(USDC_SCALING),
           0.0001
@@ -302,5 +303,35 @@ describeForkTest('BeefyLinearPoolFactory', 'optimism', 38313066, function () {
   describe('rebalance repeatedly', () => {
     itRebalancesThePool(LinearPoolState.BALANCED);
     itRebalancesThePool(LinearPoolState.BALANCED);
+  });
+
+  describe('rebalancer query protection', async () => {
+    it('reverts with a malicious lending pool', async () => {
+      const { cash } = await vault.getPoolTokenInfo(poolId, USDC);
+      const scaledCash = cash.mul(USDC_SCALING);
+      const { lowerTarget } = await pool.getTargets();
+
+      const exitAmount = scaledCash.sub(lowerTarget.div(3)).div(USDC_SCALING);
+
+      await vault.connect(holder).swap(
+        {
+          kind: SwapKind.GivenOut,
+          poolId,
+          assetIn: pool.address,
+          assetOut: USDC,
+          amount: exitAmount,
+          userData: '0x',
+        },
+        { sender: holder.address, recipient: holder.address, fromInternalBalance: false, toInternalBalance: false },
+        MAX_UINT256,
+        MAX_UINT256
+      );
+
+      await setCode(mooAaveUSDC, getExternalPackageArtifact('linear-pools/MockBeefyVault').deployedBytecode);
+      const mockLendingPool = await getExternalPackageDeployedAt('linear-pools/MockBeefyVault', mooAaveUSDC);
+
+      await mockLendingPool.setRevertType(2); // Type 2 is malicious swap query revert
+      await expect(rebalancer.rebalance(other.address)).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
+    });
   });
 });

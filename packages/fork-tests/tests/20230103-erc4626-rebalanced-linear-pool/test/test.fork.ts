@@ -4,8 +4,10 @@ import { Contract } from 'ethers';
 import { setCode } from '@nomicfoundation/hardhat-network-helpers';
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import { bn, fp, FP_ONE } from '@orbcollective/shared-dependencies/numbers';
-import { MAX_UINT256 } from '@orbcollective/shared-dependencies';
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
+import { 
+  MAX_UINT256, 
+  getExternalPackageArtifact, 
+  getExternalPackageDeployedAt } from '@orbcollective/shared-dependencies';import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 
 import { impersonate, getForkedNetwork, Task, TaskMode, getSigners } from '../../../src';
 import { describeForkTest } from '../../../src/forkTests';
@@ -318,33 +320,33 @@ describeForkTest('ERC4626LinearPoolFactory', 'mainnet', 16015018, function () {
     itRebalancesThePool(LinearPoolState.BALANCED);
   });
 
-  // describe('rebalancer query protection', async () => {
-  //   it('reverts with a malicious lending pool', async () => {
-  //     const { cash } = await vault.getPoolTokenInfo(poolId, frxEth);
-  //     const scaledCash = cash.mul(FRXETH_SCALING);
-  //     const { lowerTarget } = await pool.getTargets();
-  //
-  //     const exitAmount = scaledCash.sub(lowerTarget.div(3)).div(FRXETH_SCALING);
-  //
-  //     await vault.connect(holder).swap(
-  //       {
-  //         kind: SwapKind.GivenOut,
-  //         poolId,
-  //         assetIn: pool.address,
-  //         assetOut: frxEth,
-  //         amount: exitAmount,
-  //         userData: '0x',
-  //       },
-  //       { sender: holder.address, recipient: holder.address, fromInternalBalance: false, toInternalBalance: false },
-  //       MAX_UINT256,
-  //       MAX_UINT256
-  //     );
-  //
-  //     await setCode(USDC_LENDING_POOL, getArtifact('v2-pool-linear/MockERC4626LendingPool').deployedBytecode);
-  //     const mockLendingPool = await deployedAt('v2-pool-linear/MockERC4626LendingPool', USDC_LENDING_POOL);
-  //
-  //     await mockLendingPool.setRevertType(2); // Type 2 is malicious swap query revert
-  //     await expect(rebalancer.rebalance(other.address)).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
-  //   });
-  // });
+  describe('rebalancer query protection', async () => {
+    it('reverts with a malicious lending pool', async () => {
+      const { cash } = await vault.getPoolTokenInfo(poolId, frxEth);
+      const scaledCash = cash.mul(FRXETH_SCALING);
+      const { lowerTarget } = await pool.getTargets();
+
+      const exitAmount = scaledCash.sub(lowerTarget.div(3)).div(FRXETH_SCALING);
+
+      await vault.connect(holder).swap(
+        {
+          kind: SwapKind.GivenOut,
+          poolId,
+          assetIn: pool.address,
+          assetOut: frxEth,
+          amount: exitAmount,
+          userData: '0x',
+        },
+        { sender: holder.address, recipient: holder.address, fromInternalBalance: false, toInternalBalance: false },
+        MAX_UINT256,
+        MAX_UINT256
+      );
+
+      await setCode(erc4626Token, getExternalPackageArtifact('linear-pools/MockERC4626Token').deployedBytecode);
+      const mockLendingPool = await getExternalPackageDeployedAt('linear-pools/MockERC4626Token', erc4626Token);
+
+      await mockLendingPool.setRevertType(2); // Type 2 is malicious swap query revert
+      await expect(rebalancer.rebalance(other.address)).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
+    });
+  });
 });
