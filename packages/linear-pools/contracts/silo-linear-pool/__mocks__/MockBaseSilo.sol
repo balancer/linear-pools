@@ -19,8 +19,6 @@ import "@orbcollective/shared-dependencies/contracts/MockMaliciousQueryReverter.
 
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20.sol";
 
-import "../SiloHelpers.sol";
-
 import "../interfaces/IShareToken.sol";
 import "../interfaces/ISiloRepository.sol";
 import "../interfaces/ISilo.sol";
