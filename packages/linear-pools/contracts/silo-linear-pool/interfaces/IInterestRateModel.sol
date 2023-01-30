@@ -15,22 +15,26 @@
 pragma solidity >=0.7.0 <0.9.0;
 
 interface IInterestRateModel {
-    /// @dev get compound interest rate
-    /// @param silo address of Silo
-    /// @param asset address of an asset in Silo for which interest rate should be calculated
-    /// @param blockTimestamp current block timestamp
-    /// @return rcomp compounded interest rate from last update until now (1e18 == 100%)
+    /**
+     * @dev get compound interest rate
+     * @param silo address of Silo
+     * @param asset address of an asset in Silo for which interest rate should be calculated
+     * @param blockTimestamp current block timestamp
+     * @return rcomp compounded interest rate from last update until now (1e18 == 100%)
+     */
     function getCompoundInterestRate(
         address silo,
         address asset,
         uint256 blockTimestamp
     ) external view returns (uint256 rcomp);
 
-    /// @dev get current annual interest rate
-    /// @param _silo address of Silo
-    /// @param _asset address of an asset in Silo for which interest rate should be calculated
-    /// @param _blockTimestamp current block timestamp
-    /// @return rcur current annual interest rate (1e18 == 100%)
+    /**
+     * @dev get current annual interest rate
+     * @param _silo address of Silo
+     * @param _asset address of an asset in Silo for which interest rate should be calculated
+     * @param _blockTimestamp current block timestamp
+     * @return rcur current annual interest rate (1e18 == 100%)
+     */
     function getCurrentInterestRate(
         address _silo,
         address _asset,
