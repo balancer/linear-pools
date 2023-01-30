@@ -95,6 +95,8 @@ export default class Task {
 
     const instance = await this.deploy(name, args, from, force, libs);
 
+    await wait(10);
+
     await this.verify(name, instance.address, args, libs);
     return instance;
   }
@@ -376,4 +378,12 @@ export default class Task {
       .flat()
       .sort();
   }
+}
+
+async function wait(seconds: number) {
+  return new Promise<void>((resolve, reject) => {
+    setTimeout(() => {
+      return resolve();
+    }, seconds * 1000);
+  });
 }

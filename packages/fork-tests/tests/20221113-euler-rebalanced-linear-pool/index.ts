@@ -12,11 +12,12 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
   const args = [
     input.Vault,
     input.ProtocolFeePercentagesProvider,
-    input.BalancerQueries, input.FactoryVersion,
+    input.BalancerQueries,
+    input.FactoryVersion,
     input.PoolVersion,
     input.InitialPauseWindowDuration,
     input.BufferPeriodDuration,
-    input.EulerProtocol
+    input.EulerProtocol,
   ];
 
   const factory = await task.deployAndVerify('EulerLinearPoolFactory', args, from, force);
@@ -27,7 +28,7 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
     // the contracts deployed here. The action IDs will be checked to be correct via a different mechanism.
 
     // EulerLinearPools require a EulerToken.
-    const mockEulerTokenArgs = ['DO NOT USE - Mock Diesel Token', 'TEST', 18, ZERO_ADDRESS];
+    const mockEulerTokenArgs = ['DO NOT USE - Mock Euler Token', 'TEST', 18, ZERO_ADDRESS];
     const mockEulerToken = await task.deployAndVerify('MockEulerToken', mockEulerTokenArgs, from, force);
 
     // The assetManager, pauseWindowDuration and bufferPeriodDuration will be filled in later, but we need to declare
@@ -98,5 +99,5 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
 
     // We can also verify the Asset Manager
     await task.verify('EulerLinearPoolRebalancer', assetManagerAddress, [input.Vault, input.BalancerQueries]);
-  } 
+  }
 };
