@@ -27,7 +27,6 @@ contract MockBaseSilo is IBaseSilo, MockMaliciousQueryReverter {
     // asset address for which Silo was created
     address private immutable _siloAsset;
 
-    // TODO: Change to immutable and create implementation
     ISiloRepository private immutable _siloRepository;
 
     /// @dev asset => AssetStorage
