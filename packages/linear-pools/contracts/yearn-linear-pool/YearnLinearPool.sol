@@ -17,7 +17,6 @@ pragma experimental ABIEncoderV2;
 
 import "./interfaces/IYearnTokenVault.sol";
 import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
-import "hardhat/console.sol";
 import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
 import "./YearnShareValueHelper.sol";
 
