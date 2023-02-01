@@ -49,8 +49,6 @@ describe('EulerLinearPoolFactory', function () {
 
   const EULER_PROTOCOL_ID = 0;
 
-  const EULER_PROTOCOL_NAME = 'Euler';
-
   beforeEach('deploy factory & tokens', async () => {
     let deployer: SignerWithAddress;
 
@@ -272,50 +270,6 @@ describe('EulerLinearPoolFactory', function () {
 
       expect(pauseWindowEndTime).to.equal(now);
       expect(bufferPeriodEndTime).to.equal(now);
-    });
-  });
-
-  describe('protocol id', () => {
-    it('should not allow adding protocols without permission', async () => {
-      await expect(factory.registerProtocolId(EULER_PROTOCOL_ID, 'Euler')).to.be.revertedWith('BAL#401');
-    });
-
-    context('with no registered protocols', () => {
-      it('should revert when asking for an unregistered protocol name', async () => {
-        await expect(factory.getProtocolName(EULER_PROTOCOL_ID)).to.be.revertedWith('Protocol ID not registered');
-      });
-    });
-
-    context('with registered protocols', () => {
-      beforeEach('grant permissions', async () => {
-        const action = await actionId(factory, 'registerProtocolId');
-        await authorizer.connect(admin).grantPermissions([action], admin.address, [factory.address]);
-      });
-
-      beforeEach('register some protocols', async () => {
-        await factory.connect(admin).registerProtocolId(EULER_PROTOCOL_ID, EULER_PROTOCOL_NAME);
-      });
-
-      it('protocol ID registration should emit an event', async () => {
-        const OTHER_PROTOCOL_ID = 57;
-        const OTHER_PROTOCOL_NAME = 'Protocol 57';
-
-        const tx = await factory.connect(admin).registerProtocolId(OTHER_PROTOCOL_ID, OTHER_PROTOCOL_NAME);
-        expectEvent.inReceipt(await tx.wait(), 'EulerLinearPoolProtocolIdRegistered', {
-          protocolId: OTHER_PROTOCOL_ID,
-          name: OTHER_PROTOCOL_NAME,
-        });
-      });
-
-      it('should register protocols', async () => {
-        expect(await factory.getProtocolName(EULER_PROTOCOL_ID)).to.equal(EULER_PROTOCOL_NAME);
-      });
-
-      it('should fail when a protocol is already registered', async () => {
-        await expect(
-          factory.connect(admin).registerProtocolId(EULER_PROTOCOL_ID, 'Random protocol')
-        ).to.be.revertedWith('Protocol ID already registered');
-      });
     });
   });
 });

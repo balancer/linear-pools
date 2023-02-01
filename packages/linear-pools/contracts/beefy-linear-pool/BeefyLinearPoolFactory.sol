@@ -37,12 +37,6 @@ contract BeefyLinearPoolFactory is
     BasePoolFactory,
     ReentrancyGuard
 {
-    // Associate a name with each registered protocol that uses this factory.
-    struct ProtocolIdData {
-        string name;
-        bool registered;
-    }
-
     // Used for create2 deployments
     uint256 private _nextRebalancerSalt;
 
@@ -51,14 +45,8 @@ contract BeefyLinearPoolFactory is
     address private _lastCreatedPool;
     string private _poolVersion;
 
-    // Maintain a set of recognized protocolIds
-    mapping(uint256 => ProtocolIdData) private _protocolIds;
-
     // This event allows off-chain tools to differentiate between different protocols that use this factory
     event BeefyLinearPoolCreated(address indexed pool, uint256 indexed protocolId);
-
-    // Record protocol ID registrations
-    event BeefyLinearPoolProtocolIdRegistered(uint256 indexed protocolId, string name);
 
     constructor(
         IVault vault,
@@ -68,14 +56,15 @@ contract BeefyLinearPoolFactory is
         string memory poolVersion,
         uint256 initialPauseWindowDuration,
         uint256 bufferPeriodDuration
-    ) BasePoolFactory(
-        vault,
-        protocolFeeProvider,
-        initialPauseWindowDuration,
-        bufferPeriodDuration,
-        type(BeefyLinearPool).creationCode
     )
-    Version(factoryVersion)
+        BasePoolFactory(
+            vault,
+            protocolFeeProvider,
+            initialPauseWindowDuration,
+            bufferPeriodDuration,
+            type(BeefyLinearPool).creationCode
+        )
+        Version(factoryVersion)
     {
         _queries = queries;
         _poolVersion = poolVersion;
@@ -90,17 +79,6 @@ contract BeefyLinearPoolFactory is
      */
     function getPoolVersion() public view override returns (string memory) {
         return _poolVersion;
-    }
-
-    /**
-     * @dev Return the name associated with the given protocolId, if registered.
-     */
-    function getProtocolName(uint256 protocolId) external view returns (string memory) {
-        ProtocolIdData memory protocolIdData = _protocolIds[protocolId];
-
-        require(protocolIdData.registered, "Protocol ID not registered");
-
-        return protocolIdData.name;
     }
 
     function _create(bytes memory constructorArgs) internal virtual override returns (address) {
@@ -178,21 +156,5 @@ contract BeefyLinearPoolFactory is
 
         // We don't return the Rebalancer's address, but that can be queried in the Vault by calling `getPoolTokenInfo`.
         return pool;
-    }
-
-    /**
-     * @notice Register an id (and name) to differentiate between multiple protocols using this factory.
-     * @dev This is a permissioned function. Protocol ids cannot be deregistered.
-     */
-    function registerProtocolId(uint256 protocolId, string memory name) external authenticate {
-        require(!_protocolIds[protocolId].registered, "Protocol ID already registered");
-
-        _registerProtocolId(protocolId, name);
-    }
-
-    function _registerProtocolId(uint256 protocolId, string memory name) private {
-        _protocolIds[protocolId] = ProtocolIdData({ name: name, registered: true });
-
-        emit BeefyLinearPoolProtocolIdRegistered(protocolId, name);
     }
 }

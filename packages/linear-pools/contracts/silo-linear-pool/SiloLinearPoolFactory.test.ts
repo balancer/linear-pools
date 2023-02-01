@@ -51,15 +51,7 @@ describe('SiloLinearPoolFactory', function () {
   const BASE_PAUSE_WINDOW_DURATION = MONTH * 3;
   const BASE_BUFFER_PERIOD_DURATION = MONTH;
 
-  const AAVE_PROTOCOL_ID = 0;
-  const BEEFY_PROTOCOL_ID = 1;
-  const STURDY_PROTOCOL_ID = 2;
   const SILO_PROTOCOL_ID = 4;
-
-  const AAVE_PROTOCOL_NAME = 'AAVE';
-  const BEEFY_PROTOCOL_NAME = 'Beefy';
-  const STURDY_PROTOCOL_NAME = 'Sturdy';
-  const SILO_PROTOCOL_NAME = 'Silo';
 
   beforeEach('deploy factory & tokens', async () => {
     let deployer: SignerWithAddress;
@@ -297,55 +289,6 @@ describe('SiloLinearPoolFactory', function () {
 
       expect(pauseWindowEndTime).to.equal(now);
       expect(bufferPeriodEndTime).to.equal(now);
-    });
-  });
-
-  describe('protocol id', () => {
-    it('should not allow adding protocols without permission', async () => {
-      await expect(factory.registerProtocolId(SILO_PROTOCOL_ID, 'Silo')).to.be.revertedWith('BAL#401');
-    });
-
-    context('with no registered protocols', () => {
-      it('should revert when asking for an unregistered protocol name', async () => {
-        await expect(factory.getProtocolName(SILO_PROTOCOL_ID)).to.be.revertedWith('Protocol ID not registered');
-      });
-    });
-
-    context('with registered protocols', () => {
-      beforeEach('grant permissions', async () => {
-        const action = await actionId(factory, 'registerProtocolId');
-        await (await authorizer.connect(admin)).grantPermissions([action], admin.address, [factory.address]);
-      });
-
-      beforeEach('register some protocols', async () => {
-        await factory.connect(admin).registerProtocolId(AAVE_PROTOCOL_ID, AAVE_PROTOCOL_NAME);
-        await factory.connect(admin).registerProtocolId(BEEFY_PROTOCOL_ID, BEEFY_PROTOCOL_NAME);
-        await factory.connect(admin).registerProtocolId(STURDY_PROTOCOL_ID, STURDY_PROTOCOL_NAME);
-        await factory.connect(admin).registerProtocolId(SILO_PROTOCOL_ID, SILO_PROTOCOL_NAME);
-      });
-
-      it('protocol ID registration should emit an event', async () => {
-        const OTHER_PROTOCOL_ID = 57;
-        const OTHER_PROTOCOL_NAME = 'Protocol 57';
-        const tx = await factory.connect(admin).registerProtocolId(OTHER_PROTOCOL_ID, OTHER_PROTOCOL_NAME);
-        expectEvent.inReceipt(await tx.wait(), 'SiloLinearPoolProtocolIdRegistered', {
-          protocolId: OTHER_PROTOCOL_ID,
-          name: OTHER_PROTOCOL_NAME,
-        });
-      });
-
-      it('should register protocols', async () => {
-        expect(await factory.getProtocolName(AAVE_PROTOCOL_ID)).to.equal(AAVE_PROTOCOL_NAME);
-        expect(await factory.getProtocolName(BEEFY_PROTOCOL_ID)).to.equal(BEEFY_PROTOCOL_NAME);
-        expect(await factory.getProtocolName(STURDY_PROTOCOL_ID)).to.equal(STURDY_PROTOCOL_NAME);
-        expect(await factory.getProtocolName(SILO_PROTOCOL_ID)).to.equal(SILO_PROTOCOL_NAME);
-      });
-
-      it('should fail when a protocol is already registered', async () => {
-        await expect(
-          factory.connect(admin).registerProtocolId(STURDY_PROTOCOL_ID, 'Random protocol')
-        ).to.be.revertedWith('Protocol ID already registered');
-      });
     });
   });
 });
