@@ -15,9 +15,10 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
+import "./interfaces/IEulerTokenMinimal.sol";
+
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeERC20.sol";
-import "./interfaces/IEulerTokenMinimal.sol";
 
 import "@balancer-labs/v2-pool-linear/contracts/LinearPoolRebalancer.sol";
 
@@ -39,22 +40,19 @@ contract EulerLinearPoolRebalancer is LinearPoolRebalancer {
     }
 
     function _wrapTokens(uint256 amount) internal override {
-        // approve eulerProtocol
         _mainToken.safeApprove(eulerProtocol, amount);
 
-        // Transfer underlying tokens from sender to the Euler pool, and increase account's eTokens
-        // param: subAccountId 0 for primary, 1-255 for a sub-account
-        // param: amount In underlying units (use max uint256 for full underlying token balance)
+        // param: subAccountId 0 for primary, 1-255 for a sub-account.
+        // param: amount In underlying units (use max uint256 for full underlying token balance).
+        // https://github.com/euler-xyz/euler-contracts/blob/master/contracts/modules/EToken.sol#L136
         IEulerTokenMinimal(address(_wrappedToken)).deposit(0, amount);
     }
 
     function _unwrapTokens(uint256 amount) internal override {
         uint256 underlyingAmount = IEulerTokenMinimal(address(_wrappedToken)).convertBalanceToUnderlying(amount);
 
-        // Transfer underlying tokens from Euler pool to sender, and decrease account's eTokens
-        // function withdraw(uint subAccountId, uint amount) external;
-        // param: subAccountId: 0 for primary, 1-255 for a sub-account
-        // param: amount: In underlying units (use max uint256 for full pool balance)
+        // param: subAccountId: 0 for primary, 1-255 for a sub-account.
+        // param: amount: In underlying units (use max uint256 for full pool balance).
         // https://github.com/euler-xyz/euler-contracts/blob/master/contracts/modules/EToken.sol#L177
         IEulerTokenMinimal(address(_wrappedToken)).withdraw(0, underlyingAmount);
     }
@@ -64,7 +62,6 @@ contract EulerLinearPoolRebalancer is LinearPoolRebalancer {
         // input: balance: eToken balance, in internal book-keeping units (18 decimals)
         // returns: Amount in underlying units, (same decimals as underlying token)
         // https://docs.euler.finance/developers/getting-started/contract-reference
-        uint256 amnt = IEulerTokenMinimal(address(_wrappedToken)).convertBalanceToUnderlying(wrappedAmount);
-        return amnt + 1;
+        return IEulerTokenMinimal(address(_wrappedToken)).convertBalanceToUnderlying(wrappedAmount) + 1;
     }
 }

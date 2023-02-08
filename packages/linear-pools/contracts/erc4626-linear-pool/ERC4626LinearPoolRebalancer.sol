@@ -16,6 +16,7 @@ pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
 import "./interfaces/IERC4626.sol";
+
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeERC20.sol";
 
@@ -25,7 +26,6 @@ import "@balancer-labs/v2-pool-linear/contracts/LinearPoolRebalancer.sol";
 
 contract ERC4626LinearPoolRebalancer is LinearPoolRebalancer {
     using SafeERC20 for IERC20;
-    using Math for uint256;
 
     // These Rebalancers can only be deployed from a factory to work around a circular dependency: the Pool must know
     // the address of the Rebalancer in order to register it, and the Rebalancer must know the address of the Pool
@@ -37,15 +37,11 @@ contract ERC4626LinearPoolRebalancer is LinearPoolRebalancer {
     }
 
     function _wrapTokens(uint256 amount) internal override {
-        // Depositing from underlying (i.e. DAI, USDC, etc. instead of vault tokens). Before we can
-        // deposit however, we need to approve the wrapper (ERC4626 vault) in the underlying token.
-        _mainToken.approve(address(_wrappedToken), amount);
+        _mainToken.safeApprove(address(_wrappedToken), amount);
         IERC4626(address(_wrappedToken)).deposit(amount, address(this));
     }
 
     function _unwrapTokens(uint256 wrappedAmount) internal override {
-        // Withdrawing into underlying (i.e. DAI, USDC, etc. instead of vault tokens). Approvals are not necessary
-        // here as the wrapped token is simply burnt.
         IERC4626(address(_wrappedToken)).redeem(wrappedAmount, address(this), address(this));
     }
 

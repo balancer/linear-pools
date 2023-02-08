@@ -16,13 +16,15 @@ pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
 import "./interfaces/IEulerTokenMinimal.sol";
+
 import "@balancer-labs/v2-pool-utils/contracts/lib/ExternalCallLib.sol";
 import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20.sol";
 
 import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
 
 contract EulerLinearPool is LinearPool, Version {
-    uint256 private immutable _digitsDifference;
+    uint256 private immutable _rateScaleFactor;
 
     struct ConstructorArgs {
         IVault vault;
@@ -55,17 +57,20 @@ contract EulerLinearPool is LinearPool, Version {
         )
         Version(args.version)
     {
-        uint256 mainTokenDecimals = ERC20(address(args.mainToken)).decimals();
-
-        // Euler tokens always have 18 decimals
-        // https://docs.euler.finance/developers/getting-started/contract-reference#decimals
-        _digitsDifference = 18 - mainTokenDecimals;
-
-        // solhint-disable-next-line max-line-length
         _require(
             address(args.mainToken) == IEulerTokenMinimal(address(args.wrappedToken)).underlyingAsset(),
             Errors.TOKENS_MISMATCH
         );
+
+        uint256 mainTokenDecimals = ERC20(address(args.mainToken)).decimals();
+
+        // _getWrappedTokenRate is scaled to 18 decimals, so we may need to scale external calls.
+        // Furthermore, Euler tokens always have 18 decimals.
+        // https://docs.euler.finance/developers/getting-started/contract-reference#decimals
+        // This result is always positive because the Balancer Vault rejects tokens with more than 18 decimals.
+        // (rateScaling + wrappedScaling - mainScaling)
+        uint256 digitsDifference = 36 - mainTokenDecimals;
+        _rateScaleFactor = 10**digitsDifference;
     }
 
     function _toAssetManagerArray(ConstructorArgs memory args) private pure returns (address[] memory) {
@@ -78,17 +83,10 @@ contract EulerLinearPool is LinearPool, Version {
     }
 
     function _getWrappedTokenRate() internal view override returns (uint256) {
-        // https://github.com/euler-xyz/euler-contracts/blob/master/contracts/modules/EToken.sol#L104
-        // Convert an eToken balance to an underlying amount, taking into account current exchange rate
-        // @param balance eToken balance, in internal book-keeping units (18 decimals)
-        // @return Amount in underlying units, (same decimals as underlying token)
-        // balance in eToken is scaled by (wrappedTokenDecimals - mainTokenDecimals)
-        // to account for a more precise rate in case the mainToken has lower than 18 decimals
-
-        try
-            // solhint-disable-next-line max-line-length
-            IEulerTokenMinimal(address(getWrappedToken())).convertBalanceToUnderlying(1e18 * 10**_digitsDifference)
-        returns (uint256 rate) {
+        // One wrapped token is pre-scaled by 1e(18 - mainTokenDecimals) to achieve the most precise rate.
+        try IEulerTokenMinimal(address(getWrappedToken())).convertBalanceToUnderlying(_rateScaleFactor) returns (
+            uint256 rate
+        ) {
             return rate;
         } catch (bytes memory revertData) {
             ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);

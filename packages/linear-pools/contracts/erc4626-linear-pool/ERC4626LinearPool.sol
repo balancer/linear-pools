@@ -19,14 +19,11 @@ import "./interfaces/IERC4626.sol";
 
 import "@balancer-labs/v2-pool-utils/contracts/lib/ExternalCallLib.sol";
 import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
-
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20.sol";
-import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
 
 import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
 
 contract ERC4626LinearPool is LinearPool, Version {
-    using Math for uint256;
 
     uint256 private immutable _rateScaleFactor;
 
@@ -77,12 +74,12 @@ contract ERC4626LinearPool is LinearPool, Version {
         // whereas mainToken is DAI. But the 1:1 relationship holds, and
         // the pool is still valid.
 
-        // _getWrappedTokenRate is scaled e18, so we may need to scale IERC4626.convertToAssets()
         uint256 wrappedTokenDecimals = ERC20(address(args.wrappedToken)).decimals();
         uint256 mainTokenDecimals = ERC20(address(args.mainToken)).decimals();
 
-        // This is always positive because we only accept tokens with <= 18 decimals
-        uint256 digitsDifference = Math.add(18, wrappedTokenDecimals).sub(mainTokenDecimals);
+        // _getWrappedTokenRate is scaled to 18 decimals, so we may need to scale external calls.
+        // This result is always positive because the Balancer Vault rejects tokens with more than 18 decimals.
+        uint256 digitsDifference = 18 + wrappedTokenDecimals - mainTokenDecimals;
         _rateScaleFactor = 10**digitsDifference;
     }
 
@@ -96,15 +93,8 @@ contract ERC4626LinearPool is LinearPool, Version {
     }
 
     function _getWrappedTokenRate() internal view override returns (uint256) {
-        IERC4626 wrappedToken = IERC4626(address(getWrappedToken()));
-
-        // Main tokens per 1e18 wrapped token wei
-        //     decimals: main + (18 - wrapped)
-        try wrappedToken.convertToAssets(FixedPoint.ONE) returns (uint256 assetsPerShare) {
-            // This function returns a 18 decimal fixed point number
-            //     assetsPerShare decimals:   18 + main - wrapped
-            //     _rateScaleFactor decimals: 18 - main + wrapped
-            uint256 rate = assetsPerShare.mul(_rateScaleFactor).divDown(FixedPoint.ONE);
+        // One wrapped token is pre-scaled by 1e(18 - mainTokenDecimals) to achieve the most precise rate.
+        try IERC4626(address(getWrappedToken())).convertToAssets(_rateScaleFactor) returns (uint256 rate) {
             return rate;
         } catch (bytes memory revertData) {
             // By maliciously reverting here, Gearbox (or any other contract in the call stack) could trick the Pool
