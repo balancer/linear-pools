@@ -16,6 +16,7 @@ pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
 import "./interfaces/IStaticAToken.sol";
+
 import "@balancer-labs/v2-pool-utils/contracts/lib/ExternalCallLib.sol";
 import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
 
@@ -55,8 +56,8 @@ contract AaveLinearPool is LinearPool, Version {
         )
         Version(args.version)
     {
-        _lendingPool = IStaticAToken(address(args.wrappedToken)).LENDING_POOL();
         _require(address(args.mainToken) == IStaticAToken(address(args.wrappedToken)).ASSET(), Errors.TOKENS_MISMATCH);
+        _lendingPool = IStaticAToken(address(args.wrappedToken)).LENDING_POOL();
     }
 
     function _toAssetManagerArray(ConstructorArgs memory args) private pure returns (address[] memory) {
