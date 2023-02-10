@@ -18,13 +18,16 @@ pragma experimental ABIEncoderV2;
 
 import "./interfaces/IYearnTokenVault.sol";
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
-import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeERC20.sol";
+
+import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
 
 import "@balancer-labs/v2-pool-linear/contracts/LinearPoolRebalancer.sol";
 import "./YearnShareValueHelper.sol";
 
 contract YearnLinearPoolRebalancer is LinearPoolRebalancer, YearnShareValueHelper {
-    using Math for uint256;
+    using FixedPoint for uint256;
+    using SafeERC20 for IERC20;
 
     // These Rebalancers can only be deployed from a factory to work around a circular dependency: the Pool must know
     // the address of the Rebalancer in order to register it, and the Rebalancer must know the address of the Pool
@@ -39,7 +42,7 @@ contract YearnLinearPoolRebalancer is LinearPoolRebalancer, YearnShareValueHelpe
     function _wrapTokens(uint256 amount) internal override {
         // Depositing from underlying (i.e. DAI, USDC, etc. instead of yvDAI or yvUSDC). Before we can
         // deposit however, we need to approve the wrapper (yearn vault) in the underlying token.
-        _mainToken.approve(address(_wrappedToken), amount);
+        _mainToken.safeApprove(address(_wrappedToken), amount);
         IYearnTokenVault(address(_wrappedToken)).deposit(amount, address(this));
     }
 

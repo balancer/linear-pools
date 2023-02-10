@@ -17,12 +17,15 @@ pragma experimental ABIEncoderV2;
 
 import "./interfaces/IBeefyVault.sol";
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
-import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeERC20.sol";
+
+import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
 
 import "@balancer-labs/v2-pool-linear/contracts/LinearPoolRebalancer.sol";
 
 contract BeefyLinearPoolRebalancer is LinearPoolRebalancer {
-    using Math for uint256;
+    using FixedPoint for uint256;
+    using SafeERC20 for IERC20;
 
     uint256 private immutable _divisor;
 
@@ -41,7 +44,7 @@ contract BeefyLinearPoolRebalancer is LinearPoolRebalancer {
     function _wrapTokens(uint256 amount) internal override {
         // Depositing from underlying (i.e. DAI, USDC, etc. instead of mooDAI or mooUSDC). Before we can
         // deposit however, we need to approve the wrapper (beefy vault) in the underlying token.
-        _mainToken.approve(address(_wrappedToken), amount);
+        _mainToken.safeApprove(address(_wrappedToken), amount);
         IBeefyVault(address(_wrappedToken)).deposit(amount);
     }
 

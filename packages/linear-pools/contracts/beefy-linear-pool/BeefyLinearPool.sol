@@ -18,12 +18,12 @@ pragma experimental ABIEncoderV2;
 import "./interfaces/IBeefyVault.sol";
 import "@balancer-labs/v2-pool-utils/contracts/lib/ExternalCallLib.sol";
 import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
-import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
 
 import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
 
 contract BeefyLinearPool is LinearPool, Version {
-    using Math for uint256;
+    using FixedPoint for uint256;
 
     IBeefyVault private immutable _tokenVault;
     uint256 private immutable _balanceScaleFactor;
@@ -75,7 +75,8 @@ contract BeefyLinearPool is LinearPool, Version {
         // represented as 1e18 by the LinearPool. Since the mooUSDC is already 18 decimals,
         // but in a different representation, we need to account for that in our wrappedTokenRate.
         // Since we only accept tokens with <= 18 decimals, we know the smallest this can be is 10^0 === 1
-        _balanceScaleFactor = 10 ** (Math.add(18, SafeMath.sub(18, ERC20(want).decimals())));
+        uint8 fixedDecimals = 36 - ERC20(want).decimals();
+        _balanceScaleFactor = 10 ** fixedDecimals;
 
         _require(address(args.mainToken) == want, Errors.TOKENS_MISMATCH);
     }
@@ -95,7 +96,7 @@ contract BeefyLinearPool is LinearPool, Version {
         if (vaultTotalSupply != 0) {
             try _tokenVault.balance() returns (uint256 balance) {
                 // This function returns a 18 decimal fixed point number
-                uint256 rate = (balance * _balanceScaleFactor) / vaultTotalSupply;
+                uint256 rate = balance.mulDown(_balanceScaleFactor).divDown(vaultTotalSupply);
                 return rate;
             } catch (bytes memory revertData) {
                 // By maliciously reverting here, Beefy (or any other contract in the call stack) could trick the Pool

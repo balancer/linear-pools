@@ -20,8 +20,6 @@ import "./interfaces/IERC4626.sol";
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeERC20.sol";
 
-import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
-
 import "@balancer-labs/v2-pool-linear/contracts/LinearPoolRebalancer.sol";
 
 contract ERC4626LinearPoolRebalancer is LinearPoolRebalancer {
