@@ -14,16 +14,16 @@
 
 pragma solidity ^0.7.0;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20Burnable.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20Permit.sol";
 
-contract TestToken is ERC20, ERC20Burnable {
+contract TestToken is ERC20, ERC20Burnable, ERC20Permit {
     constructor(
         string memory name,
         string memory symbol,
         uint8 decimals
-    ) ERC20(name, symbol) {
+    ) ERC20(name, symbol) ERC20Permit(name) {
         _setupDecimals(decimals);
     }
 
