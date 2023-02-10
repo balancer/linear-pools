@@ -19,12 +19,12 @@ import "./interfaces/IBeefyVault.sol";
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeERC20.sol";
 
-import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
 
 import "@balancer-labs/v2-pool-linear/contracts/LinearPoolRebalancer.sol";
 
 contract BeefyLinearPoolRebalancer is LinearPoolRebalancer {
-    using FixedPoint for uint256;
+    using Math for uint256;
     using SafeERC20 for IERC20;
 
     uint256 private immutable _divisor;
