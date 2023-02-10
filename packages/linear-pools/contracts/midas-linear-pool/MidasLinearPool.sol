@@ -15,9 +15,10 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
+import "./interfaces/ICToken.sol";
+
 import "@balancer-labs/v2-pool-utils/contracts/lib/ExternalCallLib.sol";
 import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
-import "./interfaces/ICToken.sol";
 
 import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
 

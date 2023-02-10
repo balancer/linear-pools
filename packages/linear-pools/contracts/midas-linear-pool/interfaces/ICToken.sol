@@ -14,8 +14,6 @@
 
 pragma solidity ^0.7.0;
 
-// import "./IERC20.sol";
-
 interface ICToken {
     /**
      * @dev Underlying asset for this CToken

@@ -16,15 +16,17 @@ pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
 import "./interfaces/ICToken.sol";
+
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
-import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
+
+import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeERC20.sol";
 
 import "./contracts/LinearPoolRebalancer.sol";
 
 contract MidasLinearPoolRebalancer is LinearPoolRebalancer {
-    using Math for uint256;
+    using FixedPoint for uint256;
     using SafeERC20 for IERC20;
 
     uint256 private immutable _divisor;
@@ -65,7 +67,7 @@ contract MidasLinearPoolRebalancer is LinearPoolRebalancer {
         // value might be off by one. We divUp to ensure the returned value will always be enough to get
         // `wrappedAmount` when unwrapping. This might result in some dust being left in the Rebalancer.
         // wrappedAmount * exchangeRateCurrent / divisor
-        return wrappedAmount.mul(ICToken(address(_wrappedToken)).exchangeRateStored()).divUp(_divisor);
+        return wrappedAmount.mulUp(ICToken(address(_wrappedToken)).exchangeRateStored()).divUp(_divisor);
     }
 
     function _beforeRebalance() internal override {
