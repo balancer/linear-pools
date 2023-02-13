@@ -15,7 +15,10 @@
 pragma solidity ^0.7.0;
 
 import "./interfaces/IYearnTokenVault.sol";
+
 import "@balancer-labs/v2-pool-utils/contracts/lib/ExternalCallLib.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
 
 // solhint-disable not-rely-on-time
 
@@ -26,51 +29,48 @@ import "@balancer-labs/v2-pool-utils/contracts/lib/ExternalCallLib.sol";
 // This implementation was ported from the ShareValueHelper:
 // https://github.com/wavey0x/ShareValueHelper/blob/master/contracts/Helper.sol
 contract YearnShareValueHelper {
+    using Math for uint256;
+
     /**
      * @notice returns the amount of tokens required to mint the desired number of shares
      */
     function _sharesToAmount(address vault, uint256 shares) internal view returns (uint256) {
-
         try IYearnTokenVault(vault).totalSupply() returns (uint256 totalSupply) {
-            if (totalSupply == 0) return shares;
+            if (totalSupply == 0) {
+                return shares;
+            } else {
+                uint256 freeFunds = _calculateFreeFunds(vault);
 
-            uint256 freeFunds = _calculateFreeFunds(vault);
-
-            return (shares * freeFunds) / totalSupply;
+                // Use Math here instead of FixedPoint to improve precision (FixedPoint injects intermediate division).
+                // (shares * freeFunds) / totalSupply
+                return (shares.mul(freeFunds)).divDown(totalSupply);
+            }
         } catch (bytes memory revertData) {
-            // By maliciously reverting here, Beefy (or any other contract in the call stack) could trick the Pool
+            // By maliciously reverting here, Yearn (or any other contract in the call stack) could trick the Pool
             // into reporting invalid data to the query mechanism for swaps/joins/exits.
             // We then check the revert data to ensure this doesn't occur.
             ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);
         }
-
-        return shares;
     }
 
     function _calculateFreeFunds(address vault) private view returns (uint256) {
-
-        uint256 assetAmount;
-
         try IYearnTokenVault(vault).totalAssets() returns (uint256 totalAssets) {
-            uint256 lockedFundsRatio = (block.timestamp - IYearnTokenVault(vault).lastReport()) *
-            IYearnTokenVault(vault).lockedProfitDegradation();
+            uint256 timeSinceReport = block.timestamp.sub(IYearnTokenVault(vault).lastReport());
+            uint256 lockedFundsRatio = timeSinceReport.mul(IYearnTokenVault(vault).lockedProfitDegradation());
 
-            if (lockedFundsRatio < 10 ** 18) {
+            if (lockedFundsRatio < FixedPoint.ONE) {
                 uint256 lockedProfit = IYearnTokenVault(vault).lockedProfit();
-                lockedProfit -= (lockedFundsRatio * lockedProfit) / 10 ** 18;
-                return totalAssets - lockedProfit;
+                // (1 - lockedFundsRatio) * lockedProfit
+                uint256 correctedProfit = FixedPoint.mulDown(lockedProfit, FixedPoint.complement(lockedFundsRatio));
+                return totalAssets.sub(correctedProfit);
             } else {
                 return totalAssets;
             }
-            assetAmount = totalAssets;
-
         } catch (bytes memory revertData) {
-            // By maliciously reverting here, Beefy (or any other contract in the call stack) could trick the Pool
+            // By maliciously reverting here, Yearn (or any other contract in the call stack) could trick the Pool
             // into reporting invalid data to the query mechanism for swaps/joins/exits.
             // We then check the revert data to ensure this doesn't occur.
             ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);
         }
-
-        return assetAmount;
     }
 }

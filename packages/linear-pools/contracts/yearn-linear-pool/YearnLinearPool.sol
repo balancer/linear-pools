@@ -16,9 +16,12 @@ pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
 import "./interfaces/IYearnTokenVault.sol";
-import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
-import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
 import "./YearnShareValueHelper.sol";
+
+import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
+
+import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
 
 contract YearnLinearPool is LinearPool, Version, YearnShareValueHelper {
     struct ConstructorArgs {
@@ -70,8 +73,8 @@ contract YearnLinearPool is LinearPool, Version, YearnShareValueHelper {
     }
 
     function _getWrappedTokenRate() internal view override returns (uint256) {
-        // _getWrappedTokenRate is expected to be scaled to 1e18 regardless of the underlying decimals.
-        // By fetching sharesToAmount with 1e18 we ensure we scale to the appropriate precision.
-        return _sharesToAmount(address(getWrappedToken()), 1e18);
+        // Yearn vaults always match the precision of their underlying tokens (mainDecimals == wrappedDecimals).
+        // By fetching the value of 1e18 tokens we ensure the output is scaled to 18 decimals of precision.
+        return _sharesToAmount(address(getWrappedToken()), FixedPoint.ONE);
     }
 }
