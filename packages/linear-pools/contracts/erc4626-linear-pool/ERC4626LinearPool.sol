@@ -78,7 +78,7 @@ contract ERC4626LinearPool is LinearPool, Version {
         uint256 mainTokenDecimals = ERC20(address(args.mainToken)).decimals();
 
         // _getWrappedTokenRate is scaled to 18 decimals, so we may need to scale external calls.
-        // This result is always positive because the Balancer Vault rejects tokens with more than 18 decimals.
+        // This result is always positive because the LinearPool constructor rejects tokens with more than 18 decimals.
         uint256 digitsDifference = 18 + wrappedTokenDecimals - mainTokenDecimals;
         _rateScaleFactor = 10**digitsDifference;
     }

@@ -67,7 +67,7 @@ contract EulerLinearPool is LinearPool, Version {
         // _getWrappedTokenRate is scaled to 18 decimals, so we may need to scale external calls.
         // Furthermore, Euler tokens always have 18 decimals.
         // https://docs.euler.finance/developers/getting-started/contract-reference#decimals
-        // This result is always positive because the Balancer Vault rejects tokens with more than 18 decimals.
+        // This result is always positive because the LinearPool constructor rejects tokens with more than 18 decimals.
         // (rateScaling + wrappedScaling - mainScaling)
         uint256 digitsDifference = 36 - mainTokenDecimals;
         _rateScaleFactor = 10**digitsDifference;
