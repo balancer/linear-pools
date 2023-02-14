@@ -52,10 +52,12 @@ contract MockBaseSilo is IBaseSilo, MockMaliciousQueryReverter {
     }
 
     function siloAsset() external view returns (address) {
+        maybeRevertMaliciously();
         return _siloAsset;
     }
 
     function siloRepository() external view override returns (ISiloRepository) {
+        maybeRevertMaliciously();
         return _siloRepository;
     }
 
@@ -68,6 +70,7 @@ contract MockBaseSilo is IBaseSilo, MockMaliciousQueryReverter {
         uint256 collateralOnlyDeposits,
         uint256 totalBorrowAmount
     ) external {
+        maybeRevertMaliciously();
         AssetStorage memory storageValue = AssetStorage(
             collateralToken,
             collateralOnlyToken,
@@ -87,6 +90,7 @@ contract MockBaseSilo is IBaseSilo, MockMaliciousQueryReverter {
         uint64 interestRateTimestamp,
         AssetStatus status
     ) external {
+        maybeRevertMaliciously();
         AssetInterestData memory interestValue = AssetInterestData(
             harvestedProtocolFees,
             protocolFees,

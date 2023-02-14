@@ -63,9 +63,7 @@ contract SiloLinearPoolRebalancer is LinearPoolRebalancer {
     }
 
     function _getRequiredTokensToWrap(uint256 wrappedAmount) internal view override returns (uint256) {
-        ISilo.AssetStorage memory assetStorage = _silo.assetStorage(_shareToken.asset());
-        ISilo.AssetInterestData memory interestData = _silo.interestData(_shareToken.asset());
-        uint256 rate = _exchangeRateModel.calculateExchangeValue(_shareToken, assetStorage, interestData);
+        uint256 rate = _exchangeRateModel.calculateExchangeValue(_shareToken);
         return wrappedAmount.mulDown(rate) + 1;
     }
 }

@@ -79,26 +79,6 @@ contract SiloLinearPool is LinearPool, Version {
     }
 
     function _getWrappedTokenRate() internal view override returns (uint256) {
-        try _silo.assetStorage(_shareToken.asset()) returns (ISilo.AssetStorage memory assetStorage) {
-            try _silo.interestData(_shareToken.asset()) returns (ISilo.AssetInterestData memory interestData) {
-                uint256 rate = _exchangeRateModel.calculateExchangeValue(
-                    _shareToken,
-                    assetStorage,
-                    interestData
-                );
-
-                return rate;
-            } catch (bytes memory revertData) {
-                // By maliciously reverting here, Aave (or any other contract in the call stack) could trick the Pool into
-                // reporting invalid data to the query mechanism for swaps/joins/exits.
-                // We then check the revert data to ensure this doesn't occur.
-                ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);
-            }
-        } catch (bytes memory revertData) {
-            // By maliciously reverting here, Aave (or any other contract in the call stack) could trick the Pool into
-            // reporting invalid data to the query mechanism for swaps/joins/exits.
-            // We then check the revert data to ensure this doesn't occur.
-            ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);
-        }
+        return _exchangeRateModel.calculateExchangeValue(_shareToken);
     }
 }

@@ -52,6 +52,7 @@ contract MockShareToken is TestToken, IShareToken, MockMaliciousQueryReverter {
     }
 
     function totalSupply() public view override(ERC20, IShareToken) returns (uint256) {
+        maybeRevertMaliciously();
         return supply;
     }
 

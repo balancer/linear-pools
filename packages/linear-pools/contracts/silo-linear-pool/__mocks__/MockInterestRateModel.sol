@@ -45,10 +45,12 @@ contract MockInterestRateModel is IInterestRateModel, MockMaliciousQueryReverter
     }
 
     function setCompoundInterestRate(uint256 rate) external {
+        maybeRevertMaliciously();
         _rcomp = rate;
     }
 
     function setCurrentInterestRate(uint256 rate) external {
+        maybeRevertMaliciously();
         _rcur = rate;
     }
 }
