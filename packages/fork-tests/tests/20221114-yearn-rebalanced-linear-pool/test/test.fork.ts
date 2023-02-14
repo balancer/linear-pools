@@ -4,12 +4,12 @@ import { Contract } from 'ethers';
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import { bn, fp, FP_ONE } from '@orbcollective/shared-dependencies/numbers';
 import { setCode } from '@nomicfoundation/hardhat-network-helpers';
-import { 
-  MAX_UINT256, 
-  getExternalPackageArtifact, 
-  getExternalPackageDeployedAt } from '@orbcollective/shared-dependencies';
+import {
+  MAX_UINT256,
+  getExternalPackageArtifact,
+  getExternalPackageDeployedAt,
+} from '@orbcollective/shared-dependencies';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
-
 
 import { impersonate, getForkedNetwork, Task, TaskMode, getSigners } from '../../../src';
 import { describeForkTest } from '../../../src/forkTests';
@@ -19,7 +19,7 @@ export enum SwapKind {
   GivenOut,
 }
 
-describeForkTest('YearnLinearPoolFactory', 'mainnet', 16623040, function () {
+describeForkTest('YearnLinearPoolFactory', 'mainnet', 16610000, function () {
   let owner: SignerWithAddress, holder: SignerWithAddress, other: SignerWithAddress;
   let factory: Contract, vault: Contract, usdc: Contract;
   let rebalancer: Contract;

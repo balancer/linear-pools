@@ -35,35 +35,33 @@ contract YearnShareValueHelper {
      * @notice returns the amount of tokens required to mint the desired number of shares
      */
     function _sharesToAmount(address vault, uint256 shares) internal view returns (uint256) {
-        try IYearnTokenVault(vault).totalSupply() returns (uint256 totalSupply) {
-            if (totalSupply == 0) {
-                return shares;
-            } else {
-                uint256 freeFunds = _calculateFreeFunds(vault);
+        uint256 totalSupply = _getTotalSupply(vault);
+        if (totalSupply == 0) {
+            return shares;
+        } else {
+            uint256 freeFunds = _calculateFreeFunds(vault);
 
-                // Use Math here instead of FixedPoint to improve precision (FixedPoint injects intermediate division).
-                // (shares * freeFunds) / totalSupply
-                return (shares.mul(freeFunds)).divDown(totalSupply);
-            }
-        } catch (bytes memory revertData) {
-            // By maliciously reverting here, Yearn (or any other contract in the call stack) could trick the Pool
-            // into reporting invalid data to the query mechanism for swaps/joins/exits.
-            // We then check the revert data to ensure this doesn't occur.
-            ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);
+            // Use Math here instead of FixedPoint to improve precision (FixedPoint injects intermediate division).
+            // (shares * freeFunds) / totalSupply
+            return (shares.mul(freeFunds)).divDown(totalSupply);
         }
     }
 
     function _calculateFreeFunds(address vault) private view returns (uint256) {
+        uint256 totalAssets = _getTotalAssets(vault);
+        uint256 timeSinceReport = block.timestamp.sub(_getLastReport(vault));
+        uint256 lockedFundsRatio = timeSinceReport.mul(_getLockedProfitDegradation(vault));
+        uint256 lockedProfit = _getLockedProfit(vault);
+
+        // The complement evaluates to zero unless lockedFundsRatio < FixedPoint.ONE.
+        // (1 - lockedFundsRatio) * lockedProfit
+        uint256 deduction = FixedPoint.mulDown(lockedProfit, FixedPoint.complement(lockedFundsRatio));
+        return totalAssets.sub(deduction);
+    }
+
+    function _getTotalAssets(address vault) private view returns (uint256) {
         try IYearnTokenVault(vault).totalAssets() returns (uint256 totalAssets) {
-            uint256 timeSinceReport = block.timestamp.sub(_getLastReport(vault));
-            uint256 lockedFundsRatio = timeSinceReport.mul(_getLockedProfitDegradation(vault));
-            uint256 lockedProfit = _getLockedProfit(vault);
-
-            // The complement evaluates to zero unless lockedFundsRatio < FixedPoint.ONE.
-            // (1 - lockedFundsRatio) * lockedProfit
-            uint256 deduction = FixedPoint.mulDown(lockedProfit, FixedPoint.complement(lockedFundsRatio));
-
-            return totalAssets.sub(deduction);
+            return totalAssets;
         } catch (bytes memory revertData) {
             // By maliciously reverting here, Yearn (or any other contract in the call stack) could trick the Pool
             // into reporting invalid data to the query mechanism for swaps/joins/exits.
@@ -97,6 +95,17 @@ contract YearnShareValueHelper {
     function _getLockedProfitDegradation(address vault) private view returns (uint256) {
         try IYearnTokenVault(vault).lockedProfitDegradation() returns (uint256 degradation) {
             return degradation;
+        } catch (bytes memory revertData) {
+            // By maliciously reverting here, Yearn (or any other contract in the call stack) could trick the Pool
+            // into reporting invalid data to the query mechanism for swaps/joins/exits.
+            // We then check the revert data to ensure this doesn't occur.
+            ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);
+        }
+    }
+
+    function _getTotalSupply(address vault) private view returns (uint256) {
+        try IYearnTokenVault(vault).totalSupply() returns (uint256 totalSupply) {
+            return totalSupply;
         } catch (bytes memory revertData) {
             // By maliciously reverting here, Yearn (or any other contract in the call stack) could trick the Pool
             // into reporting invalid data to the query mechanism for swaps/joins/exits.
