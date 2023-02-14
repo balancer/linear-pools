@@ -57,11 +57,11 @@ contract GearboxLinearPool is LinearPool, Version {
         Version(args.version)
     {
         address gearboxVaultAddress = IGearboxDieselToken(address(args.wrappedToken)).owner();
-        _gearboxVault = IGearboxVault(gearboxVaultAddress);
         _require(
             address(args.mainToken) == IGearboxVault(gearboxVaultAddress).underlyingToken(),
             Errors.TOKENS_MISMATCH
         );
+        _gearboxVault = IGearboxVault(gearboxVaultAddress);
     }
 
     function _toAssetManagerArray(ConstructorArgs memory args) private pure returns (address[] memory) {
@@ -74,9 +74,9 @@ contract GearboxLinearPool is LinearPool, Version {
     }
 
     function _getWrappedTokenRate() internal view override returns (uint256) {
-        // see: https://etherscan.io/address/0x86130bDD69143D8a4E5fc50bf4323D48049E98E4#readContract#F18
-        // The getDieselRate_RAY function doesn't appear on gearbox docs, but is easy to find in etherscan.io
-        // For updated list of pools and tokens, please check:
+        // The getDieselRate_RAY function doesn't appear in Gearbox's docs, but it's easy to find on etherscan.
+        // https://etherscan.io/address/0x86130bDD69143D8a4E5fc50bf4323D48049E98E4#readContract#F18
+        // For an updated list of pools and tokens, please check:
         // https://dev.gearbox.fi/docs/documentation/deployments/deployed-contracts
         try _gearboxVault.getDieselRate_RAY() returns (uint256 rate) {
             // This function returns a 18 decimal fixed point number, but `getDieselRate_RAY` has 27 decimals
