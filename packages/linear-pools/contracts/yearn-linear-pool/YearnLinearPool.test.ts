@@ -51,8 +51,8 @@ describe('YearnLinearPool', function () {
   let mainToken: Contract, wrappedToken: Contract;
   let poolFactory: Contract;
   let mockYearnTokenVault: Contract;
-  let guardian: SignerWithAddress, lp: SignerWithAddress, owner: SignerWithAddress;
-  let manager: SignerWithAddress;
+  let lp: SignerWithAddress, owner: SignerWithAddress;
+  let deployer: SignerWithAddress, trader: SignerWithAddress;
 
   const POOL_SWAP_FEE_PERCENTAGE = fp(0.01);
   const YEARN_PROTOCOL_ID = 0;
@@ -61,29 +61,25 @@ describe('YearnLinearPool', function () {
   const BASE_BUFFER_PERIOD_DURATION = MONTH;
 
   before('Setup', async () => {
-    let deployer: SignerWithAddress;
-    let trader: SignerWithAddress;
 
     // appease the @typescript-eslint/no-unused-vars lint error
     [, lp, owner] = await ethers.getSigners();
     ({ vault, deployer, trader } = await setupEnvironment());
-    manager = deployer;
-    guardian = trader;
 
     // Deploy tokens
-    mainToken = await deployToken('DAI', 18, deployer);
+    mainToken = await deployToken('USDC', 6, deployer);
     mockYearnTokenVault = await deployPackageContract('MockYearnTokenVault', {
-      args: ['yvDAI', 'yvDAI', 18, mainToken.address, fp(1)],
+      args: ['yvUSDC', 'yvUSDC', 6, mainToken.address],
     });
     wrappedToken = await getPackageContractDeployedAt('TestToken', mockYearnTokenVault.address);
     tokens = new TokenList([mainToken, wrappedToken]).sort();
-    await tokens.mint({ to: [lp, trader], amount: fp(100) });
+    await mainToken.mint(lp.address, bn(100e6));
 
     // Deploy Balancer Queries
     const queriesTask = '20220721-balancer-queries';
     const queriesContract = 'BalancerQueries';
     const queriesArgs = [vault.address];
-    const queries = await deployBalancerContract(queriesTask, queriesContract, manager, queriesArgs);
+    const queries = await deployBalancerContract(queriesTask, queriesContract, deployer, queriesArgs);
 
     // Deploy poolFactory
     poolFactory = await deployPackageContract('YearnLinearPoolFactory', {
@@ -117,7 +113,7 @@ describe('YearnLinearPool', function () {
 
   describe('constructor', () => {
     it('reverts if the mainToken is not the ASSET of the wrappedToken', async () => {
-      const otherToken = await deployToken('USDC', 18, manager);
+      const otherToken = await deployToken('DAI', 18, deployer);
 
       await expect(
         poolFactory.create(
@@ -153,26 +149,34 @@ describe('YearnLinearPool', function () {
   });
 
   describe('getWrappedTokenRate', () => {
-    context('when price per share is 100 and the supply is 100', () => {
-      it('returns the expected value', async () => {
-        await mockYearnTokenVault.setPricePerShare(fp(100));
+    context('when assets are 100 and supply is 0', () => {
+      it('returns an uninitialized price of 1', async () => {
+        await mockYearnTokenVault.setTotalAssets(bn(100e6));
         expect(await pool.getWrappedTokenRate()).to.be.eq(fp(1));
       });
     });
 
-    context('when price is 1.05 and total supply is 1', () => {
-      it('returns the expected value', async () => {
-        await mockYearnTokenVault.setTotalSupply(fp(1));
-        await mockYearnTokenVault.setPricePerShare(fp(1.05));
-        expect(await pool.getWrappedTokenRate()).to.be.eq(fp(1.05));
+    context('when assets are 100 and total supply is 100', () => {
+      it('returns a price of 1', async () => {
+        await mockYearnTokenVault.setTotalAssets(bn(100e6));
+        await wrappedToken.mint(lp.address, bn(100e6)); // 0 old + 100 new = 100
+        expect(await pool.getWrappedTokenRate()).to.be.eq(fp(1));
       });
     });
 
-    context('when price is 1.08 and total supply is 1', () => {
-      it('returns the expected value', async () => {
-        await mockYearnTokenVault.setTotalSupply(fp(1));
-        await mockYearnTokenVault.setPricePerShare(fp(1.08));
-        expect(await pool.getWrappedTokenRate()).to.be.eq(fp(1.08));
+    context('when assets are 500 and total supply is 200', () => {
+      it('returns a price of 2.5', async () => {
+        await mockYearnTokenVault.setTotalAssets(bn(500e6));
+        await wrappedToken.mint(lp.address, bn(100e6)); // 100 old + 100 new = 200
+        expect(await pool.getWrappedTokenRate()).to.be.eq(fp(2.5));
+      });
+    });
+
+    context('when assets are 1 and total supply is 1000', () => {
+      it('returns a price of 0.001', async () => {
+        await mockYearnTokenVault.setTotalAssets(bn(1e6));
+        await wrappedToken.mint(lp.address, bn(800e6)); // 200 old + 800 new = 1000
+        expect(await pool.getWrappedTokenRate()).to.be.eq(fp(0.001));
       });
     });
 
@@ -197,14 +201,14 @@ describe('YearnLinearPool', function () {
       beforeEach('provide initial liquidity to pool', async () => {
         await mockYearnTokenVault.setRevertType(RevertType.DoNotRevert);
         const poolId = await pool.getPoolId();
-        await tokens.approve({ to: vault, amount: fp(100), from: lp });
+        await tokens.approve({ to: vault, amount: bn(100e6), from: lp });
         await vault.connect(lp).swap(
           {
             poolId,
             kind: SwapKind.GivenIn,
             assetIn: mainToken.address,
             assetOut: pool.address,
-            amount: fp(10),
+            amount: bn(10e6),
             userData: '0x',
           },
           { sender: lp.address, fromInternalBalance: false, recipient: lp.address, toInternalBalance: false },
@@ -219,12 +223,12 @@ describe('YearnLinearPool', function () {
         rebalancer = await getPackageContractDeployedAt('YearnLinearPoolRebalancer', assetManager);
       });
 
-      beforeEach('make Yearn lending pool start reverting', async () => {
+      beforeEach('make Yearn vault start reverting', async () => {
         await mockYearnTokenVault.setRevertType(RevertType.MaliciousSwapQuery);
       });
 
       it('reverts with MALICIOUS_QUERY_REVERT', async () => {
-        await expect(rebalancer.rebalance(guardian.address)).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
+        await expect(rebalancer.rebalance(trader.address)).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
       });
     });
   });

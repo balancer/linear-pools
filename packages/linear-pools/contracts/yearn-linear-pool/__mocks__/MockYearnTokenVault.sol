@@ -21,38 +21,38 @@ import "@orbcollective/shared-dependencies/contracts/MockMaliciousQueryReverter.
 //the TestToken ERC20 implementation
 contract MockYearnTokenVault is TestToken, MockMaliciousQueryReverter {
     address private immutable _token;
-    uint256 private _pricePerShare;
-    uint256 private _totalSupply;
+    uint256 private _totalAssets;
+    uint256 private _scalingFactor;
 
     constructor(
         string memory name,
         string memory symbol,
         uint8 decimals,
-        address underlyingAsset,
-        uint256 sharePrice
+        address underlyingAsset
     ) TestToken(name, symbol, decimals) {
         _token = underlyingAsset;
-        _pricePerShare = sharePrice;
-        _totalSupply = 0;
+        _scalingFactor = 10**decimals;
     }
 
     function token() external view returns (address) {
         return _token;
     }
 
-    function pricePerShare() external view returns (uint256) {
+    function pricePerShare() public view returns (uint256) {
         maybeRevertMaliciously();
-        return _pricePerShare;
-    }
 
-    function setPricePerShare(uint256 _newPricePerShare) public {
-        _pricePerShare = _newPricePerShare;
+        uint256 supply = totalSupply();
+        if (supply == 0) {
+            return _scalingFactor;
+        } else {
+            return (_scalingFactor * _totalAssets) / totalSupply();
+        }
     }
 
     function deposit(uint256 _amount, address recipient) public returns (uint256) {
         ERC20(_token).transferFrom(msg.sender, address(this), _amount);
         
-        uint256 amountToMint = _amount * 10**decimals() / _pricePerShare;
+        uint256 amountToMint = _amount * _scalingFactor / pricePerShare();
         
         _mint(recipient, amountToMint);
 
@@ -62,13 +62,12 @@ contract MockYearnTokenVault is TestToken, MockMaliciousQueryReverter {
     function withdraw(uint256 maxShares, address recipient) public returns (uint256) {
         _burn(msg.sender, maxShares);
         
-        uint256 amountToReturn = maxShares * _pricePerShare / 10**decimals();
+        uint256 amountToReturn = maxShares * pricePerShare() / _scalingFactor;
         
         ERC20(_token).transfer(recipient, amountToReturn);
 
         return amountToReturn;
     }
-
 
     function lockedProfitDegradation() external pure returns (uint256) {
         return 1e18;
@@ -78,21 +77,21 @@ contract MockYearnTokenVault is TestToken, MockMaliciousQueryReverter {
         return 0;
     }
 
-    function totalAssets() external view returns (uint256) {
-        maybeRevertMaliciously();
-        return totalSupply() * _pricePerShare / 10**decimals();
-    }
-
     function lockedProfit() external pure returns (uint256) {
         return 0;
     }
 
-    function totalSupply() public view virtual override returns (uint256) {
+    function totalAssets() external view returns (uint256) {
         maybeRevertMaliciously();
-        return _totalSupply;
+        return _totalAssets;
     }
 
-    function setTotalSupply(uint256 _newTotalSupply) public {
-        _totalSupply = _newTotalSupply;
+    function setTotalAssets(uint256 _newTotalAssets) public {
+        _totalAssets = _newTotalAssets;
+    }
+
+    function totalSupply() public view virtual override returns (uint256) {
+        maybeRevertMaliciously();
+        return super.totalSupply();
     }
 }
