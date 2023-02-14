@@ -15,18 +15,17 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "./interfaces/ITetuSmartVault.sol";
-import "./interfaces/ITetuStrategy.sol";
-
-import "@balancer-labs/v2-pool-utils/contracts/lib/ExternalCallLib.sol";
 import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
-
 import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
 
-contract TetuLinearPool is LinearPool, Version {
+import "./interfaces/ITetuSmartVault.sol";
+
+import "./TetuShareValueHelper.sol";
+
+contract TetuLinearPool is LinearPool, Version, TetuShareValueHelper {
     IERC20 private immutable _mainToken;
     IERC20 private immutable _wrappedToken;
-    ITetuSmartVault private immutable _tokenVault;
 
     uint256 private immutable _rateScaleFactor;
 
@@ -62,13 +61,13 @@ contract TetuLinearPool is LinearPool, Version {
         Version(args.version)
     {
         ITetuSmartVault tokenVault = ITetuSmartVault(address(args.wrappedToken));
-        _mainToken = args.mainToken;
-        _wrappedToken = args.wrappedToken;
-        _tokenVault = tokenVault;
-
-        _rateScaleFactor = 10**(SafeMath.sub(18, ERC20(tokenVault.underlying()).decimals()));
 
         _require(address(args.mainToken) == tokenVault.underlying(), Errors.TOKENS_MISMATCH);
+
+        _mainToken = args.mainToken;
+        _wrappedToken = args.wrappedToken;
+
+        _rateScaleFactor = 10**(SafeMath.sub(18, ERC20(tokenVault.underlying()).decimals()));
     }
 
     function _toAssetManagerArray(ConstructorArgs memory args) private pure returns (address[] memory) {
@@ -81,31 +80,6 @@ contract TetuLinearPool is LinearPool, Version {
     }
 
     function _getWrappedTokenRate() internal view override returns (uint256) {
-        uint256 wrappedTotalSupply = _wrappedToken.totalSupply();
-        if (wrappedTotalSupply == 0) {
-            return 0;
-        }
-        // We couldn't use tetuVault.getPricePerFullShare function, since it introduces rounding issues in tokens
-        // with a small number of decimals. Therefore, we're calculating the rate using balance and suply
-        try ITetuSmartVault(address(_wrappedToken)).underlyingBalanceInVault() returns (uint256 underlyingBalanceInVault) {
-            address strategy = ITetuSmartVault(address(_wrappedToken)).strategy();
-            if (address(strategy) == address(0)) {
-                return (10**18 * underlyingBalanceInVault/ wrappedTotalSupply) + 1;
-            }
-
-            try ITetuStrategy(strategy).investedUnderlyingBalance() returns (uint256 strategyInvestedUnderlyingBalance) {
-                return (10**18 * (underlyingBalanceInVault + strategyInvestedUnderlyingBalance) / wrappedTotalSupply) + 1;
-            } catch (bytes memory revertData) {
-                // By maliciously reverting here, TetuVault (or any other contract in the call stack)
-                // could trick the Pool into reporting invalid data to the query mechanism for swaps/joins/exits.
-                // We then check the revert data to ensure this doesn't occur.
-                ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);
-            }
-        } catch (bytes memory revertData) {
-            // By maliciously reverting here, TetuVault (or any other contract in the call stack)
-            // could trick the Pool into reporting invalid data to the query mechanism for swaps/joins/exits.
-            // We then check the revert data to ensure this doesn't occur.
-            ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);
-        }
+        return Math.add(_getTokenRate(address(_wrappedToken)), 1);
     }
 }

@@ -15,20 +15,21 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "./interfaces/ITetuSmartVault.sol";
-import "./interfaces/ITetuStrategy.sol";
-
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
 
-import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeERC20.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20.sol";
 
 import "@balancer-labs/v2-pool-linear/contracts/LinearPoolRebalancer.sol";
 
-contract TetuLinearPoolRebalancer is LinearPoolRebalancer {
+import "./interfaces/ITetuSmartVault.sol";
+
+import "./TetuShareValueHelper.sol";
+
+contract TetuLinearPoolRebalancer is LinearPoolRebalancer, TetuShareValueHelper {
     using SafeERC20 for IERC20;
-    using Math for uint256;
+    using FixedPoint for uint256;
 
     uint256 private immutable _divisor;
 
@@ -58,17 +59,7 @@ contract TetuLinearPoolRebalancer is LinearPoolRebalancer {
         // Since there's fixed point divisions and multiplications with rounding involved, this value might
         // be off by one. We add one to ensure the returned value will always be enough to get `wrappedAmount`
         // when unwrapping. This might result in some dust being left in the Rebalancer.
-
-        if (_wrappedToken.totalSupply() == 0) {
-            return 0;
-        }
-        uint256 underlyingBalanceInVault = _mainToken.balanceOf(address(_wrappedToken));
-        address strategy = ITetuSmartVault(address(_wrappedToken)).strategy();
-        uint256 strategyInvestedUnderlyingBalance = address(strategy) == address(0)
-            ? 0
-            : ITetuStrategy(strategy).investedUnderlyingBalance();
-        return
-            ((wrappedAmount * (underlyingBalanceInVault + strategyInvestedUnderlyingBalance)) /
-                _wrappedToken.totalSupply()) + 1;
+        uint256 tokenRate = _getTokenRate(address(_wrappedToken));
+        return tokenRate.mulDown(wrappedAmount).add(1);
     }
 }
