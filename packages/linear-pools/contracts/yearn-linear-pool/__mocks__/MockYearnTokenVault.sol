@@ -21,8 +21,11 @@ import "@orbcollective/shared-dependencies/contracts/MockMaliciousQueryReverter.
 //the TestToken ERC20 implementation
 contract MockYearnTokenVault is TestToken, MockMaliciousQueryReverter {
     address private immutable _token;
+
+    uint256 private _lastReport;
+    uint256 private _lockedProfit;
+    uint256 private _lockedProfitDegradation;
     uint256 private _totalAssets;
-    uint256 private _scalingFactor;
 
     constructor(
         string memory name,
@@ -31,7 +34,7 @@ contract MockYearnTokenVault is TestToken, MockMaliciousQueryReverter {
         address underlyingAsset
     ) TestToken(name, symbol, decimals) {
         _token = underlyingAsset;
-        _scalingFactor = 10**decimals;
+        _lockedProfitDegradation = 1e18;
     }
 
     function token() external view returns (address) {
@@ -43,17 +46,16 @@ contract MockYearnTokenVault is TestToken, MockMaliciousQueryReverter {
 
         uint256 supply = totalSupply();
         if (supply == 0) {
-            return _scalingFactor;
+            return 10**decimals();
         } else {
-            return (_scalingFactor * _totalAssets) / totalSupply();
+            return (10**decimals() * _totalAssets) / supply;
         }
     }
 
     function deposit(uint256 _amount, address recipient) public returns (uint256) {
         ERC20(_token).transferFrom(msg.sender, address(this), _amount);
         
-        uint256 amountToMint = _amount * _scalingFactor / pricePerShare();
-        
+        uint256 amountToMint = _amount * 10**decimals() / pricePerShare();
         _mint(recipient, amountToMint);
 
         return amountToMint;
@@ -62,23 +64,28 @@ contract MockYearnTokenVault is TestToken, MockMaliciousQueryReverter {
     function withdraw(uint256 maxShares, address recipient) public returns (uint256) {
         _burn(msg.sender, maxShares);
         
-        uint256 amountToReturn = maxShares * pricePerShare() / _scalingFactor;
-        
+        uint256 amountToReturn = maxShares * pricePerShare() / 10**decimals();
         ERC20(_token).transfer(recipient, amountToReturn);
 
         return amountToReturn;
     }
 
-    function lockedProfitDegradation() external pure returns (uint256) {
-        return 1e18;
+    function lastReport() external view returns (uint256) {
+        maybeRevertMaliciously();
+        // Doesn't change, but read from storage anyway just to simulate gas cost.
+        return _lastReport;
     }
 
-    function lastReport() external pure returns (uint256) {
-        return 0;
+    function lockedProfit() external view returns (uint256) {
+        maybeRevertMaliciously();
+        // Doesn't change, but read from storage anyway just to simulate gas cost.
+        return _lockedProfit;
     }
 
-    function lockedProfit() external pure returns (uint256) {
-        return 0;
+    function lockedProfitDegradation() external view returns (uint256) {
+        maybeRevertMaliciously();
+        // Doesn't change, but read from storage anyway just to simulate gas cost.
+        return _lockedProfitDegradation;
     }
 
     function totalAssets() external view returns (uint256) {
