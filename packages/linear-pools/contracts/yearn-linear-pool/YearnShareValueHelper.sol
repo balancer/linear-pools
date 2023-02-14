@@ -55,17 +55,48 @@ contract YearnShareValueHelper {
 
     function _calculateFreeFunds(address vault) private view returns (uint256) {
         try IYearnTokenVault(vault).totalAssets() returns (uint256 totalAssets) {
-            uint256 timeSinceReport = block.timestamp.sub(IYearnTokenVault(vault).lastReport());
-            uint256 lockedFundsRatio = timeSinceReport.mul(IYearnTokenVault(vault).lockedProfitDegradation());
+            uint256 timeSinceReport = block.timestamp.sub(_getLastReport(vault));
+            uint256 lockedFundsRatio = timeSinceReport.mul(_getLockedProfitDegradation(vault));
+            uint256 lockedProfit = _getLockedProfit(vault);
 
-            if (lockedFundsRatio < FixedPoint.ONE) {
-                uint256 lockedProfit = IYearnTokenVault(vault).lockedProfit();
-                // (1 - lockedFundsRatio) * lockedProfit
-                uint256 correctedProfit = FixedPoint.mulDown(lockedProfit, FixedPoint.complement(lockedFundsRatio));
-                return totalAssets.sub(correctedProfit);
-            } else {
-                return totalAssets;
-            }
+            // The complement evaluates to zero unless lockedFundsRatio < FixedPoint.ONE.
+            // (1 - lockedFundsRatio) * lockedProfit
+            uint256 deduction = FixedPoint.mulDown(lockedProfit, FixedPoint.complement(lockedFundsRatio));
+
+            return totalAssets.sub(deduction);
+        } catch (bytes memory revertData) {
+            // By maliciously reverting here, Yearn (or any other contract in the call stack) could trick the Pool
+            // into reporting invalid data to the query mechanism for swaps/joins/exits.
+            // We then check the revert data to ensure this doesn't occur.
+            ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);
+        }
+    }
+
+    function _getLastReport(address vault) private view returns (uint256) {
+        try IYearnTokenVault(vault).lastReport() returns (uint256 lastReport) {
+            return lastReport;
+        } catch (bytes memory revertData) {
+            // By maliciously reverting here, Yearn (or any other contract in the call stack) could trick the Pool
+            // into reporting invalid data to the query mechanism for swaps/joins/exits.
+            // We then check the revert data to ensure this doesn't occur.
+            ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);
+        }
+    }
+
+    function _getLockedProfit(address vault) private view returns (uint256) {
+        try IYearnTokenVault(vault).lockedProfit() returns (uint256 lockedProfit) {
+            return lockedProfit;
+        } catch (bytes memory revertData) {
+            // By maliciously reverting here, Yearn (or any other contract in the call stack) could trick the Pool
+            // into reporting invalid data to the query mechanism for swaps/joins/exits.
+            // We then check the revert data to ensure this doesn't occur.
+            ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);
+        }
+    }
+
+    function _getLockedProfitDegradation(address vault) private view returns (uint256) {
+        try IYearnTokenVault(vault).lockedProfitDegradation() returns (uint256 degradation) {
+            return degradation;
         } catch (bytes memory revertData) {
             // By maliciously reverting here, Yearn (or any other contract in the call stack) could trick the Pool
             // into reporting invalid data to the query mechanism for swaps/joins/exits.
