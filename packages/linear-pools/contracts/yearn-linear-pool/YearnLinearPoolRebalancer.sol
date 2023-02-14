@@ -17,16 +17,14 @@ pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
 import "./interfaces/IYearnTokenVault.sol";
+
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeERC20.sol";
-
-import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
 
 import "@balancer-labs/v2-pool-linear/contracts/LinearPoolRebalancer.sol";
 import "./YearnShareValueHelper.sol";
 
 contract YearnLinearPoolRebalancer is LinearPoolRebalancer, YearnShareValueHelper {
-    using FixedPoint for uint256;
     using SafeERC20 for IERC20;
 
     // These Rebalancers can only be deployed from a factory to work around a circular dependency: the Pool must know
