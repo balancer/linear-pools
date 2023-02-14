@@ -59,7 +59,7 @@ describe('YearnLinearPoolFactory', function () {
     // Deploy tokens
     const mainToken = await deployToken('DAI', 18, deployer);
     const mockYearnTokenVault = await deployPackageContract('MockYearnTokenVault', {
-      args: ['yvDAI', 'yvDAI', 18, mainToken.address, fp(1)],
+      args: ['yvDAI', 'yvDAI', 18, mainToken.address],
     });
     const wrappedToken = await getPackageContractDeployedAt('TestToken', mockYearnTokenVault.address);
 
