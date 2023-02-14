@@ -73,7 +73,7 @@ describe('YearnLinearPool', function () {
     });
     wrappedToken = await getPackageContractDeployedAt('TestToken', mockYearnTokenVault.address);
     tokens = new TokenList([mainToken, wrappedToken]).sort();
-    await mainToken.mint(lp.address, 100e6);
+    await mainToken.mint(lp.address, bn(100e6));
 
     // Deploy Balancer Queries
     const queriesTask = '20220721-balancer-queries';
@@ -151,31 +151,31 @@ describe('YearnLinearPool', function () {
   describe('getWrappedTokenRate', () => {
     context('when assets are 100 and supply is 0', () => {
       it('returns an uninitialized price of 1', async () => {
-        await mockYearnTokenVault.setTotalAssets(100e6);
+        await mockYearnTokenVault.setTotalAssets(bn(100e6));
         expect(await pool.getWrappedTokenRate()).to.be.eq(fp(1));
       });
     });
 
     context('when assets are 100 and total supply is 100', () => {
       it('returns a price of 1', async () => {
-        await mockYearnTokenVault.setTotalAssets(100e6);
-        await wrappedToken.mint(lp.address, 100e6); // 0 old + 100 new = 100
+        await mockYearnTokenVault.setTotalAssets(bn(100e6));
+        await wrappedToken.mint(lp.address, bn(100e6)); // 0 old + 100 new = 100
         expect(await pool.getWrappedTokenRate()).to.be.eq(fp(1));
       });
     });
 
     context('when assets are 500 and total supply is 200', () => {
       it('returns a price of 2.5', async () => {
-        await mockYearnTokenVault.setTotalAssets(500e6);
-        await wrappedToken.mint(lp.address, 100e6); // 100 old + 100 new = 200
+        await mockYearnTokenVault.setTotalAssets(bn(500e6));
+        await wrappedToken.mint(lp.address, bn(100e6)); // 100 old + 100 new = 200
         expect(await pool.getWrappedTokenRate()).to.be.eq(fp(2.5));
       });
     });
 
     context('when assets are 1 and total supply is 1000', () => {
       it('returns a price of 0.001', async () => {
-        await mockYearnTokenVault.setTotalAssets(1e6);
-        await wrappedToken.mint(lp.address, 800e6); // 200 old + 800 new = 1000
+        await mockYearnTokenVault.setTotalAssets(bn(1e6));
+        await wrappedToken.mint(lp.address, bn(800e6)); // 200 old + 800 new = 1000
         expect(await pool.getWrappedTokenRate()).to.be.eq(fp(0.001));
       });
     });
@@ -201,14 +201,14 @@ describe('YearnLinearPool', function () {
       beforeEach('provide initial liquidity to pool', async () => {
         await mockYearnTokenVault.setRevertType(RevertType.DoNotRevert);
         const poolId = await pool.getPoolId();
-        await tokens.approve({ to: vault, amount: 100e6, from: lp });
+        await tokens.approve({ to: vault, amount: bn(100e6), from: lp });
         await vault.connect(lp).swap(
           {
             poolId,
             kind: SwapKind.GivenIn,
             assetIn: mainToken.address,
             assetOut: pool.address,
-            amount: 10e6,
+            amount: bn(10e6),
             userData: '0x',
           },
           { sender: lp.address, fromInternalBalance: false, recipient: lp.address, toInternalBalance: false },
