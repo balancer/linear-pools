@@ -1156,9 +1156,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@orbcollective/fork-tests@workspace:packages/fork-tests":
+"@orbcollective/fork-tests@workspace:pkg/fork-tests":
   version: 0.0.0-use.local
-  resolution: "@orbcollective/fork-tests@workspace:packages/fork-tests"
+  resolution: "@orbcollective/fork-tests@workspace:pkg/fork-tests"
   dependencies:
     "@balancer-labs/balancer-js": ^2.0.0
     "@balancer-labs/v2-deployments": ^3.1.1
@@ -1184,9 +1184,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@orbcollective/linear-pools@workspace:packages/linear-pools":
+"@orbcollective/linear-pools@workspace:pkg/linear-pools":
   version: 0.0.0-use.local
-  resolution: "@orbcollective/linear-pools@workspace:packages/linear-pools"
+  resolution: "@orbcollective/linear-pools@workspace:pkg/linear-pools"
   dependencies:
     "@balancer-labs/v2-pool-linear": ^1.1.0
     "@nomiclabs/hardhat-ethers": ^2.2.1
@@ -1222,9 +1222,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@orbcollective/shared-dependencies@workspace:packages/shared-dependencies":
+"@orbcollective/shared-dependencies@workspace:pkg/shared-dependencies":
   version: 0.0.0-use.local
-  resolution: "@orbcollective/shared-dependencies@workspace:packages/shared-dependencies"
+  resolution: "@orbcollective/shared-dependencies@workspace:pkg/shared-dependencies"
   dependencies:
     "@balancer-labs/typechain": ^1.0.0
     "@balancer-labs/v2-deployments": ^3.0.0

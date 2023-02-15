@@ -1,0 +1,38 @@
+{
+  "name": "@orbcollective/fork-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Fork tests for Linear Pools Repository",
+  "license": "GPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/orbcollective/linear-pools.git",
+    "directory": "packages/fork-tests"
+  },
+  "bugs": {
+    "url": "https://github.com/orbcollective/linear-pools/issues"
+  },
+  "scripts": {
+    "lint": "eslint . --fix --ext .ts --ignore-path ../../.eslintignore  --max-warnings 0",
+    "test": "hardhat test ./**/test/*.ts"
+  },
+  "dependencies": {
+    "@balancer-labs/balancer-js": "^2.0.0",
+    "@balancer-labs/v2-deployments": "^3.1.1",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.6",
+    "@nomiclabs/hardhat-ethers": "^2.2.1",
+    "@nomiclabs/hardhat-etherscan": "^3.1.2",
+    "@nomiclabs/hardhat-waffle": "^2.0.3",
+    "@solidity-parser/parser": "^0.14.5",
+    "chai": "^4.3.7",
+    "chalk": "^4.1.2",
+    "ethers": "^5.7.2",
+    "hardhat": "^2.12.2",
+    "hardhat-local-networks-config-plugin": "^0.0.6",
+    "mocha": "^10.2.0"
+  },
+  "devDependencies": {
+    "@types/chai": "^4",
+    "@types/mocha": "^10"
+  }
+}
