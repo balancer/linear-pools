@@ -25,41 +25,36 @@ import "@balancer-labs/v2-pool-linear/contracts/LinearPoolRebalancer.sol";
 contract GearboxLinearPoolRebalancer is LinearPoolRebalancer {
     using SafeERC20 for IERC20;
 
+    IGearboxVault private immutable _gearboxVault;
+
     // These Rebalancers can only be deployed from a factory to work around a circular dependency: the Pool must know
     // the address of the Rebalancer in order to register it, and the Rebalancer must know the address of the Pool
     // during construction.
     constructor(IVault vault, IBalancerQueries queries)
         LinearPoolRebalancer(ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()), vault, queries)
     {
-        // solhint-disable-previous-line no-empty-blocks
+        ILinearPool pool = ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool());
+        _gearboxVault = IGearboxVault(IGearboxDieselToken(address(pool.getWrappedToken())).owner());
     }
 
     function _wrapTokens(uint256 amount) internal override {
-        IGearboxVault gearboxVault = _getGearboxVault(address(_wrappedToken));
-        _mainToken.safeApprove(address(gearboxVault), amount);
+        _mainToken.safeApprove(address(_gearboxVault), amount);
 
         // No referral code.
-        gearboxVault.addLiquidity(amount, address(this), 0);
+        _gearboxVault.addLiquidity(amount, address(this), 0);
     }
 
     function _unwrapTokens(uint256 amount) internal override {
-        IGearboxVault gearboxVault = _getGearboxVault(address(_wrappedToken));
-        gearboxVault.removeLiquidity(amount, address(this));
+        _gearboxVault.removeLiquidity(amount, address(this));
     }
 
     function _getRequiredTokensToWrap(uint256 wrappedAmount) internal view override returns (uint256) {
-        IGearboxVault gearboxVault = _getGearboxVault(address(_wrappedToken));
         // https://etherscan.io/address/0x86130bDD69143D8a4E5fc50bf4323D48049E98E4#readContract#F17
         // For updated list of pools and tokens, please check:
         // https://dev.gearbox.fi/docs/documentation/deployments/deployed-contracts
         // Since there's fixed point divisions and multiplications with rounding involved, this value might
         // be off by one. We add one to ensure the returned value will always be enough to get `wrappedAmount`
         // when unwrapping. This might result in some dust being left in the Rebalancer.
-        return gearboxVault.fromDiesel(wrappedAmount) + 1;
-    }
-
-    function _getGearboxVault(address dieselTokenAddress) private view returns (IGearboxVault) {
-        address gearboxVaultAddress = IGearboxDieselToken(dieselTokenAddress).owner();
-        return IGearboxVault(gearboxVaultAddress);
+        return _gearboxVault.fromDiesel(wrappedAmount) + 1;
     }
 }
