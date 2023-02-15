@@ -53,7 +53,6 @@ describe('ERC4626LinearPool', function () {
     wrappedYieldToken: Contract;
   let poolFactory: Contract;
   let wrappedYieldTokenInstance: Contract;
-  let trader: SignerWithAddress;
   let guardian: SignerWithAddress, lp: SignerWithAddress, owner: SignerWithAddress;
   let manager: SignerWithAddress;
 

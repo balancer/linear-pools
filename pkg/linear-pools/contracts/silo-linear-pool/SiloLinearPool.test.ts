@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { Contract } from 'ethers';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 
-import { bn, fp, FP_ONE } from '@orbcollective/shared-dependencies/numbers';
+import { bn, fp } from '@orbcollective/shared-dependencies/numbers';
 import {
   deployPackageContract,
   getPackageContractDeployedAt,
@@ -14,7 +14,7 @@ import {
   ZERO_ADDRESS,
 } from '@orbcollective/shared-dependencies';
 
-import { currentTimestamp, MONTH } from '@orbcollective/shared-dependencies/time';
+import { MONTH } from '@orbcollective/shared-dependencies/time';
 
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import TokenList from '@orbcollective/shared-dependencies/test-helpers/token/TokenList';
@@ -59,8 +59,6 @@ describe('SiloLinearPool', function () {
     mockSilo: Contract,
     wrappedToken: Contract;
   let poolFactory: Contract;
-  let wrappedTokenInstance: Contract;
-  let trader: SignerWithAddress;
   let guardian: SignerWithAddress, lp: SignerWithAddress, owner: SignerWithAddress;
   let manager: SignerWithAddress;
 

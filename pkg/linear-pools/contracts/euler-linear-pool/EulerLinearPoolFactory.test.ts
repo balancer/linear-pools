@@ -18,7 +18,6 @@ import { advanceTime, currentTimestamp, MONTH } from '@orbcollective/shared-depe
 
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import TokenList from '@orbcollective/shared-dependencies/test-helpers/token/TokenList';
-import { actionId } from '@orbcollective/shared-dependencies/test-helpers/actions';
 
 async function deployBalancerContract(
   task: string,
@@ -34,8 +33,8 @@ async function deployBalancerContract(
 }
 
 describe('EulerLinearPoolFactory', function () {
-  let authorizer: Contract, vault: Contract, tokens: TokenList, factory: Contract;
-  let creationTime: BigNumber, admin: SignerWithAddress, owner: SignerWithAddress;
+  let vault: Contract, tokens: TokenList, factory: Contract;
+  let creationTime: BigNumber, owner: SignerWithAddress;
   let factoryVersion: string, poolVersion: string;
 
   // Euler Mainnet
@@ -53,8 +52,8 @@ describe('EulerLinearPoolFactory', function () {
     let deployer: SignerWithAddress;
 
     // appease the @typescript-eslint/no-unused-vars lint error
-    [, admin, owner] = await ethers.getSigners();
-    ({ authorizer, vault, deployer } = await setupEnvironment());
+    [, , owner] = await ethers.getSigners();
+    ({ vault, deployer } = await setupEnvironment());
     const manager = deployer;
 
     // Deploy tokens
