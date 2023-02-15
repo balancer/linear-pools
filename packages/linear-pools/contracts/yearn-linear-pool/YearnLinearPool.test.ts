@@ -61,7 +61,6 @@ describe('YearnLinearPool', function () {
   const BASE_BUFFER_PERIOD_DURATION = MONTH;
 
   before('Setup', async () => {
-
     // appease the @typescript-eslint/no-unused-vars lint error
     [, lp, owner] = await ethers.getSigners();
     ({ vault, deployer, trader } = await setupEnvironment());

@@ -22,10 +22,11 @@ import "@orbcollective/shared-dependencies/contracts/MockMaliciousQueryReverter.
 import "@orbcollective/shared-dependencies/contracts/TestToken.sol";
 
 contract MockTetuSmartVault is ITetuSmartVault, TestToken, MockMaliciousQueryReverter {
-    IERC20 public underlyingAsset;
-    uint256 underlyingDecimals;
-    uint256 private _underlyingBalanceInVault = 0;
+    uint256 private immutable _underlyingDecimals;
     MockTetuStrategy private immutable _tetuStrategy;
+
+    IERC20 public underlyingAsset;
+    uint256 private _underlyingBalanceInVault = 0;
 
     constructor(
         string memory name,
@@ -35,7 +36,7 @@ contract MockTetuSmartVault is ITetuSmartVault, TestToken, MockMaliciousQueryRev
         MockTetuStrategy tetuStrategy
     ) TestToken(name, symbol, decimals) {
         underlyingAsset = IERC20(_underlyingAsset);
-        underlyingDecimals = decimals;
+        _underlyingDecimals = decimals;
         _tetuStrategy = tetuStrategy;
     }
 
@@ -48,9 +49,9 @@ contract MockTetuSmartVault is ITetuSmartVault, TestToken, MockMaliciousQueryRev
         uint256 totalSupply = this.totalSupply();
         // arbitrary number, just to make sure that both Vault and Invested values compose the rate.
         uint8 vaultInvestedRatio = 3;
-        _underlyingBalanceInVault = newRate * totalSupply / (vaultInvestedRatio * 10**underlyingDecimals);
+        _underlyingBalanceInVault = (newRate * totalSupply) / (vaultInvestedRatio * 10**_underlyingDecimals);
         _tetuStrategy.setInvestedUnderlyingBalance(
-            (vaultInvestedRatio - 1) * newRate * totalSupply / (vaultInvestedRatio * 10**underlyingDecimals)
+            ((vaultInvestedRatio - 1) * newRate * totalSupply) / (vaultInvestedRatio * 10**_underlyingDecimals)
         );
     }
 
@@ -63,18 +64,24 @@ contract MockTetuSmartVault is ITetuSmartVault, TestToken, MockMaliciousQueryRev
         return underlyingAsset.balanceOf(address(this));
     }
 
-    function deposit(uint256 amount) external override {}
+    function deposit(uint256 amount) external override {
+        // solhint-disable-previous-line no-empty-blocks
+    }
 
-    function withdraw(uint256 numberOfShares) external override {}
+    function withdraw(uint256 numberOfShares) external override {
+        // solhint-disable-previous-line no-empty-blocks
+    }
 
-    function transferUnderlying(uint256 amount, address to) public {}
+    function transferUnderlying(uint256 amount, address to) public {
+        // solhint-disable-previous-line no-empty-blocks
+    }
 
     function underlying() external view override returns (address) {
         return address(underlyingAsset);
     }
 
     function underlyingUnit() external view override returns (uint256) {
-        return 10**underlyingDecimals;
+        return 10**_underlyingDecimals;
     }
 
     function strategy() external view override returns (address) {

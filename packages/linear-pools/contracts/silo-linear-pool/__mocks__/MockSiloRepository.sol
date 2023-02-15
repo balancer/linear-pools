@@ -27,8 +27,8 @@ contract MockSiloRepository is ISiloRepository, MockMaliciousQueryReverter {
     MockInterestRateModel private _model = new MockInterestRateModel(0, 0);
 
     function getInterestRateModel(
-        address /*silo*/,
-        address /*asset*/
+        address, /* silo */
+        address /* asset */
     ) external view override returns (IInterestRateModel) {
         maybeRevertMaliciously();
         return _model;

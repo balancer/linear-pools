@@ -104,10 +104,10 @@ contract ERC4626LinearPoolFactory is
         address owner,
         uint256 protocolId
     ) external nonReentrant returns (LinearPool) {
-        // We are going to deploy both an Erc4626LinearPool and an Erc4626LinearPoolRebalancer set as its Asset Manager, but
-        // this creates a circular dependency problem: the Pool must know the Asset Manager's address in order to call
-        // `IVault.registerTokens` with it, and the Asset Manager must know about the Pool in order to store its Pool
-        // ID, wrapped and main tokens, etc., as immutable variables.
+        // We are going to deploy both an Erc4626LinearPool and an Erc4626LinearPoolRebalancer set as its Asset Manager,
+        // but this creates a circular dependency problem: the Pool must know the Asset Manager's address in order to
+        // call `IVault.registerTokens` with it, and the Asset Manager must know about the Pool in order to store its
+        // Pool ID, wrapped and main tokens, etc., as immutable variables.
         // We could forego immutable storage in the Rebalancer and simply have a two-step initialization process that
         // uses storage, but we can keep those gas savings by instead making the deployment a bit more complicated.
         //

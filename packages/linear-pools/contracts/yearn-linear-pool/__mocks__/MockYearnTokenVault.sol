@@ -54,8 +54,8 @@ contract MockYearnTokenVault is TestToken, MockMaliciousQueryReverter {
 
     function deposit(uint256 _amount, address recipient) public returns (uint256) {
         ERC20(_token).transferFrom(msg.sender, address(this), _amount);
-        
-        uint256 amountToMint = _amount * 10**decimals() / pricePerShare();
+
+        uint256 amountToMint = (_amount * 10**decimals()) / pricePerShare();
         _mint(recipient, amountToMint);
 
         return amountToMint;
@@ -63,8 +63,8 @@ contract MockYearnTokenVault is TestToken, MockMaliciousQueryReverter {
 
     function withdraw(uint256 maxShares, address recipient) public returns (uint256) {
         _burn(msg.sender, maxShares);
-        
-        uint256 amountToReturn = maxShares * pricePerShare() / 10**decimals();
+
+        uint256 amountToReturn = (maxShares * pricePerShare()) / 10**decimals();
         ERC20(_token).transfer(recipient, amountToReturn);
 
         return amountToReturn;

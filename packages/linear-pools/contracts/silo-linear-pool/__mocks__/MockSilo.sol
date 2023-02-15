@@ -21,21 +21,21 @@ import "./MockBaseSilo.sol";
 
 contract MockSilo is ISilo, MockBaseSilo {
     constructor(ISiloRepository _siloRepository, address _siloAsset) MockBaseSilo(_siloRepository, _siloAsset) {
-        // initial setup is done in BaseSilo, nothing to do here
+        // solhint-disable-previous-line no-empty-blocks
     }
 
     function deposit(
-        address /*_asset*/,
-        uint256 /*_amount*/,
-        bool /*_collateralOnly*/
+        address, /* _asset */
+        uint256, /* _amount */
+        bool /* _collateralOnly */
     ) external pure override returns (uint256 collateralAmount, uint256 collateralShare) {
         return (0, 0);
     }
 
     function withdraw(
-        address /*_asset*/,
-        uint256 /*_amount*/,
-        bool /*_collateralOnly*/
+        address, /* _asset */
+        uint256, /* _amount */
+        bool /* _collateralOnly */
     ) external pure override returns (uint256 withdrawnAmount, uint256 withdrawnShare) {
         return (0, 0);
     }

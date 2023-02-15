@@ -24,7 +24,6 @@ import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20.sol";
 import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
 
 contract ERC4626LinearPool is LinearPool, Version {
-
     uint256 private immutable _rateScaleFactor;
 
     struct ConstructorArgs {

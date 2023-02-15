@@ -19,11 +19,7 @@ import "./IShareToken.sol";
 import "./ISiloRepository.sol";
 
 interface IBaseSilo {
-    enum AssetStatus {
-        Undefined,
-        Active,
-        Removed
-    }
+    enum AssetStatus { Undefined, Active, Removed }
 
     /// Storage struct that holds all required data for a single token market
     struct AssetStorage {

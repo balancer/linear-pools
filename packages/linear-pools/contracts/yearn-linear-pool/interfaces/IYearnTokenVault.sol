@@ -53,7 +53,10 @@ interface IYearnTokenVault is IERC20 {
     function decimals() external view returns (uint8);
 
     function lockedProfitDegradation() external view returns (uint256);
+
     function lastReport() external view returns (uint256);
+
     function totalAssets() external view returns (uint256);
+
     function lockedProfit() external view returns (uint256);
 }

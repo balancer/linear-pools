@@ -22,6 +22,8 @@ import "./interfaces/IInterestRateModel.sol";
 import "./interfaces/ISilo.sol";
 import "./interfaces/ISiloRepository.sol";
 
+// solhint-disable not-rely-on-time
+
 // Created in order to decrease exchange rate timelag when wrapping and unwrapping tokens
 // between Silo Linear Pools and the Silo Protocol
 contract SiloExchangeRateModel {
@@ -31,9 +33,7 @@ contract SiloExchangeRateModel {
      * @dev This function is similar to _accrueInterest function in the Silo's BaseSilo.sol contract
      * which is used to update state data that is necessary
      */
-    function calculateExchangeValue(
-        IShareToken shareToken
-    ) external view returns (uint256) {
+    function calculateExchangeValue(IShareToken shareToken) external view returns (uint256) {
         uint256 rcomp = _getCompoundInterestRate(shareToken.silo(), shareToken.asset());
         ISilo.AssetStorage memory assetStorage = _getAssetStorage(shareToken.silo(), shareToken.asset());
         uint256 accruedInterest = assetStorage.totalBorrowAmount.mulDown(rcomp);
@@ -47,10 +47,10 @@ contract SiloExchangeRateModel {
             protocolShare = type(uint256).max - interestData.protocolFees;
         }
 
-        // Instead of updating contract state which is not allowed due to the function being accessed within view functions (_getWrappedTokenRate && _getRequiredTokensToWrap),
-        // it is necessary to create new variables to store the final values used to calculate exchange rates
-        // localDeposits represenents _assetState.totalDeposits
-        // accruedInterest - protocolShare is the depositorsShare. No variable used to save memory
+        // Instead of updating contract state which is not allowed due to the function being accessed within view
+        // functions (_getWrappedTokenRate && _getRequiredTokensToWrap), it is necessary to create new variables to
+        // store the final values used to calculate exchange rates localDeposits represenents _assetState.totalDeposits
+        // accruedInterest - protocolShare is the depositorsShare. No variable used to save memory.
         uint256 localDeposits = assetStorage.totalDeposits.add(accruedInterest).sub(protocolShare);
         // total number of shares
         uint256 totalShares = assetStorage.collateralToken.totalSupply();
@@ -59,10 +59,11 @@ contract SiloExchangeRateModel {
         return localDeposits.divDown(totalShares);
     }
 
-    function _getInterestData(
-        ISilo silo,
-        address mainTokenAddress
-    ) private view returns (ISilo.AssetInterestData memory) {
+    function _getInterestData(ISilo silo, address mainTokenAddress)
+        private
+        view
+        returns (ISilo.AssetInterestData memory)
+    {
         try silo.interestData(mainTokenAddress) returns (ISilo.AssetInterestData memory interestData) {
             return interestData;
         } catch (bytes memory revertData) {
@@ -73,10 +74,7 @@ contract SiloExchangeRateModel {
         }
     }
 
-    function _getAssetStorage(
-        ISilo silo,
-        address mainTokenAddress
-    ) private view returns (ISilo.AssetStorage memory) {
+    function _getAssetStorage(ISilo silo, address mainTokenAddress) private view returns (ISilo.AssetStorage memory) {
         try silo.assetStorage(mainTokenAddress) returns (ISilo.AssetStorage memory assetStorage) {
             return assetStorage;
         } catch (bytes memory revertData) {
@@ -92,11 +90,9 @@ contract SiloExchangeRateModel {
         // rcomp: compound interest rate from the last update until now
         // Use getCompoundInterestRate() instead of getCompoundInterestRateAndUpdate becasue we are operating within
         //      a view function and cannot manipute state
-        try siloModel.getCompoundInterestRate(
-            address(silo),
-            mainTokenAddress,
-            block.timestamp
-        ) returns (uint256 rcomp) {
+        try siloModel.getCompoundInterestRate(address(silo), mainTokenAddress, block.timestamp) returns (
+            uint256 rcomp
+        ) {
             return rcomp;
         } catch (bytes memory revertData) {
             // By maliciously reverting here, Aave (or any other contract in the call stack) could trick the Pool into

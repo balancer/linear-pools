@@ -39,9 +39,7 @@ contract YearnLinearPool is LinearPool, Version, YearnShareValueHelper {
         string version;
     }
 
-    constructor(
-        ConstructorArgs memory args
-    )
+    constructor(ConstructorArgs memory args)
         LinearPool(
             args.vault,
             args.name,

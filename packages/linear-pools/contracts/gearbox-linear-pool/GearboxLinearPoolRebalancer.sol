@@ -30,9 +30,7 @@ contract GearboxLinearPoolRebalancer is LinearPoolRebalancer {
     // These Rebalancers can only be deployed from a factory to work around a circular dependency: the Pool must know
     // the address of the Rebalancer in order to register it, and the Rebalancer must know the address of the Pool
     // during construction.
-    constructor(IVault vault, IBalancerQueries queries)
-        LinearPoolRebalancer(_getLinearPool(), vault, queries)
-    {
+    constructor(IVault vault, IBalancerQueries queries) LinearPoolRebalancer(_getLinearPool(), vault, queries) {
         ILinearPool pool = _getLinearPool();
         IGearboxDieselToken token = IGearboxDieselToken(address(pool.getWrappedToken()));
         _gearboxVault = IGearboxVault(token.owner());

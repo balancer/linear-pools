@@ -28,18 +28,18 @@ contract MockInterestRateModel is IInterestRateModel, MockMaliciousQueryReverter
     }
 
     function getCompoundInterestRate(
-        address /*_silo*/,
-        address /*_asset*/,
-        uint256 /*_blockTimestamp*/
+        address, /* _silo */
+        address, /* _asset */
+        uint256 /* _blockTimestamp */
     ) external view override returns (uint256 rcomp) {
         maybeRevertMaliciously();
         return _rcomp;
     }
 
     function getCurrentInterestRate(
-        address /*_silo*/,
-        address /*_asset*/,
-        uint256 /*_blockTimestamp*/
+        address, /* _silo */
+        address, /* _asset */
+        uint256 /* _blockTimestamp */
     ) external view override returns (uint256 rcur) {
         return _rcur;
     }

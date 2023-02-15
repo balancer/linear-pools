@@ -25,7 +25,7 @@ contract MockTetuStrategy is ITetuStrategy, MockMaliciousQueryReverter {
         _investedUnderlyingBalance = investedUnderlyingBalance;
     }
 
-    function investedUnderlyingBalance() external override view returns (uint256) {
+    function investedUnderlyingBalance() external view override returns (uint256) {
         maybeRevertMaliciously();
         return _investedUnderlyingBalance;
     }
