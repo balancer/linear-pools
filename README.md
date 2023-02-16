@@ -70,23 +70,23 @@ Fork tests can be found inside `[pkg/fork-tests](./pkg/fork-tests)`, and their i
 
 # How-To Guide
 
-1. Create a copy of `[pkg/linear-pools/contracts/erc4626-linear-pool](pkg/linear-pools/contracts/erc4626-linear-pool)`, and change the name to match your protocol's name (e.g. `pkg/linear-pools/contracts/[YOUR_PROTOCOL]-linear-pool`)
+1. Create a copy of `[pkg/linear-pools/contracts/erc4626-linear-pool](./pkg/linear-pools/contracts/erc4626-linear-pool)`, and change the name to match your protocol's name (e.g., `pkg/linear-pools/contracts/[YOUR_PROTOCOL]-linear-pool`)
 2. Change the names of all files accordingly, e.g., `ERC4626LinearPool.sol`, `ERC4626LinearPoolFactory.sol`, `ERC4626LinearPoolRebalancer.sol`, and all corresponding test files.
-3. Within each file, change the name of variables and classes to suit your protocol name.
+3. Within each file, change the names of variables and classes to suit your protocol's name.
 4. Inside `[YOUR_PROTOCOL]LinearPool.sol`, adapt the `_getWrappedTokenRate` function to your protocol. Make sure to wrap any external calls in try/catch blocks and utilize the `ExternalCallLib`.
 
    1. NOTE: During this step, you'll probably need to define an interface for the token/vault of the protocol, especially the function pertaining to the exchange rate.
    
-5. Inside `[YOUR_PROTOCOL]LinearPoolRebalancer.sol`, define the functions for `_wrapTokens` (deposit), `_unwrapTokens` (redeem) and `_getRequiredTokensToWrap` (given an amount of `wrappedToken`, how many `mainToken` do I need?).
+5. Inside `[YOUR_PROTOCOL]LinearPoolRebalancer.sol`, define the `_wrapTokens` (deposit), `_unwrapTokens` (redeem), and `_getRequiredTokensToWrap` (given an amount of `wrappedToken`, how many `mainToken` do I need?) functions.
 
    1. IMPORTANT: `_getRequiredTokensToWrap` also uses the token rate, so make sure that `_getWrappedTokenRate` and `_getRequiredTokensToWrap` use the same source to fetch the token rate.
    2. IMPORTANT: During this step, the interface created in Step 4 will need to be expanded to include withdraw/deposit functions.
    
 6. Edit the `setup` section within your Linear Pool test file to make sure you're deploying and testing the correct Linear Pool. Do not delete any tests from the copied file, since many tests apply to all kinds of Linear Pools and protocols.
 
-   1. Notice that `setup` deploys a mocked version of the token, so you'll also need to implement a mock. If your protocol uses central contracts as well, check the `AaveLinearPool` tests for examples.
+   1. NOTE: `setup` deploys a mocked version of the token, so you'll also need to implement a mock. If your protocol uses a central vault contract as well, check the `AaveLinearPool` tests for examples.
 
-7. Run `yarn test` make sure the Linear Pool tests pass. If tests are not running, go to the repo root and run `yarn && yarn build`. Make sure your node version is above 14 (preferably 16.x).
+7. Run `yarn test` and make sure the Linear Pool tests pass. If tests are not running, go to the repo root and run `yarn && yarn build`. Make sure your node version is above 14 (preferably 16.x).
 8. Edit the Linear Pool Rebalancer test file (especially beforeEach `deploy factory & tokens`) to adapt to your protocol. You don't need to change the Protocol ID right now.
 9. Run `yarn test` and make sure the Linear Pool Rebalancer tests pass.
 10. To begin fork testing, navigate to `pkg/fork-tests/tests`, duplicate the ERC-4626 test folder, and change the name to your protocol. Make sure the number in the folder matches the YYYYMMDD pattern.
