@@ -23,11 +23,13 @@ import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeERC20.sol";
 
-import "./contracts/LinearPoolRebalancer.sol";
+import "@balancer-labs/v2-pool-linear/contracts/LinearPoolRebalancer.sol";
+import "./CTokenExchangeRate.sol";
 
 contract MidasLinearPoolRebalancer is LinearPoolRebalancer {
     using FixedPoint for uint256;
     using SafeERC20 for IERC20;
+    using CTokenExchangeRate for ICToken;
 
     uint256 private immutable _divisor;
 
@@ -67,13 +69,6 @@ contract MidasLinearPoolRebalancer is LinearPoolRebalancer {
         // value might be off by one. We divUp to ensure the returned value will always be enough to get
         // `wrappedAmount` when unwrapping. This might result in some dust being left in the Rebalancer.
         // wrappedAmount * exchangeRateCurrent / divisor
-        return wrappedAmount.mulUp(ICToken(address(_wrappedToken)).exchangeRateStored()).divUp(_divisor);
-    }
-
-    function _beforeRebalance() internal override {
-        // We call accrueInterest prior to the rebalance to ensure that all calculations are done using the most up
-        // to date exchangeRate. This is necessary because a call to mint/redeem will also trigger a call to
-        // accrueInterest, resulting in operations before mint/redeem using a different exchangeRate than those after.
-        ICToken(address(_wrappedToken)).accrueInterest();
+        return wrappedAmount.mulUp(ICToken(address(_wrappedToken)).viewExchangeRate()).divUp(_divisor);
     }
 }

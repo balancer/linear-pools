@@ -18,11 +18,15 @@ import "@orbcollective/shared-dependencies/contracts/TestToken.sol";
 import "../interfaces/ICToken.sol";
 
 import "@orbcollective/shared-dependencies/contracts/MockMaliciousQueryReverter.sol";
+import "./MockInterestRateModel.sol";
 
 contract MockCToken is TestToken, ICToken, MockMaliciousQueryReverter {
     address public immutable override underlying;
     uint256 private _exchangeRate;
     uint256 private _temp;
+    uint256 internal constant _borrowRateMaxMantissa = 0.0005e16;
+    uint256 internal constant _reserveFactorMaxMantissa = 1e18;
+    IInterestRateModel private _interestRateModel;
 
     constructor(
         string memory name,
@@ -33,6 +37,7 @@ contract MockCToken is TestToken, ICToken, MockMaliciousQueryReverter {
     ) TestToken(name, symbol, decimals) {
         underlying = underlyingAsset;
         _exchangeRate = exchangeRate;
+        _interestRateModel = new MockInterestRateModel();
     }
 
     /**
@@ -85,9 +90,35 @@ contract MockCToken is TestToken, ICToken, MockMaliciousQueryReverter {
         _exchangeRate = newExchangeRate;
     }
 
-    function accrueInterest() external override returns (uint256) {
-        _temp = 1;
+    function interestRateModel() external view override returns (IInterestRateModel) {
+        return _interestRateModel;
+    }
 
+    function initialExchangeRateMantissa() external view override returns (uint256) {
+        maybeRevertMaliciously();
+        return _exchangeRate;
+    }
+
+    function reserveFactorMantissa() external view override returns (uint256) {
+        return _reserveFactorMaxMantissa;
+    }
+
+    function accrualBlockNumber() external view override returns (uint256) {
+        maybeRevertMaliciously();
+        return 0;
+    }
+
+    function totalBorrows() external view override returns (uint256) {
+        maybeRevertMaliciously();
+        return 0;
+    }
+
+    function totalReserves() external view override returns (uint256) {
+        maybeRevertMaliciously();
+        return 0;
+    }
+
+    function totalSupply() public view override(ERC20, ICToken) returns (uint256) {
         return 0;
     }
 }

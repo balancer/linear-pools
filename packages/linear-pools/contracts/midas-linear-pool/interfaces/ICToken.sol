@@ -14,6 +14,8 @@
 
 pragma solidity ^0.7.0;
 
+import "../interfaces/IInterestRateModel.sol";
+
 interface ICToken {
     /**
      * @dev Underlying asset for this CToken
@@ -50,7 +52,39 @@ interface ICToken {
     function exchangeRateStored() external view returns (uint256);
 
     /**
-     * @notice Accrues any pending interest, updating exchangeRateStored
+     * @notice Model which tells what the current interest rate should be
      */
-    function accrueInterest() external returns (uint256);
+    function interestRateModel() external view returns (IInterestRateModel);
+
+    /**
+     * @notice Initial exchange rate used when minting the first CTokens (used when totalSupply = 0)
+     */
+    function initialExchangeRateMantissa() external view returns (uint256);
+
+    /**
+     * @notice Maximum fraction of interest that can be set aside for reserves
+     */
+    function reserveFactorMantissa() external view returns (uint256);
+
+    /**
+     * @notice Block number that interest was last accrued at
+     */
+    function accrualBlockNumber() external view returns (uint256);
+
+     /**
+     * @notice Total amount of outstanding borrows of the underlying in this market
+     */
+    function totalBorrows() external view returns (uint256);
+
+    /**
+     * @notice Total amount of reserves of the underlying held in this market
+     */
+    function totalReserves() external view returns (uint256);
+
+
+    /**
+     * @notice Total number of tokens in circulation
+     */
+    function totalSupply() external view returns (uint256);
+
 }
