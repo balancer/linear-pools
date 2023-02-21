@@ -17,7 +17,7 @@ import { SwapKind } from '@balancer-labs/balancer-js';
 import { describeForkTest } from '../../../src/forkTests';
 import { impersonate, getForkedNetwork, Task, TaskMode, getSigners } from '../../../src';
 
-describeForkTest('MidasLinearPoolFactory', 'bsc', 23696722, function () {
+describeForkTest('MidasLinearPoolFactory - 18 decimals', 'bsc', 23696722, function () {
   let owner: SignerWithAddress, holder: SignerWithAddress, other: SignerWithAddress;
   let factory: Contract, vault: Contract, brz: Contract;
   let rebalancer: Contract;
@@ -27,7 +27,7 @@ describeForkTest('MidasLinearPoolFactory', 'bsc', 23696722, function () {
   const WBNB = '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c';
   const cWBNB = '0x38982105A2F81dc5dBDEA6c131bB4bF5a416513A';
 
-  const WBNB_SCALING = bn(1); // BRZ has 18 decimals, so its scaling factor is 1e0
+  const WBNB_SCALING = bn(1e0); // BRZ has 18 decimals, so its scaling factor is 1e0
 
   const WBNB_HOLDER = '0x58f876857a02d6762e0101bb5c46a8c1ed44dc16';
 
@@ -80,16 +80,21 @@ describeForkTest('MidasLinearPoolFactory', 'bsc', 23696722, function () {
       let fees;
       if (scaledCash.gt(upperTarget)) {
         expect(expectedState).to.equal(LinearPoolState.MAIN_EXCESS);
+        console.log(expectedState);
 
         const excess = scaledCash.sub(upperTarget);
         fees = excess.mul(SWAP_FEE_PERCENTAGE).div(FP_ONE);
       } else if (scaledCash.lt(lowerTarget)) {
         expect(expectedState).to.equal(LinearPoolState.MAIN_LACK);
+        console.log(expectedState);
+
 
         const lack = lowerTarget.sub(scaledCash);
         fees = lack.mul(SWAP_FEE_PERCENTAGE).div(FP_ONE);
       } else {
         expect(expectedState).to.equal(LinearPoolState.BALANCED);
+        console.log(expectedState);
+
 
         fees = 0;
       }

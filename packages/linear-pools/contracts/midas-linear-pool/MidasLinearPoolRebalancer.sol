@@ -26,7 +26,12 @@ import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeERC20.sol";
 import "@balancer-labs/v2-pool-linear/contracts/LinearPoolRebalancer.sol";
 import "./CTokenExchangeRate.sol";
 
+import "hardhat/console.sol";
+
 contract MidasLinearPoolRebalancer is LinearPoolRebalancer {
+    // uint256 mainTokensToActuallyWrap;
+
+
     using FixedPoint for uint256;
     using SafeERC20 for IERC20;
     using CTokenExchangeRate for ICToken;
@@ -69,6 +74,16 @@ contract MidasLinearPoolRebalancer is LinearPoolRebalancer {
         // value might be off by one. We divUp to ensure the returned value will always be enough to get
         // `wrappedAmount` when unwrapping. This might result in some dust being left in the Rebalancer.
         // wrappedAmount * exchangeRateCurrent / divisor
-        return wrappedAmount.mulUp(ICToken(address(_wrappedToken)).viewExchangeRate()).divUp(_divisor);
+
+        // console.log("_getRequiredTokensToWrap: wrappedAmount", wrappedAmount);
+        // uint256 exchangeRate = ICToken(address(_wrappedToken)).viewExchangeRate();
+        //console.log("_getRequiredTokensToWrap: exchangeRate - library view", exchangeRate);
+
+        uint256 mainTokensToActuallyWrap = wrappedAmount.mulUp(ICToken(address(_wrappedToken)).viewExchangeRate()).divUp(_divisor);
+        console.log("_getRequiredTokensToWrap: mainTokensToActuallyWrap", mainTokensToActuallyWrap);
+        console.log("_getRequiredTokensToWrap: mainTokensToActuallyWrap + 1", mainTokensToActuallyWrap + 1);
+
+        // return wrappedAmount.mulUp(ICToken(address(_wrappedToken)).viewExchangeRate()).divUp(_divisor);
+        return mainTokensToActuallyWrap;
     }
 }

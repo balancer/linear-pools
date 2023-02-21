@@ -20,6 +20,8 @@ import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20.sol";
 import "@balancer-labs/v2-pool-utils/contracts/lib/ExternalCallLib.sol";
 
+import "hardhat/console.sol";
+
 library CTokenExchangeRate {
     using FixedPoint for uint256;
 
@@ -44,6 +46,9 @@ library CTokenExchangeRate {
         uint256 totalReserves = cToken.reserveFactorMantissa().mulDown(interestAccumulated) + reservesPrior;
         uint256 totalBorrows = interestAccumulated + borrowsPrior;
         uint256 totalSupply = cToken.totalSupply();
+
+        // uint256 exchangeRate = (totalCash + totalBorrows - totalReserves).divDown(totalSupply);
+        // console.log("exchangeRate - live:", exchangeRate);
 
         return totalSupply == 0
         ? _getInitialExchangeRate(cToken)
