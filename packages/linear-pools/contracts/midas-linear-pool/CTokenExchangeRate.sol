@@ -36,7 +36,8 @@ library CTokenExchangeRate {
         uint256 borrowsPrior = _getTotalBorrows(cToken);
         uint256 reservesPrior = _getTotalReserves(cToken);
 
-        uint256 borrowRateMantissa = cToken.interestRateModel().getBorrowRate(totalCash, borrowsPrior, reservesPrior);
+        uint256 totalFees = _getTotalAdminFees(cToken) + _getTotalFuseFees(cToken);
+        uint256 borrowRateMantissa = cToken.interestRateModel().getBorrowRate(totalCash, borrowsPrior, reservesPrior + totalFees);
 
         require(borrowRateMantissa <= 0.0005e16, "RATE_TOO_HIGH"); // Same as borrowRateMaxMantissa in CTokenInterfaces.sol
 
@@ -52,7 +53,7 @@ library CTokenExchangeRate {
 
         return totalSupply == 0
         ? _getInitialExchangeRate(cToken)
-        : (totalCash + totalBorrows - totalReserves).divDown(totalSupply);
+        : (totalCash + totalBorrows - totalReserves - totalFees).divDown(totalSupply);
     }
 
 
@@ -103,6 +104,28 @@ library CTokenExchangeRate {
     function _getInitialExchangeRate(ICToken cToken) private view returns (uint256) {
         try cToken.initialExchangeRateMantissa() returns (uint256 rate) {
             return rate;
+        } catch (bytes memory revertData) {
+            // By maliciously reverting here, Aave (or any other contract in the call stack) could trick the Pool into
+            // reporting invalid data to the query mechanism for swaps/joins/exits.
+            // We then check the revert data to ensure this doesn't occur.
+            ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);
+        }
+    }
+
+    function _getTotalAdminFees(ICToken cToken) private view returns (uint256) {
+        try cToken.totalAdminFees() returns (uint256 totalAdminFees) {
+            return totalAdminFees;
+        } catch (bytes memory revertData) {
+            // By maliciously reverting here, Aave (or any other contract in the call stack) could trick the Pool into
+            // reporting invalid data to the query mechanism for swaps/joins/exits.
+            // We then check the revert data to ensure this doesn't occur.
+            ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);
+        }
+    }
+
+    function _getTotalFuseFees(ICToken cToken) private view returns (uint256) {
+        try cToken.totalFuseFees() returns (uint256 totalFuseFees) {
+            return totalFuseFees;
         } catch (bytes memory revertData) {
             // By maliciously reverting here, Aave (or any other contract in the call stack) could trick the Pool into
             // reporting invalid data to the query mechanism for swaps/joins/exits.
