@@ -34,7 +34,8 @@ library CTokenExchangeRate {
         uint256 borrowsPrior = _getTotalBorrows(cToken);
         uint256 reservesPrior = _getTotalReserves(cToken);
 
-        uint256 borrowRateMantissa = cToken.interestRateModel().getBorrowRate(totalCash, borrowsPrior, reservesPrior);
+        uint256 totalFees = _getTotalAdminFees(cToken) + _getTotalFuseFees(cToken);
+        uint256 borrowRateMantissa = cToken.interestRateModel().getBorrowRate(totalCash, borrowsPrior, reservesPrior + totalFees);
 
         //solhint-disable-next-line max-line-length
         require(borrowRateMantissa <= 0.0005e16, "RATE_TOO_HIGH"); // Same as borrowRateMaxMantissa in CTokenInterfaces.sol
@@ -51,13 +52,9 @@ library CTokenExchangeRate {
         // totalFuseFeesNew = interestAccumulated * fuseFee + totalFuseFees
         // totalAdminFeesNew = interestAccumulated * adminFee + totalAdminFees
 
-        return
-            totalSupply == 0
-                ? _getInitialExchangeRate(cToken)
-                : (totalCash +
-                    totalBorrows -
-                    (totalReserves + _getTotalFuseFeesPrior(cToken) + _getTotalAdminFeesPrior(cToken)))
-                    .divDown(totalSupply);
+        return totalSupply == 0
+        ? _getInitialExchangeRate(cToken)
+        : (totalCash + totalBorrows - totalReserves - totalFees).divDown(totalSupply);
     }
 
     function _getAccrualBlock(ICToken cToken) private view returns (uint256) {
@@ -115,7 +112,7 @@ library CTokenExchangeRate {
         }
     }
 
-    function _getTotalAdminFeesPrior(ICToken cToken) private view returns (uint256) {
+    function _getTotalAdminFees(ICToken cToken) private view returns (uint256) {
         try cToken.totalAdminFees() returns (uint256 totalAdminFees) {
             return totalAdminFees;
         } catch (bytes memory revertData) {
@@ -126,7 +123,7 @@ library CTokenExchangeRate {
         }
     }
 
-    function _getTotalFuseFeesPrior(ICToken cToken) private view returns (uint256) {
+    function _getTotalFuseFees(ICToken cToken) private view returns (uint256) {
         try cToken.totalFuseFees() returns (uint256 totalFuseFees) {
             return totalFuseFees;
         } catch (bytes memory revertData) {
