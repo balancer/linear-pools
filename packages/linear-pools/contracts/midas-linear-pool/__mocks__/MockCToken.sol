@@ -99,6 +99,14 @@ contract MockCToken is TestToken, ICToken, MockMaliciousQueryReverter {
         return _exchangeRate;
     }
 
+    function totalAdminFees() external override view returns (uint256) {
+        return 0;
+    }
+
+    function totalFuseFees() external override view returns (uint256) {
+        return 0;
+    }
+
     function reserveFactorMantissa() external view override returns (uint256) {
         return _reserveFactorMaxMantissa;
     }

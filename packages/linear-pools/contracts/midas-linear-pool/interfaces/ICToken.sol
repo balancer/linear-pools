@@ -87,4 +87,13 @@ interface ICToken {
      */
     function totalSupply() external view returns (uint256);
 
+    /**
+     * @notice Total admin fees
+     */
+    function totalAdminFees() external view returns (uint256);
+
+    /**
+     * @notice Total fuse fees
+     */
+    function totalFuseFees() external view returns (uint256);
 }

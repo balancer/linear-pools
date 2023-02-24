@@ -20,8 +20,6 @@ import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20.sol";
 import "@balancer-labs/v2-pool-utils/contracts/lib/ExternalCallLib.sol";
 
-import "hardhat/console.sol";
-
 library CTokenExchangeRate {
     using FixedPoint for uint256;
 
@@ -47,12 +45,14 @@ library CTokenExchangeRate {
         uint256 totalBorrows = interestAccumulated + borrowsPrior;
         uint256 totalSupply = cToken.totalSupply();
 
-        // uint256 exchangeRate = (totalCash + totalBorrows - totalReserves).divDown(totalSupply);
-        // console.log("exchangeRate - live:", exchangeRate);
+        
+        // TODO: determine "live" fee calculation
+        // totalFuseFeesNew = interestAccumulated * fuseFee + totalFuseFees
+        // totalAdminFeesNew = interestAccumulated * adminFee + totalAdminFees
 
         return totalSupply == 0
         ? _getInitialExchangeRate(cToken)
-        : (totalCash + totalBorrows - totalReserves).divDown(totalSupply);
+        : (totalCash + totalBorrows - ( totalReserves + _getTotalFuseFeesPrior(cToken) + _getTotalAdminFeesPrior(cToken))).divDown(totalSupply);
     }
 
 
@@ -103,6 +103,28 @@ library CTokenExchangeRate {
     function _getInitialExchangeRate(ICToken cToken) private view returns (uint256) {
         try cToken.initialExchangeRateMantissa() returns (uint256 rate) {
             return rate;
+        } catch (bytes memory revertData) {
+            // By maliciously reverting here, Aave (or any other contract in the call stack) could trick the Pool into
+            // reporting invalid data to the query mechanism for swaps/joins/exits.
+            // We then check the revert data to ensure this doesn't occur.
+            ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);
+        }
+    }
+
+    function _getTotalAdminFeesPrior(ICToken cToken) private view returns (uint256) {
+        try cToken.totalAdminFees() returns (uint256 totalAdminFees) {
+            return totalAdminFees;
+        } catch (bytes memory revertData) {
+            // By maliciously reverting here, Aave (or any other contract in the call stack) could trick the Pool into
+            // reporting invalid data to the query mechanism for swaps/joins/exits.
+            // We then check the revert data to ensure this doesn't occur.
+            ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);
+        }
+    }
+
+    function _getTotalFuseFeesPrior(ICToken cToken) private view returns (uint256) {
+        try cToken.totalFuseFees() returns (uint256 totalFuseFees) {
+            return totalFuseFees;
         } catch (bytes memory revertData) {
             // By maliciously reverting here, Aave (or any other contract in the call stack) could trick the Pool into
             // reporting invalid data to the query mechanism for swaps/joins/exits.
