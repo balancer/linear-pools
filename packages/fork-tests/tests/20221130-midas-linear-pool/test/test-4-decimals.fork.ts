@@ -41,7 +41,6 @@ describeForkTest('MidasLinearPoolFactory - 4 decimals', 'polygon', 39555123, fun
   //polygon
   const BRZ_HOLDER = '0xB90B2050C955cd899b9BC8B5C743c25770EBc8AA';
 
-
   //const BRZ_HOLDER = '0x6b02568149b01f88152c9a4f1853ec9c59922620';
 
   const SWAP_FEE_PERCENTAGE = fp(0.01); // 1%
