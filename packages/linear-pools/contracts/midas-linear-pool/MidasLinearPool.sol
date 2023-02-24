@@ -17,11 +17,12 @@ pragma experimental ABIEncoderV2;
 
 import "./interfaces/ICToken.sol";
 
+import "./CTokenExchangeRate.sol";
+
 import "@balancer-labs/v2-pool-utils/contracts/lib/ExternalCallLib.sol";
 import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
 
 import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
-import "./CTokenExchangeRate.sol";
 
 contract MidasLinearPool is LinearPool, Version {
     using CTokenExchangeRate for ICToken;
