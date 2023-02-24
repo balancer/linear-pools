@@ -36,25 +36,29 @@ library CTokenExchangeRate {
 
         uint256 borrowRateMantissa = cToken.interestRateModel().getBorrowRate(totalCash, borrowsPrior, reservesPrior);
 
+        //solhint-disable-next-line max-line-length
         require(borrowRateMantissa <= 0.0005e16, "RATE_TOO_HIGH"); // Same as borrowRateMaxMantissa in CTokenInterfaces.sol
 
-        uint256 interestAccumulated =
-        (borrowRateMantissa * (block.number - accrualBlockNumberPrior)).mulDown(borrowsPrior);
+        uint256 interestAccumulated = (borrowRateMantissa * (block.number - accrualBlockNumberPrior)).mulDown(
+            borrowsPrior
+        );
 
         uint256 totalReserves = cToken.reserveFactorMantissa().mulDown(interestAccumulated) + reservesPrior;
         uint256 totalBorrows = interestAccumulated + borrowsPrior;
         uint256 totalSupply = cToken.totalSupply();
 
-        
         // TODO: determine "live" fee calculation
         // totalFuseFeesNew = interestAccumulated * fuseFee + totalFuseFees
         // totalAdminFeesNew = interestAccumulated * adminFee + totalAdminFees
 
-        return totalSupply == 0
-        ? _getInitialExchangeRate(cToken)
-        : (totalCash + totalBorrows - ( totalReserves + _getTotalFuseFeesPrior(cToken) + _getTotalAdminFeesPrior(cToken))).divDown(totalSupply);
+        return
+            totalSupply == 0
+                ? _getInitialExchangeRate(cToken)
+                : (totalCash +
+                    totalBorrows -
+                    (totalReserves + _getTotalFuseFeesPrior(cToken) + _getTotalAdminFeesPrior(cToken)))
+                    .divDown(totalSupply);
     }
-
 
     function _getAccrualBlock(ICToken cToken) private view returns (uint256) {
         try cToken.accrualBlockNumber() returns (uint256 blockNumber) {

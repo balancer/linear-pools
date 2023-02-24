@@ -31,7 +31,6 @@ import "hardhat/console.sol";
 contract MidasLinearPoolRebalancer is LinearPoolRebalancer {
     // uint256 mainTokensToActuallyWrap;
 
-
     using FixedPoint for uint256;
     using SafeERC20 for IERC20;
     using CTokenExchangeRate for ICToken;
@@ -79,7 +78,9 @@ contract MidasLinearPoolRebalancer is LinearPoolRebalancer {
         // uint256 exchangeRate = ICToken(address(_wrappedToken)).viewExchangeRate();
         //console.log("_getRequiredTokensToWrap: exchangeRate - library view", exchangeRate);
 
-        uint256 mainTokensToActuallyWrap = wrappedAmount.mulUp(ICToken(address(_wrappedToken)).viewExchangeRate()).divUp(_divisor);
+        uint256 mainTokensToActuallyWrap = wrappedAmount
+            .mulUp(ICToken(address(_wrappedToken)).viewExchangeRate())
+            .divUp(_divisor);
         console.log("_getRequiredTokensToWrap: mainTokensToActuallyWrap", mainTokensToActuallyWrap);
         console.log("_getRequiredTokensToWrap: mainTokensToActuallyWrap + 1", mainTokensToActuallyWrap + 1);
 

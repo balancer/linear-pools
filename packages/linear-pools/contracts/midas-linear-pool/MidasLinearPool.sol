@@ -76,7 +76,6 @@ contract MidasLinearPool is LinearPool, Version {
     }
 
     function _getWrappedTokenRate() internal view override returns (uint256) {
-        // is this always scaled to 18 decimals? 
         return _cToken.viewExchangeRate();
     }
 }

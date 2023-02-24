@@ -15,7 +15,15 @@
 pragma solidity ^0.7.0;
 
 interface IInterestRateModel {
-    function getBorrowRate(uint256 cash, uint256 borrows, uint256 reserves) external view returns (uint256);
+    function getBorrowRate(
+        uint256 cash,
+        uint256 borrows,
+        uint256 reserves
+    ) external view returns (uint256);
 
-    function getSupplyRate(uint256 cash, uint256 borrows, uint256 reserves) external view returns (uint256);
+    function getSupplyRate(
+        uint256 cash,
+        uint256 borrows,
+        uint256 reserves
+    ) external view returns (uint256);
 }

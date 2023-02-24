@@ -20,11 +20,19 @@ contract MockInterestRateModel is IInterestRateModel {
     uint256 private _borrowRate;
     uint256 private _supplyRate;
 
-    function getBorrowRate(uint256 /*cash*/, uint256 /*borrows*/, uint256 /*reserves*/) external override view returns (uint256) {
-       return _borrowRate;
+    function getBorrowRate(
+        uint256, /*cash*/
+        uint256, /*borrows*/
+        uint256 /*reserves*/
+    ) external view override returns (uint256) {
+        return _borrowRate;
     }
 
-    function getSupplyRate(uint256 /*cash*/, uint256 /*borrows*/, uint256 /*reserves*/) external override view returns (uint256) {
+    function getSupplyRate(
+        uint256, /*cash*/
+        uint256, /*borrows*/
+        uint256 /*reserves*/
+    ) external view override returns (uint256) {
         return _supplyRate;
     }
 
@@ -35,6 +43,4 @@ contract MockInterestRateModel is IInterestRateModel {
     function setSupplyRate(uint256 rate) public {
         _supplyRate = rate;
     }
-
-
 }

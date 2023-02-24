@@ -24,7 +24,9 @@ contract MockCToken is TestToken, ICToken, MockMaliciousQueryReverter {
     address public immutable override underlying;
     uint256 private _exchangeRate;
     uint256 private _temp;
+    //solhint-disable-next-line const-name-snakecase
     uint256 internal constant _borrowRateMaxMantissa = 0.0005e16;
+    //solhint-disable-next-line const-name-snakecase
     uint256 internal constant _reserveFactorMaxMantissa = 1e18;
     IInterestRateModel private _interestRateModel;
 
@@ -99,11 +101,11 @@ contract MockCToken is TestToken, ICToken, MockMaliciousQueryReverter {
         return _exchangeRate;
     }
 
-    function totalAdminFees() external override view returns (uint256) {
+    function totalAdminFees() external view override returns (uint256) {
         return 0;
     }
 
-    function totalFuseFees() external override view returns (uint256) {
+    function totalFuseFees() external view override returns (uint256) {
         return 0;
     }
 

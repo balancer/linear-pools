@@ -71,7 +71,7 @@ interface ICToken {
      */
     function accrualBlockNumber() external view returns (uint256);
 
-     /**
+    /**
      * @notice Total amount of outstanding borrows of the underlying in this market
      */
     function totalBorrows() external view returns (uint256);
@@ -80,7 +80,6 @@ interface ICToken {
      * @notice Total amount of reserves of the underlying held in this market
      */
     function totalReserves() external view returns (uint256);
-
 
     /**
      * @notice Total number of tokens in circulation
