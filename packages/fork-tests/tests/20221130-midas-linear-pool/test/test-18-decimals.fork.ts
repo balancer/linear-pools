@@ -104,7 +104,7 @@ describeForkTest('MidasLinearPoolFactory - 18 decimals', 'bsc', 23696722, functi
       if (expectedState != LinearPoolState.BALANCED) {
         await rebalancer.connect(holder).rebalance(other.address);
       } else {
-        await rebalancer.connect(holder).rebalanceWithExtraMain(other.address, 5);
+        await rebalancer.connect(holder).rebalanceWithExtraMain(other.address, 1000000);
       }
 
       const finalRecipientMainBalance = await brz.balanceOf(other.address);
