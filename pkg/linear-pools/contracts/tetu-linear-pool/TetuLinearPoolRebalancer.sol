@@ -31,16 +31,13 @@ contract TetuLinearPoolRebalancer is LinearPoolRebalancer, TetuShareValueHelper 
     using SafeERC20 for IERC20;
     using FixedPoint for uint256;
 
-    uint256 private immutable _divisor;
-
     // These Rebalancers can only be deployed from a factory to work around a circular dependency: the Pool must know
     // the address of the Rebalancer in order to register it, and the Rebalancer must know the address of the Pool
     // during construction.
     constructor(IVault vault, IBalancerQueries queries)
         LinearPoolRebalancer(ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()), vault, queries)
     {
-        IERC20 wrappedToken = ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()).getWrappedToken();
-        _divisor = 10**ERC20(address(wrappedToken)).decimals();
+
     }
 
     function _wrapTokens(uint256 amount) internal override {
