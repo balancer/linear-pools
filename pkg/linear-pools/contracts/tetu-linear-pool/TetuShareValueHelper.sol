@@ -16,7 +16,6 @@ pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeERC20.sol";
-import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
 
 import "@balancer-labs/v2-pool-utils/contracts/lib/ExternalCallLib.sol";
@@ -26,21 +25,22 @@ import "./interfaces/ITetuStrategy.sol";
 
 contract TetuShareValueHelper {
     using SafeERC20 for IERC20;
-    using Math for uint256;
+    using FixedPoint for uint256;
+
+    // Since Tetu TokenRate is basically 1 + yield, 1 is a good default value when token is not fully initialized
+    uint256 private immutable _defaultRate = FixedPoint.ONE;
 
     function _getTokenRate(address wrappedTokenAddress) internal view returns (uint256) {
-        // Since there's fixed point divisions and multiplications with rounding involved, this value might
-        // be off by one. We add one to ensure the returned value will always be enough to get `wrappedAmount`
-        // when unwrapping. This might result in some dust being left in the Rebalancer.
-
         uint256 wrappedTokenTotalSupply = _getWrappedTokenTotalSupply(wrappedTokenAddress);
         if (wrappedTokenTotalSupply == 0) {
-            return 0;
+            return _defaultRate;
         } else {
             uint256 underlyingBalanceInVault = _getUnderlyingBalanceInVault(wrappedTokenAddress);
             uint256 strategyInvestedUnderlyingBalance = _getStrategyInvestedUnderlyingBalance(wrappedTokenAddress);
-            uint256 balance = Math.add(underlyingBalanceInVault, strategyInvestedUnderlyingBalance);
-            return FixedPoint.divDown(balance, wrappedTokenTotalSupply);
+            uint256 balance = underlyingBalanceInVault.add(strategyInvestedUnderlyingBalance);
+            // Notice that "balance" and "wrappedTokenTotalSupply" have same amount of decimals. divDown multiplies
+            // by FixedPoint.ONE, so _getTokenRate returns 18 decimals
+            return balance.divDown(wrappedTokenTotalSupply);
         }
     }
 
@@ -70,8 +70,9 @@ contract TetuShareValueHelper {
 
     function _getStrategyInvestedUnderlyingBalance(address wrappedTokenAddress) private view returns (uint256) {
         address tetuStrategy = _getTetuStrategy(wrappedTokenAddress);
-        if (address(tetuStrategy) == address(0)) {
-            return 0;
+        if (tetuStrategy == address(0)) {
+            // strategy address can be 0x00 when not initialized in the token.
+            return _defaultRate;
         } else {
             try ITetuStrategy(tetuStrategy).investedUnderlyingBalance() returns (
                 uint256 strategyInvestedUnderlyingBalance

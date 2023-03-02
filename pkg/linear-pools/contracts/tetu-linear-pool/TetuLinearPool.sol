@@ -24,11 +24,6 @@ import "./interfaces/ITetuSmartVault.sol";
 import "./TetuShareValueHelper.sol";
 
 contract TetuLinearPool is LinearPool, Version, TetuShareValueHelper {
-    IERC20 private immutable _mainToken;
-    IERC20 private immutable _wrappedToken;
-
-    uint256 private immutable _rateScaleFactor;
-
     struct ConstructorArgs {
         IVault vault;
         string name;
@@ -63,11 +58,6 @@ contract TetuLinearPool is LinearPool, Version, TetuShareValueHelper {
         ITetuSmartVault tokenVault = ITetuSmartVault(address(args.wrappedToken));
 
         _require(address(args.mainToken) == tokenVault.underlying(), Errors.TOKENS_MISMATCH);
-
-        _mainToken = args.mainToken;
-        _wrappedToken = args.wrappedToken;
-
-        _rateScaleFactor = 10**(SafeMath.sub(18, ERC20(tokenVault.underlying()).decimals()));
     }
 
     function _toAssetManagerArray(ConstructorArgs memory args) private pure returns (address[] memory) {
@@ -80,6 +70,6 @@ contract TetuLinearPool is LinearPool, Version, TetuShareValueHelper {
     }
 
     function _getWrappedTokenRate() internal view override returns (uint256) {
-        return Math.add(_getTokenRate(address(_wrappedToken)), 1);
+        return _getTokenRate(address(getWrappedToken()));
     }
 }

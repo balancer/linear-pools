@@ -31,16 +31,13 @@ contract TetuLinearPoolRebalancer is LinearPoolRebalancer, TetuShareValueHelper 
     using SafeERC20 for IERC20;
     using FixedPoint for uint256;
 
-    uint256 private immutable _divisor;
-
     // These Rebalancers can only be deployed from a factory to work around a circular dependency: the Pool must know
     // the address of the Rebalancer in order to register it, and the Rebalancer must know the address of the Pool
     // during construction.
     constructor(IVault vault, IBalancerQueries queries)
         LinearPoolRebalancer(ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()), vault, queries)
     {
-        IERC20 wrappedToken = ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()).getWrappedToken();
-        _divisor = 10**ERC20(address(wrappedToken)).decimals();
+        // solhint-disable-previous-line no-empty-blocks
     }
 
     function _wrapTokens(uint256 amount) internal override {
@@ -57,9 +54,9 @@ contract TetuLinearPoolRebalancer is LinearPoolRebalancer, TetuShareValueHelper 
 
     function _getRequiredTokensToWrap(uint256 wrappedAmount) internal view override returns (uint256) {
         // Since there's fixed point divisions and multiplications with rounding involved, this value might
-        // be off by one. We add one to ensure the returned value will always be enough to get `wrappedAmount`
-        // when unwrapping. This might result in some dust being left in the Rebalancer.
+        // be off by one. We use mulUp to round up and ensure the returned value will always be enough to get
+        // `wrappedAmount` when unwrapping. This might result in some dust being left in the Rebalancer.
         uint256 tokenRate = _getTokenRate(address(_wrappedToken));
-        return tokenRate.mulDown(wrappedAmount).add(1);
+        return tokenRate.mulUp(wrappedAmount);
     }
 }
