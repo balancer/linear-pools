@@ -27,20 +27,20 @@ contract TetuShareValueHelper {
     using SafeERC20 for IERC20;
     using FixedPoint for uint256;
 
+    // Since Tetu TokenRate is basically 1 + yield, 1 is a good default value when token is not fully initialized
     uint256 private immutable _defaultRate = FixedPoint.ONE;
 
     function _getTokenRate(address wrappedTokenAddress) internal view returns (uint256) {
         uint256 wrappedTokenTotalSupply = _getWrappedTokenTotalSupply(wrappedTokenAddress);
         if (wrappedTokenTotalSupply == 0) {
-            // Since Tetu TokenRate is basically 1 + yield, 1 is a good default value when there's no supply (yield = 0)
             return _defaultRate;
         } else {
             uint256 underlyingBalanceInVault = _getUnderlyingBalanceInVault(wrappedTokenAddress);
             uint256 strategyInvestedUnderlyingBalance = _getStrategyInvestedUnderlyingBalance(wrappedTokenAddress);
             uint256 balance = underlyingBalanceInVault.add(strategyInvestedUnderlyingBalance);
-            // Since there's fixed point divisions and multiplications with rounding involved, this value might
-            // be off by one, so we add 1 to the rate to make sure the conversion will result in enough main tokens
-            return balance.divDown(wrappedTokenTotalSupply).add(1);
+            // Notice that "balance" and "wrappedTokenTotalSupply" have same amount of decimals. divDown multiplies
+            // by FixedPoint.ONE, so _getTokenRate returns 18 decimals
+            return balance.divDown(wrappedTokenTotalSupply);
         }
     }
 
@@ -71,6 +71,7 @@ contract TetuShareValueHelper {
     function _getStrategyInvestedUnderlyingBalance(address wrappedTokenAddress) private view returns (uint256) {
         address tetuStrategy = _getTetuStrategy(wrappedTokenAddress);
         if (tetuStrategy == address(0)) {
+            // strategy address can be 0x00 when not initialized in the token.
             return _defaultRate;
         } else {
             try ITetuStrategy(tetuStrategy).investedUnderlyingBalance() returns (

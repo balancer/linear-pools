@@ -49,10 +49,9 @@ contract MockTetuSmartVault is ITetuSmartVault, TestToken, MockMaliciousQueryRev
         uint256 totalSupply = this.totalSupply();
         // arbitrary number, just to make sure that both Vault and Invested values compose the rate.
         uint8 vaultInvestedRatio = 3;
-        _underlyingBalanceInVault = (newRate * totalSupply) / (vaultInvestedRatio * 10**_underlyingDecimals);
-        _tetuStrategy.setInvestedUnderlyingBalance(
-            ((vaultInvestedRatio - 1) * newRate * totalSupply) / (vaultInvestedRatio * 10**_underlyingDecimals)
-        );
+        uint256 totalBalance = (newRate * totalSupply) / 10**_underlyingDecimals;
+        _underlyingBalanceInVault = totalBalance / vaultInvestedRatio;
+        _tetuStrategy.setInvestedUnderlyingBalance(totalBalance - _underlyingBalanceInVault);
     }
 
     function underlyingBalanceInVault() external view override returns (uint256) {
