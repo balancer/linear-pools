@@ -40,7 +40,7 @@ contract MockTetuSmartVault is ITetuSmartVault, TestToken, MockMaliciousQueryRev
         _tetuStrategy = tetuStrategy;
     }
 
-    function getPricePerFullShare() external view override returns (uint256) {
+    function getPricePerFullShare() external pure override returns (uint256) {
         revert("Should not call this");
     }
 
