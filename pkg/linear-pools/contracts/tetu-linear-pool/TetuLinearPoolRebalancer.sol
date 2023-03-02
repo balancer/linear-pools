@@ -54,7 +54,7 @@ contract TetuLinearPoolRebalancer is LinearPoolRebalancer, TetuShareValueHelper 
 
     function _getRequiredTokensToWrap(uint256 wrappedAmount) internal view override returns (uint256) {
         // Since there's fixed point divisions and multiplications with rounding involved, this value might
-        // be off by one. We use mulUp to add one and ensure the returned value will always be enough to get
+        // be off by one. We use mulUp to round up and ensure the returned value will always be enough to get
         // `wrappedAmount` when unwrapping. This might result in some dust being left in the Rebalancer.
         uint256 tokenRate = _getTokenRate(address(_wrappedToken));
         return tokenRate.mulUp(wrappedAmount);
