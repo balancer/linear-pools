@@ -23,7 +23,7 @@ import "../interfaces/IShareToken.sol";
 contract MockShareToken is TestToken, IShareToken, MockMaliciousQueryReverter {
     ISilo private immutable _silo;
     address private immutable _asset;
-    uint256 public _supply;
+    uint256 private _supply;
 
     /// @dev Token is always deployed for specific Silo and asset
     /// @param name token name
