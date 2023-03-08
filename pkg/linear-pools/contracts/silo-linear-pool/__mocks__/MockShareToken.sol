@@ -56,7 +56,7 @@ contract MockShareToken is TestToken, IShareToken, MockMaliciousQueryReverter {
         return _supply;
     }
 
-    function setTotalSupply(uint256 _supply) public {
-        supply = _supply;
+    function setTotalSupply(uint256 supply) public {
+        _supply = supply;
     }
 }

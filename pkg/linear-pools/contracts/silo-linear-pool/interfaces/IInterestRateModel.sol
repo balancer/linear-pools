@@ -30,9 +30,9 @@ interface IInterestRateModel {
 
     /**
      * @dev get current annual interest rate
-     * @param _silo address of Silo
-     * @param _asset address of an asset in Silo for which interest rate should be calculated
-     * @param _blockTimestamp current block timestamp
+     * @param silo address of Silo
+     * @param asset address of an asset in Silo for which interest rate should be calculated
+     * @param blockTimestamp current block timestamp
      * @return rcur current annual interest rate (1e18 == 100%)
      */
     function getCurrentInterestRate(

@@ -42,7 +42,6 @@ contract SiloLinearPoolRebalancer is LinearPoolRebalancer, SiloExchangeRateModel
     ) LinearPoolRebalancer(ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()), vault, queries) {
         _shareToken = IShareToken(address(wrappedToken));
         _silo = ISilo(_shareToken.silo());
-        _exchangeRateModel = new SiloExchangeRateModel();
     }
 
     function _wrapTokens(uint256 amount) internal override {

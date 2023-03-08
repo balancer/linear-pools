@@ -24,8 +24,8 @@ import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
 import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
 
 contract SiloLinearPool is LinearPool, Version, SiloExchangeRateModel {
-    ISilo private immutable _silo;
-    IShareToken private immutable _shareToken;
+    ISilo private _silo;
+    IShareToken private _shareToken;
 
     struct ConstructorArgs {
         IVault vault;
