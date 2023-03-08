@@ -23,11 +23,9 @@ import "@balancer-labs/v2-pool-utils/contracts/lib/ExternalCallLib.sol";
 import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
 import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
 
-contract SiloLinearPool is LinearPool, Version {
+contract SiloLinearPool is LinearPool, Version, SiloExchangeRateModel {
     ISilo private immutable _silo;
     IShareToken private immutable _shareToken;
-    SiloExchangeRateModel private _exchangeRateModel;
-    uint8 private immutable _decimals;
 
     struct ConstructorArgs {
         IVault vault;
@@ -61,10 +59,8 @@ contract SiloLinearPool is LinearPool, Version {
         Version(args.version)
     {
         _shareToken = IShareToken(address(args.wrappedToken));
-        _silo = ISilo(IShareToken(address(args.wrappedToken)).silo());
-        _decimals = ERC20(address(args.wrappedToken)).decimals();
-        _exchangeRateModel = new SiloExchangeRateModel();
-        _require(address(args.mainToken) == IShareToken(address(args.wrappedToken)).asset(), Errors.TOKENS_MISMATCH);
+        _require(address(args.mainToken) == _shareToken.asset(), Errors.TOKENS_MISMATCH);
+        _silo = _shareToken.silo();
     }
 
     function _toAssetManagerArray(ConstructorArgs memory args) private pure returns (address[] memory) {
@@ -77,6 +73,6 @@ contract SiloLinearPool is LinearPool, Version {
     }
 
     function _getWrappedTokenRate() internal view override returns (uint256) {
-        return _exchangeRateModel.calculateExchangeValue(_shareToken);
+        return _calculateExchangeValue(_shareToken);
     }
 }

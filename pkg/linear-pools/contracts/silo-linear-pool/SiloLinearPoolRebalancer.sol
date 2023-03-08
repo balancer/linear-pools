@@ -25,13 +25,12 @@ import "./interfaces/IShareToken.sol";
 import "./interfaces/ISilo.sol";
 import "./SiloExchangeRateModel.sol";
 
-contract SiloLinearPoolRebalancer is LinearPoolRebalancer {
+contract SiloLinearPoolRebalancer is LinearPoolRebalancer, SiloExchangeRateModel {
     using SafeERC20 for IERC20;
     using FixedPoint for uint256;
 
     IShareToken private _shareToken;
     ISilo private _silo;
-    SiloExchangeRateModel private _exchangeRateModel;
 
     // These Rebalancers can only be deployed from a factory to work around a circular dependency: the Pool must know
     // the address of the Rebalancer in order to register it, and the Rebalancer must know the address of the Pool
@@ -63,7 +62,7 @@ contract SiloLinearPoolRebalancer is LinearPoolRebalancer {
     }
 
     function _getRequiredTokensToWrap(uint256 wrappedAmount) internal view override returns (uint256) {
-        uint256 rate = _exchangeRateModel.calculateExchangeValue(_shareToken);
+        uint256 rate = _calculateExchangeValue(_shareToken);
         return wrappedAmount.mulDown(rate) + 1;
     }
 }

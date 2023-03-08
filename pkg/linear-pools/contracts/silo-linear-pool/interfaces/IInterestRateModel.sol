@@ -36,8 +36,8 @@ interface IInterestRateModel {
      * @return rcur current annual interest rate (1e18 == 100%)
      */
     function getCurrentInterestRate(
-        address _silo,
-        address _asset,
-        uint256 _blockTimestamp
+        address silo,
+        address asset,
+        uint256 blockTimestamp
     ) external view returns (uint256 rcur);
 }

@@ -33,16 +33,18 @@ contract SiloExchangeRateModel {
      * @dev This function is similar to _accrueInterest function in the Silo's BaseSilo.sol contract
      * which is used to update state data that is necessary
      */
-    function calculateExchangeValue(IShareToken shareToken) external view returns (uint256) {
-        uint256 rcomp = _getCompoundInterestRate(shareToken.silo(), shareToken.asset());
-        ISilo.AssetStorage memory assetStorage = _getAssetStorage(shareToken.silo(), shareToken.asset());
+    function _calculateExchangeValue(IShareToken shareToken) internal view returns (uint256) {
+        ISilo silo = shareToken.silo();
+        address underlyingAsset = shareToken.asset();
+        uint256 rcomp = _getCompoundInterestRate(silo, underlyingAsset);
+        ISilo.AssetStorage memory assetStorage = _getAssetStorage(silo, underlyingAsset);
         uint256 accruedInterest = assetStorage.totalBorrowAmount.mulDown(rcomp);
-        uint256 protocolShareFee = _getProtocolShareFee(shareToken.silo());
+        uint256 protocolShareFee = _getProtocolShareFee(silo);
 
         uint256 protocolShare = accruedInterest.mulDown(protocolShareFee);
         // interestData.protocolFees + protocolShare = to newProtocolFees
         // Cut variable in order to be able to compile
-        ISilo.AssetInterestData memory interestData = _getInterestData(shareToken.silo(), shareToken.asset());
+        ISilo.AssetInterestData memory interestData = _getInterestData(silo, underlyingAsset);
         if (interestData.protocolFees + protocolShare < interestData.protocolFees) {
             protocolShare = type(uint256).max - interestData.protocolFees;
         }

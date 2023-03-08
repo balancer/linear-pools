@@ -23,7 +23,7 @@ import "../interfaces/IShareToken.sol";
 contract MockShareToken is TestToken, IShareToken, MockMaliciousQueryReverter {
     ISilo private immutable _silo;
     address private immutable _asset;
-    uint256 public supply;
+    uint256 public _supply;
 
     /// @dev Token is always deployed for specific Silo and asset
     /// @param name token name
@@ -53,7 +53,7 @@ contract MockShareToken is TestToken, IShareToken, MockMaliciousQueryReverter {
 
     function totalSupply() public view override(ERC20, IShareToken) returns (uint256) {
         maybeRevertMaliciously();
-        return supply;
+        return _supply;
     }
 
     function setTotalSupply(uint256 _supply) public {
