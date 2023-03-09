@@ -32,19 +32,17 @@ contract SiloExchangeRateModel {
     /**
      * @dev This function is similar to _accrueInterest function in the Silo's BaseSilo.sol contract
      * which is used to update state data that is necessary
+     * @dev https://github.com/silo-finance/silo-core-v1/blob/master/contracts/BaseSilo.sol#L666
      */
-    function _calculateExchangeValue(IShareToken shareToken) internal view returns (uint256) {
-        ISilo silo = shareToken.silo();
-        address underlyingAsset = shareToken.asset();
+    function _calculateExchangeValue(ISilo silo, address underlyingAsset, IShareToken shareToken) internal view returns (uint256) {
         uint256 rcomp = _getCompoundInterestRate(silo, underlyingAsset);
         ISilo.AssetStorage memory assetStorage = _getAssetStorage(silo, underlyingAsset);
         uint256 accruedInterest = assetStorage.totalBorrowAmount.mulDown(rcomp);
         uint256 protocolShareFee = _getProtocolShareFee(silo);
 
         uint256 protocolShare = accruedInterest.mulDown(protocolShareFee);
-        // interestData.protocolFees + protocolShare = to newProtocolFees
-        // Cut variable in order to be able to compile
         ISilo.AssetInterestData memory interestData = _getInterestData(silo, underlyingAsset);
+        // interestData.protocolFees + protocolShare = newProtocolFees
         if (interestData.protocolFees + protocolShare < interestData.protocolFees) {
             protocolShare = type(uint256).max - interestData.protocolFees;
         }
@@ -138,5 +136,10 @@ contract SiloExchangeRateModel {
             // We then check the revert data to ensure this doesn't occur.
             ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);
         }
+    }
+
+    function _convertWrappedToMain(ISilo silo, address mainToken, IShareToken shareToken, uint256 wrappedAmount) internal view returns (uint256) {
+        uint256 rate = _calculateExchangeValue(silo, mainToken, shareToken);
+        return wrappedAmount.mulDown(rate);
     }
 }

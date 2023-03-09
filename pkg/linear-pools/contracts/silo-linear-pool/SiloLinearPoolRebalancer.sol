@@ -47,6 +47,7 @@ contract SiloLinearPoolRebalancer is LinearPoolRebalancer, SiloExchangeRateModel
     function _wrapTokens(uint256 amount) internal override {
         // @dev In order to receive a sharesToken that can gain interest false must be entered for collateralOnly
         // deposit however, we need to approve the silo where we will be depositing our tokens to.
+        // false is set for _collateralOnly input parameter, so that we can gain interest on our deposit
         _mainToken.safeApprove(address(_silo), amount);
         _silo.deposit(address(_mainToken), amount, false);
     }
@@ -54,14 +55,13 @@ contract SiloLinearPoolRebalancer is LinearPoolRebalancer, SiloExchangeRateModel
     function _unwrapTokens(uint256 wrappedAmount) internal override {
         // Withdrawing into underlying (i.e. DAI, USDC, etc. instead of sDAI or sUSDC). Approvals are not necessary here
         // as the wrapped token is simply burnt
-        uint256 mainAmount = _getRequiredTokensToWrap(wrappedAmount) - 1;
+        uint256 mainAmount = _convertWrappedToMain(_silo, address(_mainToken), IShareToken(address(_wrappedToken)), wrappedAmount);
         // Same way we round up requiredTokensToWrap, we need to round down the main amount,
         // to make sure we have enough tokens to unwrap.
         _silo.withdraw(address(_mainToken), mainAmount, false);
     }
 
     function _getRequiredTokensToWrap(uint256 wrappedAmount) internal view override returns (uint256) {
-        uint256 rate = _calculateExchangeValue(_shareToken);
-        return wrappedAmount.mulDown(rate) + 1;
+        return _convertWrappedToMain(_silo, address(_mainToken), IShareToken(address(_wrappedToken)), wrappedAmount) + 1;
     }
 }
