@@ -71,6 +71,6 @@ contract SiloLinearPool is LinearPool, Version, SiloExchangeRateModel {
     }
 
     function _getWrappedTokenRate() internal view override returns (uint256) {
-        return _calculateExchangeValue(_silo, address(getMainToken()), IShareToken(address(getWrappedToken())));
+        return _calculateExchangeValue(_silo, address(getMainToken()));
     }
 }

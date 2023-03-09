@@ -55,13 +55,13 @@ contract SiloLinearPoolRebalancer is LinearPoolRebalancer, SiloExchangeRateModel
     function _unwrapTokens(uint256 wrappedAmount) internal override {
         // Withdrawing into underlying (i.e. DAI, USDC, etc. instead of sDAI or sUSDC). Approvals are not necessary here
         // as the wrapped token is simply burnt
-        uint256 mainAmount = _convertWrappedToMain(_silo, address(_mainToken), IShareToken(address(_wrappedToken)), wrappedAmount);
+        uint256 mainAmount = _convertWrappedToMain(_silo, address(_mainToken), wrappedAmount);
         // Same way we round up requiredTokensToWrap, we need to round down the main amount,
         // to make sure we have enough tokens to unwrap.
         _silo.withdraw(address(_mainToken), mainAmount, false);
     }
 
     function _getRequiredTokensToWrap(uint256 wrappedAmount) internal view override returns (uint256) {
-        return _convertWrappedToMain(_silo, address(_mainToken), IShareToken(address(_wrappedToken)), wrappedAmount) + 1;
+        return _convertWrappedToMain(_silo, address(_mainToken), wrappedAmount) + 1;
     }
 }

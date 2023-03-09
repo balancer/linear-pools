@@ -34,7 +34,7 @@ contract SiloExchangeRateModel {
      * which is used to update state data that is necessary
      * @dev https://github.com/silo-finance/silo-core-v1/blob/master/contracts/BaseSilo.sol#L666
      */
-    function _calculateExchangeValue(ISilo silo, address underlyingAsset, IShareToken shareToken) internal view returns (uint256) {
+    function _calculateExchangeValue(ISilo silo, address underlyingAsset) internal view returns (uint256) {
         uint256 rcomp = _getCompoundInterestRate(silo, underlyingAsset);
         ISilo.AssetStorage memory assetStorage = _getAssetStorage(silo, underlyingAsset);
         uint256 accruedInterest = assetStorage.totalBorrowAmount.mulDown(rcomp);
@@ -138,8 +138,12 @@ contract SiloExchangeRateModel {
         }
     }
 
-    function _convertWrappedToMain(ISilo silo, address mainToken, IShareToken shareToken, uint256 wrappedAmount) internal view returns (uint256) {
-        uint256 rate = _calculateExchangeValue(silo, mainToken, shareToken);
+    function _convertWrappedToMain(
+        ISilo silo,
+        address mainToken,
+        uint256 wrappedAmount
+    ) internal view returns (uint256) {
+        uint256 rate = _calculateExchangeValue(silo, mainToken);
         return wrappedAmount.mulDown(rate);
     }
 }
