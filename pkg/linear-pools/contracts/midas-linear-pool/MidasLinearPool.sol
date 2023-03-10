@@ -19,11 +19,13 @@ import "./interfaces/ICToken.sol";
 
 import "@balancer-labs/v2-pool-utils/contracts/lib/ExternalCallLib.sol";
 import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20.sol";
 
 import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
 
 contract MidasLinearPool is LinearPool, Version {
     ICToken private immutable _cToken;
+
 
     struct ConstructorArgs {
         IVault vault;
@@ -73,13 +75,12 @@ contract MidasLinearPool is LinearPool, Version {
     }
 
     function _getWrappedTokenRate() internal view override returns (uint256) {
-        try _cToken.exchangeRateStored() returns (uint256 rate) {
-            // exchangeRateStored returns the exchange rate scaled by 1e18, so no additional
-            // operations are needed here.
+        //
+        try _cToken.exchangeRateHypothetical() returns (uint256 rate) {
             return rate;
         } catch (bytes memory revertData) {
-            // By maliciously reverting here, any contract in the call stack could trick the Pool into
-            // reporting invalid data to the query mechanism for swaps/joins/exits.
+            // By maliciously reverting here, the ERC-4626 vault (or any other contract in the call stack) could trick
+            // the Pool into reporting invalid data to the query mechanism for swaps/joins/exits.
             // We then check the revert data to ensure this doesn't occur.
             ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);
         }

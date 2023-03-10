@@ -18,18 +18,21 @@ pragma experimental ABIEncoderV2;
 import "./interfaces/ICToken.sol";
 
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
-
-import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
-import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeERC20.sol";
 
-import "./contracts/LinearPoolRebalancer.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20.sol";
+
+import "@balancer-labs/v2-pool-linear/contracts/LinearPoolRebalancer.sol";
+
+import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
+
 
 contract MidasLinearPoolRebalancer is LinearPoolRebalancer {
-    using FixedPoint for uint256;
     using SafeERC20 for IERC20;
+    using FixedPoint for uint256;
 
     uint256 private immutable _divisor;
+
 
     // These Rebalancers can only be deployed from a factory to work around a circular dependency: the Pool must know
     // the address of the Rebalancer in order to register it, and the Rebalancer must know the address of the Pool
@@ -37,6 +40,7 @@ contract MidasLinearPoolRebalancer is LinearPoolRebalancer {
     constructor(IVault vault, IBalancerQueries queries)
         LinearPoolRebalancer(ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()), vault, queries)
     {
+        // solhint-disable-previous-line no-empty-blocks
         ILinearPool pool = ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool());
         ERC20 mainToken = ERC20(address(pool.getMainToken()));
         ERC20 wrappedToken = ERC20(address(pool.getWrappedToken()));
@@ -49,31 +53,19 @@ contract MidasLinearPoolRebalancer is LinearPoolRebalancer {
     }
 
     function _wrapTokens(uint256 amount) internal override {
-        // Depositing from underlying (i.e. DAI, USDC, etc. instead of cDAI or cUSDC). Before we can
-        // deposit however, we need to approve the wrapper (cToken) in the underlying token.
         _mainToken.safeApprove(address(_wrappedToken), amount);
         ICToken(address(_wrappedToken)).mint(amount);
     }
 
-    function _unwrapTokens(uint256 amount) internal override {
-        // Withdrawing into underlying (i.e. DAI, USDC, etc. instead of cDAI or cUSDC). Approvals are not necessary
-        // here as the wrapped token is simply burnt.
-        ICToken(address(_wrappedToken)).redeem(amount);
+    function _unwrapTokens(uint256 wrappedAmount) internal override {
+        ICToken(address(_wrappedToken)).redeem(wrappedAmount);
     }
 
     function _getRequiredTokensToWrap(uint256 wrappedAmount) internal view override returns (uint256) {
-        // exchangeRateStored calculates the exchange rate from the underlying (main) to the CToken (wrapped) scaled
-        // to 1e18. Since the rate calculation includes divisions and multiplications with rounding involved, this
-        // value might be off by one. We divUp to ensure the returned value will always be enough to get
-        // `wrappedAmount` when unwrapping. This might result in some dust being left in the Rebalancer.
-        // wrappedAmount * exchangeRateCurrent / divisor
-        return wrappedAmount.mulUp(ICToken(address(_wrappedToken)).exchangeRateStored()).divUp(_divisor);
-    }
-
-    function _beforeRebalance() internal override {
-        // We call accrueInterest prior to the rebalance to ensure that all calculations are done using the most up
-        // to date exchangeRate. This is necessary because a call to mint/redeem will also trigger a call to
-        // accrueInterest, resulting in operations before mint/redeem using a different exchangeRate than those after.
-        ICToken(address(_wrappedToken)).accrueInterest();
+        // ERC4626 defines that previewMint MUST return as close to and no fewer than the exact amount of assets
+        // (main tokens) that would be deposited to mint the desired number of shares (wrapped tokens).
+        // Since the amount returned by previewMint may be slightly larger then the required number of main tokens,
+        // this could result in some dust being left in the Rebalancer.
+        return wrappedAmount.mulUp(ICToken(address(_wrappedToken)).exchangeRateHypothetical()).divUp(_divisor);
     }
 }

@@ -37,20 +37,9 @@ interface ICToken {
     function redeem(uint256 redeemTokens) external returns (uint256);
 
     /**
-     * @notice Accrue interest then return the up-to-date exchange rate
-     * @return Calculated exchange rate scaled by 1e18
+     * @notice exchange rate dynamically calculated for the current block
+     * @dev returns value as if accrueInterest would have been called. Custom Midas implementation
+     * @return exchange rate
      */
-    function exchangeRateCurrent() external returns (uint256);
-
-    /**
-     * @notice Calculates the exchange rate from the underlying to the CToken
-     * @dev This function does not accrue interest before calculating the exchange rate
-     * @return Calculated exchange rate scaled by 1e18
-     */
-    function exchangeRateStored() external view returns (uint256);
-
-    /**
-     * @notice Accrues any pending interest, updating exchangeRateStored
-     */
-    function accrueInterest() external returns (uint256);
+    function exchangeRateHypothetical() external view returns (uint256);
 }
