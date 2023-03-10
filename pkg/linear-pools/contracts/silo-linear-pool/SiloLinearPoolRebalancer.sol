@@ -45,10 +45,10 @@ contract SiloLinearPoolRebalancer is LinearPoolRebalancer, SiloExchangeRateModel
     }
 
     function _wrapTokens(uint256 amount) internal override {
-        // @dev In order to receive a sharesToken that can gain interest false must be entered for collateralOnly
-        // deposit however, we need to approve the silo where we will be depositing our tokens to.
-        // false is set for _collateralOnly input parameter, so that we can gain interest on our deposit
+        // Approve the silo which will receive the token deposit.
         _mainToken.safeApprove(address(_silo), amount);
+
+        // Set the `_collateralOnly` argument to `false` so that we earn interest on our deposit.
         _silo.deposit(address(_mainToken), amount, false);
     }
 
@@ -56,12 +56,15 @@ contract SiloLinearPoolRebalancer is LinearPoolRebalancer, SiloExchangeRateModel
         // Withdrawing into underlying (i.e. DAI, USDC, etc. instead of sDAI or sUSDC). Approvals are not necessary here
         // as the wrapped token is simply burnt
         uint256 mainAmount = _convertWrappedToMain(_silo, address(_mainToken), wrappedAmount);
-        // Same way we round up requiredTokensToWrap, we need to round down the main amount,
-        // to make sure we have enough tokens to unwrap.
+
         _silo.withdraw(address(_mainToken), mainAmount, false);
     }
 
     function _getRequiredTokensToWrap(uint256 wrappedAmount) internal view override returns (uint256) {
+        // `_convertWrappedToMain` returns how many main tokens will be returned when unwrapping. Since there's fixed
+        // point divisions and multiplications with rounding involved, this value might be off by one. We add one to
+        // ensure the returned value will always be enough to get `wrappedAmount` when unwrapping. This might result in
+        // some dust being left in the Rebalancer.
         return _convertWrappedToMain(_silo, address(_mainToken), wrappedAmount) + 1;
     }
 }

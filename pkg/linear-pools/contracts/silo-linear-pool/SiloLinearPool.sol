@@ -57,8 +57,9 @@ contract SiloLinearPool is LinearPool, Version, SiloExchangeRateModel {
         )
         Version(args.version)
     {
-        _require(address(args.mainToken) == IShareToken(address(args.wrappedToken)).asset(), Errors.TOKENS_MISMATCH);
-        _silo = IShareToken(address(args.wrappedToken)).silo();
+        IShareToken shareToken = IShareToken(address(args.wrappedToken));
+        _require(address(args.mainToken) == shareToken.asset(), Errors.TOKENS_MISMATCH);
+        _silo = shareToken.silo();
     }
 
     function _toAssetManagerArray(ConstructorArgs memory args) private pure returns (address[] memory) {

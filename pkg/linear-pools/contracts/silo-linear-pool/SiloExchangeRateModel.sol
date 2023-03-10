@@ -30,9 +30,9 @@ contract SiloExchangeRateModel {
     using FixedPoint for uint256;
 
     /**
-     * @dev This function is similar to _accrueInterest function in the Silo's BaseSilo.sol contract
-     * which is used to update state data that is necessary
-     * @dev https://github.com/silo-finance/silo-core-v1/blob/master/contracts/BaseSilo.sol#L666
+     * @dev This function is similar to the `_accrueInterest` function in Silo's BaseSilo.sol contract
+     * which is used to update state data before computing the exchange rate.
+     * @dev https://github.com/silo-finance/silo-core-v1/commit/70621494b23d333e67442485d7c743ee6e7d22db#diff-ab4bd987a76c7a42008066fd941530593d154ede8b7a845a0e5a84def1269fd5L666
      */
     function _calculateExchangeValue(ISilo silo, address underlyingAsset) internal view returns (uint256) {
         uint256 rcomp = _getCompoundInterestRate(silo, underlyingAsset);
@@ -59,11 +59,10 @@ contract SiloExchangeRateModel {
         return localDeposits.divDown(totalShares);
     }
 
-    function _getInterestData(ISilo silo, address mainTokenAddress)
-        private
-        view
-        returns (ISilo.AssetInterestData memory)
-    {
+    function _getInterestData(
+        ISilo silo,
+        address mainTokenAddress
+    ) private view returns (ISilo.AssetInterestData memory) {
         try silo.interestData(mainTokenAddress) returns (ISilo.AssetInterestData memory interestData) {
             return interestData;
         } catch (bytes memory revertData) {
