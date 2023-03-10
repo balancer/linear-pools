@@ -79,7 +79,7 @@ contract MidasLinearPool is LinearPool, Version {
         try _cToken.exchangeRateHypothetical() returns (uint256 rate) {
             return rate;
         } catch (bytes memory revertData) {
-            // By maliciously reverting here, the ERC-4626 vault (or any other contract in the call stack) could trick
+            // By maliciously reverting here, Midas protocol (or any other contract in the call stack) could trick
             // the Pool into reporting invalid data to the query mechanism for swaps/joins/exits.
             // We then check the revert data to ensure this doesn't occur.
             ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);
