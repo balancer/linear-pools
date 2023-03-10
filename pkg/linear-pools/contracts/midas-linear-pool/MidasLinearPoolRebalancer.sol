@@ -26,13 +26,11 @@ import "@balancer-labs/v2-pool-linear/contracts/LinearPoolRebalancer.sol";
 
 import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
 
-
 contract MidasLinearPoolRebalancer is LinearPoolRebalancer {
     using SafeERC20 for IERC20;
     using FixedPoint for uint256;
 
     uint256 private immutable _divisor;
-
 
     // These Rebalancers can only be deployed from a factory to work around a circular dependency: the Pool must know
     // the address of the Rebalancer in order to register it, and the Rebalancer must know the address of the Pool

@@ -26,7 +26,6 @@ import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
 contract MidasLinearPool is LinearPool, Version {
     ICToken private immutable _cToken;
 
-
     struct ConstructorArgs {
         IVault vault;
         string name;
