@@ -24,19 +24,12 @@ describeForkTest('polygon - MidasLinearPoolFactory - 4 decimals', 'polygon', 401
 
   let task: Task;
 
-  //polygon
   const cBRZ = '0x2e4659b451C3ba2E72D79aAf267cFc09BCCc9d7c';
   const BRZ = '0x491a4eB4f1FC3BfF8E1d2FC856a6A46663aD556f';
 
-  //const BRZ = '0x71be881e9C5d4465B3FfF61e89c6f3651E69B5bb';
-  //const cBRZ = '0x9c42b10a32d7dfE1a978b74dcD07Eb1Fadea2B86';
-
   const BRZ_SCALING = bn(1e14); // BRZ has 4 decimals, so its scaling factor is 1e14
 
-  //polygon
   const BRZ_HOLDER = '0xB90B2050C955cd899b9BC8B5C743c25770EBc8AA';
-
-  //const BRZ_HOLDER = '0x6b02568149b01f88152c9a4f1853ec9c59922620';
 
   const SWAP_FEE_PERCENTAGE = fp(0.01); // 1%
 
