@@ -34,11 +34,11 @@ describeForkTest('MidasLinearPoolFactory - 18 decimals', 'bsc', 26325172, functi
   const SWAP_FEE_PERCENTAGE = fp(0.01); // 1%
 
   // The targets are set using 18 decimals, even if the token has fewer (as is the case for BRZ);
-  const INITIAL_UPPER_TARGET = fp(1e5);
+  const INITIAL_UPPER_TARGET = fp(1e3);
 
   // The initial midpoint (upper target / 2) must be between the final lower and upper targets
-  const FINAL_LOWER_TARGET = fp(0.2e5);
-  const FINAL_UPPER_TARGET = fp(5e5);
+  const FINAL_LOWER_TARGET = fp(0.2e3);
+  const FINAL_UPPER_TARGET = fp(5e3);
 
   const PROTOCOL_ID = 0;
 
@@ -99,7 +99,7 @@ describeForkTest('MidasLinearPoolFactory - 18 decimals', 'bsc', 26325172, functi
       if (expectedState != LinearPoolState.BALANCED) {
         await rebalancer.connect(holder).rebalance(other.address);
       } else {
-        await rebalancer.connect(holder).rebalanceWithExtraMain(other.address, 1000000);
+        await rebalancer.connect(holder).rebalanceWithExtraMain(other.address, 5);
       }
 
       const finalRecipientMainBalance = await brz.balanceOf(other.address);
