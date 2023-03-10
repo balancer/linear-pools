@@ -65,7 +65,7 @@ describeForkTest('MidasLinearPoolFactory - 18 decimals', 'bsc', 26325172, functi
   });
 
   before('Get additional wbnb', async () => {
-    let wbnbContract: Contract;
+    const wbnbContract: Contract;
     const initialBalance = fp(1e12);
     const depositIntoWbnb = fp(1e11);
     await setBalance(holder.address, initialBalance);
