@@ -18,6 +18,7 @@ pragma experimental ABIEncoderV2;
 import "./interfaces/ICToken.sol";
 
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
+//import "@balancer-labs/v2-interfaces/contracts/solidity-utils/openzeppelin/IERC20.sol";
 
 import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20.sol";
@@ -34,18 +35,14 @@ contract MidasLinearPoolRebalancer is LinearPoolRebalancer {
     // These Rebalancers can only be deployed from a factory to work around a circular dependency: the Pool must know
     // the address of the Rebalancer in order to register it, and the Rebalancer must know the address of the Pool
     // during construction.
-    constructor(IVault vault, IBalancerQueries queries)
+    constructor(IVault vault, IBalancerQueries queries, address mainToken, address wrappedToken)
         LinearPoolRebalancer(ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()), vault, queries)
     {
-        ILinearPool pool = ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool());
-        ERC20 mainToken = ERC20(address(pool.getMainToken()));
-        ERC20 wrappedToken = ERC20(address(pool.getWrappedToken()));
-
         // The CToken function exchangeRateHypothetical returns the rate scaled to 18 decimals.
         // when calculating _getRequiredTokensToWrap, we receive wrappedAmount in the decimals
         // of the wrapped token. To get back to main token decimals, we divide by:
         // 10^(18 + wrappedTokenDecimals - mainTokenDecimals)
-        _divisor = 10**(18 + wrappedToken.decimals() - mainToken.decimals());
+        _divisor = 10**(18 + ERC20(wrappedToken).decimals() - ERC20(mainToken).decimals());
     }
 
     function _wrapTokens(uint256 amount) internal override {
