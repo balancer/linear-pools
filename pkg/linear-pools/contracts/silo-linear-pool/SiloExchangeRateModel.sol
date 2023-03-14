@@ -25,51 +25,48 @@ import "./interfaces/ISiloRepository.sol";
 // solhint-disable not-rely-on-time
 
 // Created in order to decrease exchange rate timelag when wrapping and unwrapping tokens
-// between Silo Linear Pools and the Silo Protocol
+// between Silo Linear Pools and the Silo Protocol.
 contract SiloExchangeRateModel {
-    // Silo's `_accrueInterest` function is the basis for this contract's up-to-date exchange rate computation:
-    // https://github.com/silo-finance/silo-core-v1/blob/70621494b23d333e67442485d7c743ee6e7d22db/contracts/BaseSilo.sol#L666
-    // solhint-disable-previous-line max-line-length
-
     using FixedPoint for uint256;
 
-    /**
-     * @notice This function is similar to the `_accrueInterest` function in Silo's BaseSilo.sol contract
-     * which is used to update state data before computing the exchange rate.
-     * @dev See the link to Silo's function at the top of this contract.
-     */
     function _calculateExchangeValue(ISilo silo, address underlyingAsset) internal view returns (uint256) {
         ISilo.AssetStorage memory state = _getAssetStorage(silo, underlyingAsset);
         ISilo.AssetInterestData memory interestData = _getInterestData(silo, underlyingAsset);
+        uint256 lastTimestamp = interestData.interestRateTimestamp;
 
-        uint256 rcomp = _getCompoundInterestRate(silo, underlyingAsset);
-        uint256 protocolShareFee = _getProtocolShareFee(silo);
+        uint256 totalDeposits = state.totalDeposits;
+        uint256 totalShares = state.collateralToken.totalSupply();
 
-        uint256 protocolFeesCached = interestData.protocolFees;
-        uint256 protocolShare;
-        uint256 depositorsShare;
-
-        uint256 accruedInterest = state.totalBorrowAmount.mulDown(rcomp);
-
-        // Silo chooses to do a bunch of unchecked math here.
-        // https://github.com/silo-finance/silo-core-v1/blob/70621494b23d333e67442485d7c743ee6e7d22db/contracts/BaseSilo.sol#L699
+        // If interest has not yet been accrued to storage in this block, calculate it manually.
+        // We copy the core behavior of Silo's `_accrueInterest` function but without updating any storage:
+        // https://github.com/silo-finance/silo-core-v1/blob/70621494b23d333e67442485d7c743ee6e7d22db/contracts/BaseSilo.sol#L666
         // solhint-disable-previous-line max-line-length
-        {
-            protocolShare = (accruedInterest * protocolShareFee) / FixedPoint.ONE;
+        if (lastTimestamp != block.timestamp) {
+            uint256 rcomp = _getCompoundInterestRate(silo, underlyingAsset);
+            uint256 protocolShareFee = _getProtocolShareFee(silo);
 
-            // newProtocolFees = protocolFeesCached + protocolShare
-            if (protocolFeesCached + protocolShare < protocolFeesCached) {
-                protocolShare = type(uint256).max - protocolFeesCached;
+            uint256 protocolFeesCached = interestData.protocolFees;
+            uint256 protocolShare;
+            uint256 depositorsShare;
+
+            uint256 accruedInterest = state.totalBorrowAmount.mulDown(rcomp);
+
+            // Silo chooses to do a bunch of unchecked math here.
+            // https://github.com/silo-finance/silo-core-v1/blob/70621494b23d333e67442485d7c743ee6e7d22db/contracts/BaseSilo.sol#L699
+            // solhint-disable-previous-line max-line-length
+            {
+                protocolShare = (accruedInterest * protocolShareFee) / FixedPoint.ONE;
+
+                // newProtocolFees = protocolFeesCached + protocolShare
+                if (protocolFeesCached + protocolShare < protocolFeesCached) {
+                    protocolShare = type(uint256).max - protocolFeesCached;
+                }
+
+                depositorsShare = accruedInterest - protocolShare;
             }
 
-            depositorsShare = accruedInterest - protocolShare;
+            totalDeposits = totalDeposits.add(depositorsShare);
         }
-
-        // Instead of updating contract state which is not allowed due to the function being accessed within view
-        // functions (_getWrappedTokenRate && _getRequiredTokensToWrap), it is necessary to create new variables to
-        // store the final values used to calculate exchange rates.
-        uint256 totalDeposits = state.totalDeposits.add(depositorsShare);
-        uint256 totalShares = state.collateralToken.totalSupply();
 
         // Note that the exchange rate returned by this function is always scaled to 18 decimals. All Silo ShareTokens
         // match their respective underlying assets' ERC20 decimals, and Silo uses 18-decimal precision for all
