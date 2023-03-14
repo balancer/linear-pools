@@ -18,10 +18,9 @@ pragma experimental ABIEncoderV2;
 import "./interfaces/ICToken.sol";
 
 import "@balancer-labs/v2-pool-utils/contracts/lib/ExternalCallLib.sol";
-import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
-import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20.sol";
 
 import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
+import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
 
 contract MidasLinearPool is LinearPool, Version {
     ICToken private immutable _cToken;
@@ -74,7 +73,7 @@ contract MidasLinearPool is LinearPool, Version {
     }
 
     function _getWrappedTokenRate() internal view override returns (uint256) {
-        // Midas' exchangeRateHypothetical returns the exchangeRate for the current block scaled to 18 decimals. It 
+        // Midas' exchangeRateHypothetical returns the exchangeRate for the current block scaled to 18 decimals. It
         // builds on Compounds' exchangeRateStored function by projecting the exchangeRate Stored to the current block.
         try _cToken.exchangeRateHypothetical() returns (uint256 rate) {
             return rate;

@@ -14,10 +14,10 @@
 
 pragma solidity ^0.7.0;
 
-import "@orbcollective/shared-dependencies/contracts/TestToken.sol";
 import "../interfaces/ICToken.sol";
 
 import "@orbcollective/shared-dependencies/contracts/MockMaliciousQueryReverter.sol";
+import "@orbcollective/shared-dependencies/contracts/TestToken.sol";
 
 contract MockCToken is TestToken, ICToken, MockMaliciousQueryReverter {
     address public immutable override underlying;

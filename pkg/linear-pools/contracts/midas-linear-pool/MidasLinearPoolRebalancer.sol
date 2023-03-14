@@ -18,13 +18,12 @@ pragma experimental ABIEncoderV2;
 import "./interfaces/ICToken.sol";
 
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
-import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeERC20.sol";
-
-import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20.sol";
-
-import "@balancer-labs/v2-pool-linear/contracts/LinearPoolRebalancer.sol";
 
 import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeERC20.sol";
+
+import "@balancer-labs/v2-pool-linear/contracts/LinearPoolRebalancer.sol";
 
 contract MidasLinearPoolRebalancer is LinearPoolRebalancer {
     using SafeERC20 for IERC20;
@@ -59,7 +58,7 @@ contract MidasLinearPoolRebalancer is LinearPoolRebalancer {
     }
 
     function _getRequiredTokensToWrap(uint256 wrappedAmount) internal view override returns (uint256) {
-        // Midas' exchangeRateHypothetical returns the exchangeRate for the current block scaled to 18 decimals. It 
+        // Midas' exchangeRateHypothetical returns the exchangeRate for the current block scaled to 18 decimals. It
         // builds on Compounds' exchangeRateStored function by projecting the exchangeRate Stored to the current block.
         return wrappedAmount.mulUp(ICToken(address(_wrappedToken)).exchangeRateHypothetical()).divUp(_divisor);
     }
