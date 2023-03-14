@@ -90,11 +90,10 @@ describe('SiloLinearPool', function () {
     mockSilo = await deployPackageContract('MockSilo', {
       args: [mockRepository.address, mainToken.address],
     });
-    console.log("code reach 1")
 
     let  mockInterestRateInstance = await mockRepository.getInterestRateModel(mockSilo.address, mainToken.address);
     mockInterestRateModel = await getPackageContractDeployedAt('MockInterestRateModel', mockInterestRateInstance);
-    console.log("code reach 2")
+
     const wrappedTokenInstance = await deployPackageContract('MockShareToken', {
       args: ['sUSDC', 'sUSDC', mockSilo.address, mainToken.address, 6],
     });
@@ -200,16 +199,8 @@ describe('SiloLinearPool', function () {
   describe('getWrappedTokenRate', () => {
     context('under normal operation', () => {
       it('returns the expected value', async () => {
-        // Calculate the expected rate and compare to the getWrappedToken return value
-        const assetStorage = await mockSilo.assetStorage(mainToken.address);
-        // Get the 4th member from the struct 'total deposits'
-        const totalAmount = assetStorage[3];
-
-        const totalShares: number = await wrappedToken.totalSupply();
-
-        const expectedRate: number = totalAmount / totalShares;
-
-        expect(await pool.getWrappedTokenRate()).to.equal(fp(expectedRate));
+        const expectedRate = fp(2);
+        expect(await pool.getWrappedTokenRate()).to.equal(expectedRate);
       });
     });
 
@@ -228,8 +219,7 @@ describe('SiloLinearPool', function () {
             AssetStatus.Active // status
         );
 
-        let expectedRate = fp(3.3365);
-        
+        const expectedRate = fp(3.3365);
         expect(await pool.getWrappedTokenRate()).to.equal(expectedRate);
       })
     });
