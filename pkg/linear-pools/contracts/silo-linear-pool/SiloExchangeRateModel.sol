@@ -32,35 +32,44 @@ contract SiloExchangeRateModel {
     // solhint-disable-previous-line max-line-length
 
     using FixedPoint for uint256;
+
     /**
      * @notice This function is similar to the `_accrueInterest` function in Silo's BaseSilo.sol contract
      * which is used to update state data before computing the exchange rate.
      * @dev See the link to Silo's function at the top of this contract.
      */
     function _calculateExchangeValue(ISilo silo, address underlyingAsset) internal view returns (uint256) {
+        ISilo.AssetStorage memory state = _getAssetStorage(silo, underlyingAsset);
+        ISilo.AssetInterestData memory interestData = _getInterestData(silo, underlyingAsset);
+
         uint256 rcomp = _getCompoundInterestRate(silo, underlyingAsset);
-        ISilo.AssetStorage memory assetStorage = _getAssetStorage(silo, underlyingAsset);
-        uint256 accruedInterest = assetStorage.totalBorrowAmount.mulDown(rcomp);
         uint256 protocolShareFee = _getProtocolShareFee(silo);
 
-        // Silo chooses not to revert on multiplication overflow here.
-        // https://github.com/silo-finance/silo-core-v1/blob/70621494b23d333e67442485d7c743ee6e7d22db/contracts/BaseSilo.sol#L700
-        // solhint-disable-previous-line max-line-length
-        uint256 protocolShare = accruedInterest * protocolShareFee / FixedPoint.ONE;
+        uint256 protocolFeesCached = interestData.protocolFees;
+        uint256 protocolShare;
+        uint256 depositorsShare;
 
-        ISilo.AssetInterestData memory interestData = _getInterestData(silo, underlyingAsset);
-        // interestData.protocolFees + protocolShare = newProtocolFees
-        if (interestData.protocolFees + protocolShare < interestData.protocolFees) {
-            protocolShare = type(uint256).max - interestData.protocolFees;
+        uint256 accruedInterest = state.totalBorrowAmount.mulDown(rcomp);
+
+        // Silo chooses to do a bunch of unchecked math here.
+        // https://github.com/silo-finance/silo-core-v1/blob/70621494b23d333e67442485d7c743ee6e7d22db/contracts/BaseSilo.sol#L699
+        // solhint-disable-previous-line max-line-length
+        {
+            protocolShare = (accruedInterest * protocolShareFee) / FixedPoint.ONE;
+
+            // newProtocolFees = protocolFeesCached + protocolShare
+            if (protocolFeesCached + protocolShare < protocolFeesCached) {
+                protocolShare = type(uint256).max - protocolFeesCached;
+            }
+
+            depositorsShare = accruedInterest - protocolShare;
         }
 
         // Instead of updating contract state which is not allowed due to the function being accessed within view
         // functions (_getWrappedTokenRate && _getRequiredTokensToWrap), it is necessary to create new variables to
-        // store the final values used to calculate exchange rates localDeposits represenents _assetState.totalDeposits
-        // accruedInterest - protocolShare is the depositorsShare. No variable used to save memory.
-        uint256 localDeposits = assetStorage.totalDeposits.add(accruedInterest).sub(protocolShare);
-        // total number of shares
-        uint256 totalShares = assetStorage.collateralToken.totalSupply();
+        // store the final values used to calculate exchange rates.
+        uint256 totalDeposits = state.totalDeposits.add(depositorsShare);
+        uint256 totalShares = state.collateralToken.totalSupply();
 
         // Note that the exchange rate returned by this function is always scaled to 18 decimals. All Silo ShareTokens
         // match their respective underlying assets' ERC20 decimals, and Silo uses 18-decimal precision for all
@@ -70,13 +79,14 @@ contract SiloExchangeRateModel {
         // token decimals: https://github.com/silo-finance/silo-core-v1/blob/70621494b23d333e67442485d7c743ee6e7d22db/contracts/utils/ShareToken.sol#L44
         // internal precision: https://github.com/silo-finance/silo-core-v1/blob/70621494b23d333e67442485d7c743ee6e7d22db/contracts/lib/Solvency.sol#L39
         // solhint-enable max-line-length
-        return localDeposits.divDown(totalShares);
+        return totalDeposits.divDown(totalShares);
     }
 
-    function _getInterestData(
-        ISilo silo,
-        address mainTokenAddress
-    ) private view returns (ISilo.AssetInterestData memory) {
+    function _getInterestData(ISilo silo, address mainTokenAddress)
+        private
+        view
+        returns (ISilo.AssetInterestData memory)
+    {
         try silo.interestData(mainTokenAddress) returns (ISilo.AssetInterestData memory interestData) {
             return interestData;
         } catch (bytes memory revertData) {
