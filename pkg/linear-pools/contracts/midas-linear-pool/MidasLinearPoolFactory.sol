@@ -21,7 +21,6 @@ import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactor
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/IFactoryCreatedPoolVersion.sol";
 
 import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
-
 import "@balancer-labs/v2-pool-utils/contracts/factories/BasePoolFactory.sol";
 import "@balancer-labs/v2-pool-utils/contracts/factories/FactoryWidePauseWindow.sol";
 

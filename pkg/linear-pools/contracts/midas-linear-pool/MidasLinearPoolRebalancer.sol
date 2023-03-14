@@ -35,9 +35,12 @@ contract MidasLinearPoolRebalancer is LinearPoolRebalancer {
     // These Rebalancers can only be deployed from a factory to work around a circular dependency: the Pool must know
     // the address of the Rebalancer in order to register it, and the Rebalancer must know the address of the Pool
     // during construction.
-    constructor(IVault vault, IBalancerQueries queries, address mainToken, address wrappedToken)
-        LinearPoolRebalancer(ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()), vault, queries)
-    {
+    constructor(
+        IVault vault,
+        IBalancerQueries queries,
+        address mainToken,
+        address wrappedToken
+    ) LinearPoolRebalancer(ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()), vault, queries) {
         // The CToken function exchangeRateHypothetical returns the rate scaled to 18 decimals.
         // when calculating _getRequiredTokensToWrap, we receive wrappedAmount in the decimals
         // of the wrapped token. To get back to main token decimals, we divide by:
