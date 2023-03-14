@@ -74,7 +74,8 @@ contract MidasLinearPool is LinearPool, Version {
     }
 
     function _getWrappedTokenRate() internal view override returns (uint256) {
-        //
+        // Midas' exchangeRateHypothetical returns the exchangeRate for the current block scaled to 18 decimals. It 
+        // builds on Compounds' exchangeRateStored function by projecting the exchangeRate Stored to the current block.
         try _cToken.exchangeRateHypothetical() returns (uint256 rate) {
             return rate;
         } catch (bytes memory revertData) {

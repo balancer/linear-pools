@@ -38,12 +38,11 @@ contract MidasLinearPoolRebalancer is LinearPoolRebalancer {
     constructor(IVault vault, IBalancerQueries queries)
         LinearPoolRebalancer(ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()), vault, queries)
     {
-        // solhint-disable-previous-line no-empty-blocks
         ILinearPool pool = ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool());
         ERC20 mainToken = ERC20(address(pool.getMainToken()));
         ERC20 wrappedToken = ERC20(address(pool.getWrappedToken()));
 
-        // The CToken function exchangeRateCurrent returns the rate scaled to 18 decimals.
+        // The CToken function exchangeRateHypothetical returns the rate scaled to 18 decimals.
         // when calculating _getRequiredTokensToWrap, we receive wrappedAmount in the decimals
         // of the wrapped token. To get back to main token decimals, we divide by:
         // 10^(18 + wrappedTokenDecimals - mainTokenDecimals)
@@ -60,10 +59,8 @@ contract MidasLinearPoolRebalancer is LinearPoolRebalancer {
     }
 
     function _getRequiredTokensToWrap(uint256 wrappedAmount) internal view override returns (uint256) {
-        // ERC4626 defines that previewMint MUST return as close to and no fewer than the exact amount of assets
-        // (main tokens) that would be deposited to mint the desired number of shares (wrapped tokens).
-        // Since the amount returned by previewMint may be slightly larger then the required number of main tokens,
-        // this could result in some dust being left in the Rebalancer.
+        // Midas' exchangeRateHypothetical returns the exchangeRate for the current block scaled to 18 decimals. It 
+        // builds on Compounds' exchangeRateStored function by projecting the exchangeRate Stored to the current block.
         return wrappedAmount.mulUp(ICToken(address(_wrappedToken)).exchangeRateHypothetical()).divUp(_divisor);
     }
 }
