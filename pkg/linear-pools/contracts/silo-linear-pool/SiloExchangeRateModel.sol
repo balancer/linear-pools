@@ -32,7 +32,11 @@ contract SiloExchangeRateModel {
     // solhint-disable-previous-line max-line-length
 
     using FixedPoint for uint256;
-
+    /**
+     * @notice This function is similar to the `_accrueInterest` function in Silo's BaseSilo.sol contract
+     * which is used to update state data before computing the exchange rate.
+     * @dev See the link to Silo's function at the top of this contract.
+     */
     function _calculateExchangeValue(ISilo silo, address underlyingAsset) internal view returns (uint256) {
         uint256 rcomp = _getCompoundInterestRate(silo, underlyingAsset);
         ISilo.AssetStorage memory assetStorage = _getAssetStorage(silo, underlyingAsset);
