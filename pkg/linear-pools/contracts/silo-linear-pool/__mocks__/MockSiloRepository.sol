@@ -23,7 +23,7 @@ import "@orbcollective/shared-dependencies/contracts/MockMaliciousQueryReverter.
 
 contract MockSiloRepository is ISiloRepository, MockMaliciousQueryReverter {
     uint256 private _protocolShareFee;
-    MockInterestRateModel _mockModel;
+    MockInterestRateModel private immutable _mockModel;
 
     constructor(uint256 compoundRate, uint256 currentRate)  {
         _mockModel = new MockInterestRateModel(compoundRate, currentRate);

@@ -199,6 +199,7 @@ describe('SiloLinearPool', function () {
   describe('getWrappedTokenRate', () => {
     context('under normal operation', () => {
       it('returns the expected value', async () => {
+        // expectedRate derived from totalDeposits / total Supply
         const expectedRate = fp(2);
         expect(await pool.getWrappedTokenRate()).to.equal(expectedRate);
       });
@@ -218,7 +219,7 @@ describe('SiloLinearPool', function () {
             0, // interestRateTimestamp
             AssetStatus.Active // status
         );
-
+        // See details on notion
         const expectedRate = fp(3.3365);
         expect(await pool.getWrappedTokenRate()).to.equal(expectedRate);
       })
