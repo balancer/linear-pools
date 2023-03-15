@@ -57,6 +57,7 @@ describe('SiloLinearPool', function () {
     mainToken: Contract,
     mockRepository: Contract,
     mockSilo: Contract,
+    mockInterestRateModel: Contract,
     wrappedToken: Contract;
   let poolFactory: Contract;
   let guardian: SignerWithAddress, lp: SignerWithAddress, owner: SignerWithAddress;
@@ -82,11 +83,16 @@ describe('SiloLinearPool', function () {
     mainToken = await deployToken('USDC', 6, deployer);
 
     // Deploy the mock repository
-    mockRepository = await deployPackageContract('MockSiloRepository', {});
+    mockRepository = await deployPackageContract('MockSiloRepository', {
+      args: [0,0],
+    });
     // Deploy the Silo (Liquidity Pool)
     mockSilo = await deployPackageContract('MockSilo', {
       args: [mockRepository.address, mainToken.address],
     });
+
+    let  mockInterestRateInstance = await mockRepository.getInterestRateModel(mockSilo.address, mainToken.address);
+    mockInterestRateModel = await getPackageContractDeployedAt('MockInterestRateModel', mockInterestRateInstance);
 
     const wrappedTokenInstance = await deployPackageContract('MockShareToken', {
       args: ['sUSDC', 'sUSDC', mockSilo.address, mainToken.address, 6],
@@ -99,7 +105,7 @@ describe('SiloLinearPool', function () {
     await tokens.mint({ to: [lp, trader], amount: fp(100) });
 
     await wrappedTokenInstance.setTotalSupply(fp(10000));
-    // initalize the asset storage mapping within the Silo for the main token
+    // initialize the asset storage mapping within the Silo for the main token
     await mockSilo.setAssetStorage(
       mainToken.address, // interestBearingAsset
       wrappedToken.address, // CollateralToken
@@ -193,17 +199,30 @@ describe('SiloLinearPool', function () {
   describe('getWrappedTokenRate', () => {
     context('under normal operation', () => {
       it('returns the expected value', async () => {
-        // Calculate the expected rate and compare to the getWrappedToken return value
-        const assetStorage = await mockSilo.assetStorage(mainToken.address);
-        // Get the 4th member from the struct 'total deposits'
-        const totalAmount = assetStorage[3];
-
-        const totalShares: number = await wrappedToken.totalSupply();
-
-        const expectedRate: number = totalAmount / totalShares;
-
-        expect(await pool.getWrappedTokenRate()).to.equal(fp(expectedRate));
+        // expectedRate derived from totalDeposits / total Supply
+        const expectedRate = fp(2);
+        expect(await pool.getWrappedTokenRate()).to.equal(expectedRate);
       });
+    });
+
+    context('non-zero interest data', () => {
+      it('returns the expected value', async () => {
+        await mockInterestRateModel.setCompoundInterestRate(fp(1.5));
+        await mockInterestRateModel.setCurrentInterestRate(fp(1));
+
+        await mockRepository.setProtocolShareFee(fp(0.01));
+
+        await mockSilo.setInterestData(
+            mainToken.address, // interestBearingAsset
+            fp(1), // harvestedProtocolFees
+            fp(2), // protocolFees
+            0, // interestRateTimestamp
+            AssetStatus.Active // status
+        );
+        // See details on notion
+        const expectedRate = fp(3.3365);
+        expect(await pool.getWrappedTokenRate()).to.equal(expectedRate);
+      })
     });
 
     context('when Silo reverts maliciously to impersonate a swap query', () => {

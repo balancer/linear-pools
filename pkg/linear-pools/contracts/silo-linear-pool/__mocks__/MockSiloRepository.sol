@@ -23,15 +23,18 @@ import "@orbcollective/shared-dependencies/contracts/MockMaliciousQueryReverter.
 
 contract MockSiloRepository is ISiloRepository, MockMaliciousQueryReverter {
     uint256 private _protocolShareFee;
-    // Hardcode a interest rate model to use for testing
-    MockInterestRateModel private _model = new MockInterestRateModel(0, 0);
+    MockInterestRateModel private immutable _mockModel;
+
+    constructor(uint256 compoundRate, uint256 currentRate)  {
+        _mockModel = new MockInterestRateModel(compoundRate, currentRate);
+    }
 
     function getInterestRateModel(
         address, /* silo */
         address /* asset */
     ) external view override returns (IInterestRateModel) {
         maybeRevertMaliciously();
-        return _model;
+        return _mockModel;
     }
 
     function protocolShareFee() external view override returns (uint256) {
