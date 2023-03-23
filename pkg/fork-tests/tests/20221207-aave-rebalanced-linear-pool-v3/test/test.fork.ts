@@ -13,7 +13,6 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-wit
 
 import { impersonate, getForkedNetwork, Task, TaskMode, getSigners } from '../../../src';
 import { describeForkTest } from '../../../src/forkTests';
-import path from 'path';
 
 export enum SwapKind {
   GivenIn = 0,

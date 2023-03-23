@@ -65,7 +65,7 @@ describe('SiloLinearPoolFactory', function () {
 
     // Deploy the mock repository
     const mockRepository = await deployPackageContract('MockSiloRepository', {
-      args: [0,0],
+      args: [0, 0],
     });
 
     const mockSilo = await deployPackageContract('MockSilo', {

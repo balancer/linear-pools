@@ -4,10 +4,11 @@ import { Contract } from 'ethers';
 import { setCode } from '@nomicfoundation/hardhat-network-helpers';
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import { bn, fp, FP_ONE } from '@orbcollective/shared-dependencies/numbers';
-import { 
-  MAX_UINT256, 
-  getExternalPackageArtifact, 
-  getExternalPackageDeployedAt } from '@orbcollective/shared-dependencies';
+import {
+  MAX_UINT256,
+  getExternalPackageArtifact,
+  getExternalPackageDeployedAt,
+} from '@orbcollective/shared-dependencies';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 
 import { impersonate, getForkedNetwork, Task, TaskMode, getSigners } from '../../../src';

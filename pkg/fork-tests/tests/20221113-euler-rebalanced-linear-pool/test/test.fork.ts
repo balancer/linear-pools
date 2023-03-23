@@ -5,7 +5,7 @@ import { setCode } from '@nomicfoundation/hardhat-network-helpers';
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 
 import { bn, fp, FP_ONE } from '@orbcollective/shared-dependencies/numbers';
-import { 
+import {
   MAX_UINT256,
   getExternalPackageDeployedAt,
   getExternalPackageArtifact,
@@ -132,8 +132,8 @@ describeForkTest('EulerLinearPoolFactory', 'mainnet', 15961400, function () {
         INITIAL_UPPER_TARGET,
         SWAP_FEE_PERCENTAGE,
         owner.address,
-        PROTOCOL_ID,
-        );
+        PROTOCOL_ID
+      );
       const event = expectEvent.inReceipt(await tx.wait(), 'PoolCreated');
 
       pool = await task.instanceAt('EulerLinearPool', event.args.pool);
@@ -161,13 +161,13 @@ describeForkTest('EulerLinearPoolFactory', 'mainnet', 15961400, function () {
 
     it('check factory aware of EULER_PROTOCOL', async () => {
       expect(await factory.eulerProtocol()).to.equal(EULER_PROTOCOL);
-    })
+    });
 
-    it('check Rebalancer aware of EULER_PROTOCOL',async () => {
+    it('check Rebalancer aware of EULER_PROTOCOL', async () => {
       expect(await rebalancer.eulerProtocol()).to.equal(EULER_PROTOCOL);
-    })
+    });
 
-    it('check pool version',async () => {
+    it('check pool version', async () => {
       const expectedPoolVersion = {
         name: 'EulerLinearPool',
         version: 1,
@@ -207,7 +207,7 @@ describeForkTest('EulerLinearPoolFactory', 'mainnet', 15961400, function () {
     it('set final targets', async () => {
       await pool.connect(owner).setTargets(FINAL_LOWER_TARGET, FINAL_UPPER_TARGET);
     });
-  })
+  });
 
   describe('generate excess of main token and rebalance', () => {
     it('deposit main tokens', async () => {
@@ -314,7 +314,7 @@ describeForkTest('EulerLinearPoolFactory', 'mainnet', 15961400, function () {
   });
 
   describe('rebalancer query protection', () => {
-    it('reverts with a malicious lending pool',async () => {
+    it('reverts with a malicious lending pool', async () => {
       const { cash } = await vault.getPoolTokenInfo(poolId, USDC);
       const scaledCash = cash.mul(USDC_SCALING);
       const { lowerTarget } = await pool.getTargets();
@@ -340,6 +340,6 @@ describeForkTest('EulerLinearPoolFactory', 'mainnet', 15961400, function () {
 
       await mockMaliciousEulerToken.setRevertType(2); // Type 2 is malicious swap query revert
       await expect(rebalancer.rebalance(other.address)).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
-    })
-  })
+    });
+  });
 });

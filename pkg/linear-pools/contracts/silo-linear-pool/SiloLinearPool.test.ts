@@ -84,14 +84,14 @@ describe('SiloLinearPool', function () {
 
     // Deploy the mock repository
     mockRepository = await deployPackageContract('MockSiloRepository', {
-      args: [0,0],
+      args: [0, 0],
     });
     // Deploy the Silo (Liquidity Pool)
     mockSilo = await deployPackageContract('MockSilo', {
       args: [mockRepository.address, mainToken.address],
     });
 
-    let  mockInterestRateInstance = await mockRepository.getInterestRateModel(mockSilo.address, mainToken.address);
+    const mockInterestRateInstance = await mockRepository.getInterestRateModel(mockSilo.address, mainToken.address);
     mockInterestRateModel = await getPackageContractDeployedAt('MockInterestRateModel', mockInterestRateInstance);
 
     const wrappedTokenInstance = await deployPackageContract('MockShareToken', {
@@ -213,16 +213,16 @@ describe('SiloLinearPool', function () {
         await mockRepository.setProtocolShareFee(fp(0.01));
 
         await mockSilo.setInterestData(
-            mainToken.address, // interestBearingAsset
-            fp(1), // harvestedProtocolFees
-            fp(2), // protocolFees
-            0, // interestRateTimestamp
-            AssetStatus.Active // status
+          mainToken.address, // interestBearingAsset
+          fp(1), // harvestedProtocolFees
+          fp(2), // protocolFees
+          0, // interestRateTimestamp
+          AssetStatus.Active // status
         );
         // See details on notion
         const expectedRate = fp(3.3365);
         expect(await pool.getWrappedTokenRate()).to.equal(expectedRate);
-      })
+      });
     });
 
     context('when Silo reverts maliciously to impersonate a swap query', () => {
