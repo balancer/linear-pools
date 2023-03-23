@@ -9,10 +9,8 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-wit
 
 import { JsonFragment } from '@ethersproject/abi';
 import { BigNumber } from '@ethersproject/bignumber';
-import { MaxUint256 } from '@ethersproject/constants';
 import { Contract, ContractReceipt, ContractTransaction } from '@ethersproject/contracts';
 
-import { MONTH } from './time';
 import { maxUint } from './numbers';
 
 import { getBalancerContractAbi, getBalancerContractBytecode } from '@balancer-labs/v2-deployments';

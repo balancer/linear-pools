@@ -18,7 +18,7 @@ contract MockTimelockAuthorizer {
     mapping(bytes32 => bool) private _isPermissionGranted;
 
     /**
-         * @notice A sentinel value for `where` that will match any address.
+     * @notice A sentinel value for `where` that will match any address.
      */
     address public constant EVERYWHERE = address(-1);
 
@@ -65,8 +65,8 @@ contract MockTimelockAuthorizer {
         address where
     ) public view returns (bool) {
         return
-        _isPermissionGranted[getPermissionId(actionId, account, where)] ||
-        _isPermissionGranted[getPermissionId(actionId, account, EVERYWHERE)];
+            _isPermissionGranted[getPermissionId(actionId, account, where)] ||
+            _isPermissionGranted[getPermissionId(actionId, account, EVERYWHERE)];
     }
 
     function _grantPermission(
