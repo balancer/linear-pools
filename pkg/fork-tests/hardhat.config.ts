@@ -64,12 +64,12 @@ task('extract-artifacts', `Extract contract artifacts from their build-info`)
     Logger.setDefaults(false, args.verbose || false);
 
     if (args.id) {
-      const task = new Task(args.id, TaskMode.READ_ONLY);
-      extractArtifact(task, args.file, args.name);
+      const taskObj = new Task(args.id, TaskMode.READ_ONLY);
+      extractArtifact(taskObj, args.file, args.name);
     } else {
       for (const taskID of Task.getAllTaskIds()) {
-        const task = new Task(taskID, TaskMode.READ_ONLY);
-        extractArtifact(task, args.file, args.name);
+        const taskObj = new Task(taskID, TaskMode.READ_ONLY);
+        extractArtifact(taskObj, args.file, args.name);
       }
     }
   });
@@ -90,14 +90,14 @@ task('check-deployments', `Check that all tasks' deployments correspond to their
           continue;
         }
 
-        const task = new Task(taskID, TaskMode.CHECK, hre.network.name);
-        const outputDir = path.resolve(task.dir(), 'output');
+        const taskObj = new Task(taskID, TaskMode.CHECK, hre.network.name);
+        const outputDir = path.resolve(taskObj.dir(), 'output');
 
         if (existsSync(outputDir) && statSync(outputDir).isDirectory()) {
           const outputFiles = readdirSync(outputDir);
           if (outputFiles.some((outputFile) => outputFile.includes(hre.network.name))) {
             // Not all tasks have outputs for all networks, so we skip those that don't
-            await task.run(args);
+            await taskObj.run(args);
           }
         }
       }
@@ -110,12 +110,12 @@ task('check-artifacts', `check that contract artifacts correspond to their build
     Logger.setDefaults(false, args.verbose || false);
 
     if (args.id) {
-      const task = new Task(args.id, TaskMode.READ_ONLY);
-      checkArtifact(task);
+      const taskObj = new Task(args.id, TaskMode.READ_ONLY);
+      checkArtifact(taskObj);
     } else {
       for (const taskID of Task.getAllTaskIds()) {
-        const task = new Task(taskID, TaskMode.READ_ONLY);
-        checkArtifact(task);
+        const taskObj = new Task(taskID, TaskMode.READ_ONLY);
+        checkArtifact(taskObj);
       }
     }
   });
@@ -127,52 +127,55 @@ task('save-action-ids', `Print the action IDs for a particular contract and chec
   .setAction(
     async (args: { id: string; name: string; address?: string; verbose?: boolean }, hre: HardhatRuntimeEnvironment) => {
       async function saveActionIdsTask(
-        args: { id: string; name: string; address?: string; verbose?: boolean },
-        hre: HardhatRuntimeEnvironment
+        saveArgs: { id: string; name: string; address?: string; verbose?: boolean },
+        saveHre: HardhatRuntimeEnvironment
       ) {
-        Logger.setDefaults(false, args.verbose || false);
+        Logger.setDefaults(false, saveArgs.verbose || false);
 
         // The user is calculating action IDs for a contract which isn't included in the task outputs.
         // Most likely this is for a pool which is to be deployed from a factory contract deployed as part of the task.
-        if (args.address) {
-          if (!args.id || !args.name) {
+        if (saveArgs.address) {
+          if (!saveArgs.id || !saveArgs.name) {
             throw new Error(
               "Provided an address for Pool created from a factory but didn't specify task or contract name."
             );
           }
-          const task = new Task(args.id, TaskMode.READ_ONLY, hre.network.name);
-          await saveActionIds(task, args.name, args.address);
+          const taskObj = new Task(saveArgs.id, TaskMode.READ_ONLY, saveHre.network.name);
+          await saveActionIds(taskObj, saveArgs.name, saveArgs.address);
+
           return;
         }
 
         // The user is calculating the action IDs for a particular task or contract within a particular task.
-        if (args.id && args.name) {
-          const task = new Task(args.id, TaskMode.READ_ONLY, hre.network.name);
-          await saveActionIds(task, args.name);
+        if (saveArgs.id && saveArgs.name) {
+          const taskObj = new Task(saveArgs.id, TaskMode.READ_ONLY, saveHre.network.name);
+          await saveActionIds(taskObj, saveArgs.name);
+
           return;
         }
 
         async function generateActionIdsForTask(taskId: string): Promise<void> {
-          const task = new Task(taskId, TaskMode.READ_ONLY, hre.network.name);
-          const outputDir = path.resolve(task.dir(), 'output');
+          const taskObj = new Task(taskId, TaskMode.READ_ONLY, saveHre.network.name);
+          const outputDir = path.resolve(taskObj.dir(), 'output');
 
           if (existsSync(outputDir) && statSync(outputDir).isDirectory()) {
             for (const outputFile of readdirSync(outputDir)) {
               const outputFilePath = path.resolve(outputDir, outputFile);
-              if (outputFile.includes(hre.network.name) && statSync(outputFilePath).isFile()) {
+              if (outputFile.includes(saveHre.network.name) && statSync(outputFilePath).isFile()) {
                 const fileContents = JSON.parse(readFileSync(outputFilePath).toString());
                 const contractNames = Object.keys(fileContents);
 
                 for (const contractName of contractNames) {
-                  await saveActionIds(task, contractName);
+                  await saveActionIds(taskObj, contractName);
                 }
               }
             }
           }
         }
 
-        if (args.id) {
-          await generateActionIdsForTask(args.id);
+        if (saveArgs.id) {
+          await generateActionIdsForTask(saveArgs.id);
+
           return;
         }
 
@@ -194,12 +197,12 @@ task('check-action-ids', `Check that contract action-ids correspond the expected
     Logger.setDefaults(false, args.verbose || false);
 
     if (args.id) {
-      const task = new Task(args.id, TaskMode.READ_ONLY, hre.network.name);
-      await checkActionIds(task);
+      const taskObj = new Task(args.id, TaskMode.READ_ONLY, hre.network.name);
+      await checkActionIds(taskObj);
     } else {
       for (const taskID of Task.getAllTaskIds()) {
-        const task = new Task(taskID, TaskMode.READ_ONLY, hre.network.name);
-        await checkActionIds(task);
+        const taskObj = new Task(taskID, TaskMode.READ_ONLY, hre.network.name);
+        await checkActionIds(taskObj);
       }
     }
     checkActionIdUniqueness(hre.network.name);
@@ -211,15 +214,15 @@ task('build-address-lookup', `Build a lookup table from contract addresses to th
     Logger.setDefaults(false, args.verbose || false);
 
     if (args.id) {
-      const task = new Task(args.id, TaskMode.READ_ONLY, hre.network.name);
-      saveContractDeploymentAddresses(task);
+      const taskObj = new Task(args.id, TaskMode.READ_ONLY, hre.network.name);
+      saveContractDeploymentAddresses(taskObj);
     } else {
       for (const taskID of Task.getAllTaskIds()) {
         if (taskID.startsWith('00000000-')) {
           continue;
         }
-        const task = new Task(taskID, TaskMode.READ_ONLY, hre.network.name);
-        saveContractDeploymentAddresses(task);
+        const taskObj = new Task(taskID, TaskMode.READ_ONLY, hre.network.name);
+        saveContractDeploymentAddresses(taskObj);
       }
     }
   });

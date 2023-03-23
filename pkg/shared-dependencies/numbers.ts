@@ -26,7 +26,7 @@ export const maxInt = (e: number): BigNumber => bn(2).pow(bn(e).sub(1)).sub(1);
 
 export const minInt = (e: number): BigNumber => bn(2).pow(bn(e).sub(1)).mul(-1);
 
-export const pct = (x: BigNumberish, pct: BigNumberish): BigNumber => bn(decimal(x).mul(decimal(pct)));
+export const pct = (x: BigNumberish, numberPct: BigNumberish): BigNumber => bn(decimal(x).mul(decimal(numberPct)));
 
 export const max = (a: BigNumberish, b: BigNumberish): BigNumber => {
   a = bn(a);
