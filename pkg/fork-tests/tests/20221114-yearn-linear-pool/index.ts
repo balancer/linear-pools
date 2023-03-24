@@ -26,9 +26,9 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
     // Pools are automatically verified. We however don't run any of this code in CHECK mode, since we don't care about
     // the contracts deployed here. The action IDs will be checked to be correct via a different mechanism.
 
-    // YearnLinearPools require an Yearn Token
-    const mockYearnTokenArgs = ['DO NOT USE - Mock Yearn Token', 'TEST', 18, input.WETH];
-    const mockYearnToken = await task.deployAndVerify('MockYearnTokenVault', mockYearnTokenArgs, from, force);
+    // YearnLinearPools require a Yearn Token
+    const mockShareTokenArgs = ['DO NOT USE - Mock Yearn Token', 'TEST', 18, input.WETH];
+    const mockShareToken = await task.deployAndVerify('MockYearnTokenVault', mockShareTokenArgs, from, force);
 
     // The assetManager, pauseWindowDuration and bufferPeriodDuration will be filled in later, but we need to declare
     // them here to appease the type system. Those are constructor arguments, but automatically provided by the factory.
@@ -37,7 +37,7 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
       name: 'DO NOT USE - Mock Linear Pool',
       symbol: 'TEST',
       mainToken: input.WETH,
-      wrappedToken: mockYearnToken.address,
+      wrappedToken: mockShareToken.address,
       assetManager: undefined,
       upperTarget: 0,
       pauseWindowDuration: undefined,

@@ -1,14 +1,14 @@
 import { bn } from '@orbcollective/shared-dependencies/numbers';
 import Task, { TaskMode } from '../../src/task';
 import { TaskRunOptions } from '../../src/task-libraries/types';
-import { GearboxLinearPoolDeployment } from './input';
+import { EulerLinearPoolDeployment } from './input';
 import { ZERO_ADDRESS } from '@orbcollective/shared-dependencies';
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import { ethers } from 'hardhat';
 import { getContractDeploymentTransactionHash, saveContractDeploymentTransactionHash } from '../../src';
 
 export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise<void> => {
-  const input = task.input() as GearboxLinearPoolDeployment;
+  const input = task.input() as EulerLinearPoolDeployment;
   const args = [
     input.Vault,
     input.ProtocolFeePercentagesProvider,
@@ -17,19 +17,19 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
     input.PoolVersion,
     input.InitialPauseWindowDuration,
     input.BufferPeriodDuration,
+    input.EulerProtocol,
   ];
 
-  const factory = await task.deployAndVerify('GearboxLinearPoolFactory', args, from, force);
+  const factory = await task.deployAndVerify('EulerLinearPoolFactory', args, from, force);
 
   if (task.mode === TaskMode.LIVE) {
     // We also create a Pool using the factory and verify it, to let us compute their action IDs and so that future
     // Pools are automatically verified. We however don't run any of this code in CHECK mode, since we don't care about
     // the contracts deployed here. The action IDs will be checked to be correct via a different mechanism.
 
-    // GearboxLinearPools require a DieselToken, which in turn requires a gearboxVault.
-    const mockGearboxVault = await task.deployAndVerify('MockGearboxVault', [], from, force);
-    const mockDieselTokenArgs = ['DO NOT USE - Mock Diesel Token', 'TEST', 18, input.WETH, mockGearboxVault.address];
-    const mockDieselToken = await task.deployAndVerify('MockGearboxDieselToken', mockDieselTokenArgs, from, force);
+    // EulerLinearPools require an Euler Token
+    const mockEulerTokenArgs = ['DO NOT USE - Mock Euler Token', 'TEST', 18, input.WETH];
+    const mockEulerToken = await task.deployAndVerify('MockEulerToken', mockEulerTokenArgs, from, force);
 
     // The assetManager, pauseWindowDuration and bufferPeriodDuration will be filled in later, but we need to declare
     // them here to appease the type system. Those are constructor arguments, but automatically provided by the factory.
@@ -38,7 +38,7 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
       name: 'DO NOT USE - Mock Linear Pool',
       symbol: 'TEST',
       mainToken: input.WETH,
-      wrappedToken: mockDieselToken.address,
+      wrappedToken: mockEulerToken.address,
       assetManager: undefined,
       upperTarget: 0,
       pauseWindowDuration: undefined,
@@ -49,7 +49,7 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
     };
 
     // This mimics the logic inside task.deploy
-    if (force || !task.output({ ensure: false })['MockGearboxLinearPool']) {
+    if (force || !task.output({ ensure: false })['MockEulerLinearPool']) {
       const PROTOCOL_ID = 0;
 
       const poolCreationReceipt = await (
@@ -68,10 +68,10 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
       const mockPoolAddress = event.args.pool;
 
       await saveContractDeploymentTransactionHash(mockPoolAddress, poolCreationReceipt.transactionHash, task.network);
-      await task.save({ MockGearboxLinearPool: mockPoolAddress });
+      await task.save({ MockEulerLinearPool: mockPoolAddress });
     }
 
-    const mockPool = await task.instanceAt('GearboxLinearPool', task.output()['MockGearboxLinearPool']);
+    const mockPool = await task.instanceAt('EulerLinearPool', task.output()['MockEulerLinearPool']);
 
     // In order to verify the Pool's code, we need to complete its constructor arguments by computing the factory
     // provided arguments (asset manager and pause durations).
@@ -96,9 +96,13 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
       .sub(mockPoolArgs.pauseWindowDuration);
 
     // We are now ready to verify the Pool
-    await task.verify('GearboxLinearPool', mockPool.address, [mockPoolArgs]);
+    await task.verify('EulerLinearPool', mockPool.address, [mockPoolArgs]);
 
     // We can also verify the Asset Manager
-    await task.verify('GearboxLinearPoolRebalancer', assetManagerAddress, [input.Vault, input.BalancerQueries]);
+    await task.verify('EulerLinearPoolRebalancer', assetManagerAddress, [
+      input.Vault,
+      input.BalancerQueries,
+      input.EulerProtocol,
+    ]);
   }
 };

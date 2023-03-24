@@ -1,7 +1,7 @@
 import Task, { TaskMode } from '../../src/task';
 import { MONTH } from '@orbcollective/shared-dependencies/time';
 
-export type GearboxLinearPoolDeployment = {
+export type TetuLinearPoolDeployment = {
   Vault: string;
   BalancerQueries: string;
   ProtocolFeePercentagesProvider: string;
