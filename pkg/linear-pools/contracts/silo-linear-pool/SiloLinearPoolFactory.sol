@@ -38,6 +38,7 @@ contract SiloLinearPoolFactory is
     ReentrancyGuard
 {
     // Used for create2 deployments
+    uint256 private _nextPoolSalt;
     uint256 private _nextRebalancerSalt;
 
     IBalancerQueries private immutable _queries;
@@ -78,8 +79,8 @@ contract SiloLinearPoolFactory is
         return _poolVersion;
     }
 
-    function _create(bytes memory constructorArgs) internal virtual override returns (address) {
-        address pool = super._create(constructorArgs);
+    function _create(bytes memory constructorArgs, bytes32 salt) internal virtual override returns (address) {
+        address pool = super._create(constructorArgs, salt);
         _lastCreatedPool = pool;
 
         return pool;
@@ -112,6 +113,9 @@ contract SiloLinearPoolFactory is
         // the Pool's address. To work around this, we have the Rebalancer fetch this address from `getLastCreatedPool`,
         // which will hold the Pool's address after we call `_create`.
 
+        bytes32 poolSalt = bytes32(_nextPoolSalt);
+        _nextPoolSalt += 1;
+
         bytes32 rebalancerSalt = bytes32(_nextRebalancerSalt);
         _nextRebalancerSalt += 1;
         bytes memory rebalancerCreationCode = abi.encodePacked(
@@ -137,7 +141,7 @@ contract SiloLinearPoolFactory is
         args.owner = owner;
         args.version = getPoolVersion();
 
-        SiloLinearPool pool = SiloLinearPool(_create(abi.encode(args)));
+        SiloLinearPool pool = SiloLinearPool(_create(abi.encode(args), poolSalt));
 
         // LinearPools have a separate post-construction initialization step: we perform it here to
         // ensure deployment and initialization are atomic.
