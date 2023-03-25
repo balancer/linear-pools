@@ -17,7 +17,7 @@ const BalancerQueries = new Task('20220721-balancer-queries', TaskMode.READ_ONLY
 const ProtocolFeePercentagesProvider = new Task('20220725-protocol-fee-percentages-provider', TaskMode.READ_ONLY);
 const WETH = new Task('00000000-tokens', TaskMode.READ_ONLY);
 
-const BaseVersion = { version: 1, deployment: '20230110-tetu-rebalanced-linear-pool' };
+const BaseVersion = { version: 1, deployment: '20230110-tetu-linear-pool' };
 
 export default {
   Vault,

@@ -4,10 +4,11 @@ import { Contract } from 'ethers';
 import { setCode } from '@nomicfoundation/hardhat-network-helpers';
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import { bn, fp, FP_ONE } from '@orbcollective/shared-dependencies/numbers';
-import { 
-  MAX_UINT256, 
-  getExternalPackageArtifact, 
-  getExternalPackageDeployedAt } from '@orbcollective/shared-dependencies';
+import {
+  MAX_UINT256,
+  getExternalPackageArtifact,
+  getExternalPackageDeployedAt,
+} from '@orbcollective/shared-dependencies';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 
 import { impersonate, getForkedNetwork, Task, TaskMode, getSigners } from '../../../src';
@@ -50,7 +51,7 @@ describeForkTest('GearboxLinearPoolFactory', 'mainnet', 15989794, function () {
   let poolId: string;
 
   before('run task', async () => {
-    task = new Task('20230102-gearbox-rebalanced-linear-pool', TaskMode.TEST, getForkedNetwork(hre));
+    task = new Task('20230102-gearbox-linear-pool', TaskMode.TEST, getForkedNetwork(hre));
     await task.run({ force: true });
     factory = await task.deployedInstance('GearboxLinearPoolFactory');
   });
@@ -157,7 +158,7 @@ describeForkTest('GearboxLinearPoolFactory', 'mainnet', 15989794, function () {
       const expectedFactoryVersion = {
         name: 'GearboxLinearPoolFactory',
         version: 1,
-        deployment: '20230102-gearbox-rebalanced-linear-pool',
+        deployment: '20230102-gearbox-linear-pool',
       };
 
       expect(await factory.version()).to.equal(JSON.stringify(expectedFactoryVersion));
@@ -167,7 +168,7 @@ describeForkTest('GearboxLinearPoolFactory', 'mainnet', 15989794, function () {
       const expectedPoolVersion = {
         name: 'GearboxLinearPool',
         version: 1,
-        deployment: '20230102-gearbox-rebalanced-linear-pool',
+        deployment: '20230102-gearbox-linear-pool',
       };
 
       expect(await pool.version()).to.equal(JSON.stringify(expectedPoolVersion));

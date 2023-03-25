@@ -48,7 +48,7 @@ describeForkTest('YearnLinearPoolFactory', 'mainnet', 16610000, function () {
   let poolId: string;
 
   before('run task', async () => {
-    task = new Task('20221114-yearn-rebalanced-linear-pool', TaskMode.TEST, getForkedNetwork(hre));
+    task = new Task('20221114-yearn-linear-pool', TaskMode.TEST, getForkedNetwork(hre));
     await task.run({ force: true });
     factory = await task.deployedInstance('YearnLinearPoolFactory');
   });
@@ -155,7 +155,7 @@ describeForkTest('YearnLinearPoolFactory', 'mainnet', 16610000, function () {
       const expectedFactoryVersion = {
         name: 'YearnLinearPoolFactory',
         version: 1,
-        deployment: '20221114-yearn-rebalanced-linear-pool',
+        deployment: '20221114-yearn-linear-pool',
       };
 
       expect(await factory.version()).to.equal(JSON.stringify(expectedFactoryVersion));
@@ -165,7 +165,7 @@ describeForkTest('YearnLinearPoolFactory', 'mainnet', 16610000, function () {
       const expectedPoolVersion = {
         name: 'YearnLinearPool',
         version: 1,
-        deployment: '20221114-yearn-rebalanced-linear-pool',
+        deployment: '20221114-yearn-linear-pool',
       };
 
       expect(await pool.version()).to.equal(JSON.stringify(expectedPoolVersion));

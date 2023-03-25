@@ -50,7 +50,7 @@ describeForkTest('TetuLinearPoolFactory', 'polygon', 39288293, function () {
   let poolId: string;
 
   before('run task', async () => {
-    task = new Task('20230110-tetu-rebalanced-linear-pool', TaskMode.TEST, getForkedNetwork(hre));
+    task = new Task('20230110-tetu-linear-pool', TaskMode.TEST, getForkedNetwork(hre));
     await task.run({ force: true });
     factory = await task.deployedInstance('TetuLinearPoolFactory');
   });
@@ -162,7 +162,7 @@ describeForkTest('TetuLinearPoolFactory', 'polygon', 39288293, function () {
       const expectedFactoryVersion = {
         name: 'TetuLinearPoolFactory',
         version: 1,
-        deployment: '20230110-tetu-rebalanced-linear-pool',
+        deployment: '20230110-tetu-linear-pool',
       };
 
       expect(await factory.version()).to.equal(JSON.stringify(expectedFactoryVersion));
@@ -172,7 +172,7 @@ describeForkTest('TetuLinearPoolFactory', 'polygon', 39288293, function () {
       const expectedPoolVersion = {
         name: 'TetuLinearPool',
         version: 1,
-        deployment: '20230110-tetu-rebalanced-linear-pool',
+        deployment: '20230110-tetu-linear-pool',
       };
 
       expect(await pool.version()).to.equal(JSON.stringify(expectedPoolVersion));

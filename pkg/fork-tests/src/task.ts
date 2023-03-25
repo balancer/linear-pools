@@ -26,8 +26,6 @@ import { getTaskActionIds } from './task-libraries/actionId';
 import { getArtifactFromContractOutput } from './task-libraries/artifact';
 
 const TESTS_DIRECTORY = path.resolve(__dirname, '../tests');
-const DEPRECATED_DIRECTORY = path.join(TESTS_DIRECTORY, 'deprecated');
-const SCRIPTS_DIRECTORY = path.join(TESTS_DIRECTORY, 'scripts');
 
 export enum TaskMode {
   LIVE, // Deploys and saves outputs

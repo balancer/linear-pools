@@ -4,10 +4,12 @@ import { Contract } from 'ethers';
 import { setCode } from '@nomicfoundation/hardhat-network-helpers';
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import { bn, fp, FP_ONE } from '@orbcollective/shared-dependencies/numbers';
-import { 
-  MAX_UINT256, 
-  getExternalPackageArtifact, 
-  getExternalPackageDeployedAt } from '@orbcollective/shared-dependencies';import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
+import {
+  MAX_UINT256,
+  getExternalPackageArtifact,
+  getExternalPackageDeployedAt,
+} from '@orbcollective/shared-dependencies';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 
 import { impersonate, getForkedNetwork, Task, TaskMode, getSigners } from '../../../src';
 import { describeForkTest } from '../../../src/forkTests';
@@ -46,7 +48,7 @@ describeForkTest('ERC4626LinearPoolFactory', 'mainnet', 16015018, function () {
   let poolId: string;
 
   before('run task', async () => {
-    task = new Task('20230103-erc4626-rebalanced-linear-pool', TaskMode.TEST, getForkedNetwork(hre));
+    task = new Task('20230103-erc4626-linear-pool', TaskMode.TEST, getForkedNetwork(hre));
     await task.run({ force: true });
     factory = await task.deployedInstance('ERC4626LinearPoolFactory');
   });
@@ -153,7 +155,7 @@ describeForkTest('ERC4626LinearPoolFactory', 'mainnet', 16015018, function () {
       const expectedFactoryVersion = {
         name: 'ERC4626LinearPoolFactory',
         version: 1,
-        deployment: '20230103-erc4626-rebalanced-linear-pool',
+        deployment: '20230103-erc4626-linear-pool-v3',
       };
 
       expect(await factory.version()).to.equal(JSON.stringify(expectedFactoryVersion));
@@ -163,7 +165,7 @@ describeForkTest('ERC4626LinearPoolFactory', 'mainnet', 16015018, function () {
       const expectedPoolVersion = {
         name: 'ERC4626LinearPool',
         version: 1,
-        deployment: '20230103-erc4626-rebalanced-linear-pool',
+        deployment: '20230103-erc4626-linear-pool-v3',
       };
 
       expect(await pool.version()).to.equal(JSON.stringify(expectedPoolVersion));
