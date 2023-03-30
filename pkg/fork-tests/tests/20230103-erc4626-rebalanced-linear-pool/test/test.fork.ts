@@ -4,13 +4,16 @@ import { Contract } from 'ethers';
 import { setCode } from '@nomicfoundation/hardhat-network-helpers';
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import { bn, fp, FP_ONE } from '@orbcollective/shared-dependencies/numbers';
-import { 
-  MAX_UINT256, 
-  getExternalPackageArtifact, 
-  getExternalPackageDeployedAt } from '@orbcollective/shared-dependencies';import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
+import {
+  MAX_UINT256,
+  getExternalPackageArtifact,
+  getExternalPackageDeployedAt,
+} from '@orbcollective/shared-dependencies';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 
 import { impersonate, getForkedNetwork, Task, TaskMode, getSigners } from '../../../src';
 import { describeForkTest } from '../../../src/forkTests';
+import { randomBytes } from 'ethers/lib/utils';
 
 export enum SwapKind {
   GivenIn = 0,
@@ -132,7 +135,8 @@ describeForkTest('ERC4626LinearPoolFactory', 'mainnet', 16015018, function () {
         INITIAL_UPPER_TARGET,
         SWAP_FEE_PERCENTAGE,
         owner.address,
-        PROTOCOL_ID
+        PROTOCOL_ID,
+        randomBytes(32)
       );
       const event = expectEvent.inReceipt(await tx.wait(), 'PoolCreated');
 

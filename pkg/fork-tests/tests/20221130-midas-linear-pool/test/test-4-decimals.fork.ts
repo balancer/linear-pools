@@ -16,6 +16,7 @@ import { SwapKind } from '@balancer-labs/balancer-js';
 
 import { describeForkTest } from '../../../src/forkTests';
 import { impersonate, getForkedNetwork, Task, TaskMode, getSigners } from '../../../src';
+import { randomBytes } from 'ethers/lib/utils';
 
 describeForkTest('MidasLinearPoolFactory', 'bsc', 23696722, function () {
   let owner: SignerWithAddress, holder: SignerWithAddress, other: SignerWithAddress;
@@ -134,7 +135,8 @@ describeForkTest('MidasLinearPoolFactory', 'bsc', 23696722, function () {
         INITIAL_UPPER_TARGET,
         SWAP_FEE_PERCENTAGE,
         owner.address,
-        PROTOCOL_ID
+        PROTOCOL_ID,
+        randomBytes(32)
       );
       const event = expectEvent.inReceipt(await tx.wait(), 'PoolCreated');
 
