@@ -13,6 +13,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-wit
 
 import { impersonate, getForkedNetwork, Task, TaskMode, getSigners } from '../../../src';
 import { describeForkTest } from '../../../src/forkTests';
+import { randomBytes } from 'ethers/lib/utils';
 
 export enum SwapKind {
   GivenIn = 0,
@@ -134,7 +135,8 @@ describeForkTest('YearnLinearPoolFactory', 'mainnet', 16610000, function () {
         INITIAL_UPPER_TARGET,
         SWAP_FEE_PERCENTAGE,
         owner.address,
-        PROTOCOL_ID
+        PROTOCOL_ID,
+        randomBytes(32)
       );
       const event = expectEvent.inReceipt(await tx.wait(), 'PoolCreated');
 

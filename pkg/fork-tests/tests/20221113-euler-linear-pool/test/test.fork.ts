@@ -15,6 +15,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-wit
 import { describeForkTest } from '../../../src/forkTests';
 
 import { impersonate, getForkedNetwork, Task, TaskMode, getSigners } from '../../../src';
+import { randomBytes } from 'ethers/lib/utils';
 
 export enum SwapKind {
   GivenIn = 0,
@@ -132,7 +133,8 @@ describeForkTest('EulerLinearPoolFactory', 'mainnet', 15961400, function () {
         INITIAL_UPPER_TARGET,
         SWAP_FEE_PERCENTAGE,
         owner.address,
-        PROTOCOL_ID
+        PROTOCOL_ID,
+        randomBytes(32)
       );
       const event = expectEvent.inReceipt(await tx.wait(), 'PoolCreated');
 

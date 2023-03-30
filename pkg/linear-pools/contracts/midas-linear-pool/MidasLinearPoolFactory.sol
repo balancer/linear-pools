@@ -86,8 +86,8 @@ contract MidasLinearPoolFactory is
         return _poolVersion;
     }
 
-    function _create(bytes memory constructorArgs) internal virtual override returns (address) {
-        address pool = super._create(constructorArgs);
+    function _create(bytes memory constructorArgs, bytes32 salt) internal virtual override returns (address) {
+        address pool = super._create(constructorArgs, salt);
         _lastCreatedPool = pool;
 
         return pool;
@@ -104,7 +104,8 @@ contract MidasLinearPoolFactory is
         uint256 upperTarget,
         uint256 swapFeePercentage,
         address owner,
-        uint256 protocolId
+        uint256 protocolId,
+        bytes32 salt
     ) external nonReentrant returns (LinearPool) {
         // We are going to deploy both an MidasLinearPool and an MidasLinearPoolRebalancer set as its Asset Manager,
         // but this creates a circular dependency problem: the Pool must know the Asset Manager's address in order to
@@ -145,7 +146,7 @@ contract MidasLinearPoolFactory is
         args.owner = owner;
         args.version = getPoolVersion();
 
-        MidasLinearPool pool = MidasLinearPool(_create(abi.encode(args)));
+        MidasLinearPool pool = MidasLinearPool(_create(abi.encode(args), salt));
 
         // LinearPools have a separate post-construction initialization step: we perform it here to
         // ensure deployment and initialization are atomic.

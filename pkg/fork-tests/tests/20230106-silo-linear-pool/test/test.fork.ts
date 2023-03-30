@@ -13,6 +13,7 @@ import { setCode } from '@nomicfoundation/hardhat-network-helpers';
 
 import { impersonate, getForkedNetwork, Task, TaskMode, getSigners } from '../../../src';
 import { describeForkTest } from '../../../src/forkTests';
+import { randomBytes } from 'ethers/lib/utils';
 
 export enum SwapKind {
   GivenIn = 0,
@@ -141,7 +142,8 @@ describeForkTest('SiloLinearPoolFactory', 'mainnet', 16478568, function () {
         INITIAL_UPPER_TARGET,
         SWAP_FEE_PERCENTAGE,
         owner.address,
-        PROTOCOL_ID
+        PROTOCOL_ID,
+        randomBytes(32)
       );
       const event = expectEvent.inReceipt(await tx.wait(), 'PoolCreated');
 
