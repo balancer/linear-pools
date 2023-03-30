@@ -12,11 +12,12 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
   const args = [
     input.Vault,
     input.ProtocolFeePercentagesProvider,
-    input.BalancerQueries, input.FactoryVersion,
+    input.BalancerQueries,
+    input.FactoryVersion,
     input.PoolVersion,
     input.InitialPauseWindowDuration,
     input.BufferPeriodDuration,
-    input.EulerProtocol
+    input.EulerProtocol,
   ];
 
   const factory = await task.deployAndVerify('EulerLinearPoolFactory', args, from, force);
@@ -98,5 +99,5 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
 
     // We can also verify the Asset Manager
     await task.verify('EulerLinearPoolRebalancer', assetManagerAddress, [input.Vault, input.BalancerQueries]);
-  } 
+  }
 };

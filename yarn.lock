@@ -87,6 +87,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@balancer-labs/v2-interfaces@npm:0.4.0":
+  version: 0.4.0
+  resolution: "@balancer-labs/v2-interfaces@npm:0.4.0"
+  checksum: dd774a51c1020bbfc4dadb5e0ba948f47bcc6f9f3631bc14044058e409da8c207770d78af78e7a272774a4f7230c466a27a722fb01e440a1bf17af04140fef95
+  languageName: node
+  linkType: hard
+
 "@balancer-labs/v2-interfaces@npm:^0.1.0":
   version: 0.1.0
   resolution: "@balancer-labs/v2-interfaces@npm:0.1.0"
@@ -115,12 +122,31 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@balancer-labs/v2-pool-utils@npm:4.0.0":
+  version: 4.0.0
+  resolution: "@balancer-labs/v2-pool-utils@npm:4.0.0"
+  dependencies:
+    "@balancer-labs/v2-interfaces": 0.4.0
+    "@balancer-labs/v2-solidity-utils": 4.0.0
+  checksum: 45fd99cd8638b6d8db62bc947d9ad6c7e28f8837aae3e645522243c9d89ca0fd0c7ecc550121038f59f27b6067e2f1ddd5b91bc56fac9d0d34112b1f4a0e4444
+  languageName: node
+  linkType: hard
+
 "@balancer-labs/v2-solidity-utils@npm:3.0.2":
   version: 3.0.2
   resolution: "@balancer-labs/v2-solidity-utils@npm:3.0.2"
   dependencies:
     "@balancer-labs/v2-interfaces": 0.3.0
   checksum: d39a11b38b68d92b7a338dc8e49503da1088582b82b24a4506574b266ec03cc42a85abf5aa6697ad8c85fe35273f2d13de59bc26b773b992ed80253f5c20f68c
+  languageName: node
+  linkType: hard
+
+"@balancer-labs/v2-solidity-utils@npm:4.0.0":
+  version: 4.0.0
+  resolution: "@balancer-labs/v2-solidity-utils@npm:4.0.0"
+  dependencies:
+    "@balancer-labs/v2-interfaces": 0.4.0
+  checksum: 476440a435488511372e6252a1595e04ca9f93544d16bf56a7fd3117643cfb150f904455edb1e62b00ce9b110c19f9ba5b9b411de6cb8089876fe5a3617bda7f
   languageName: node
   linkType: hard
 
@@ -1189,6 +1215,8 @@ __metadata:
   resolution: "@orbcollective/linear-pools@workspace:pkg/linear-pools"
   dependencies:
     "@balancer-labs/v2-pool-linear": ^1.1.0
+    "@balancer-labs/v2-pool-utils": 4.0.0
+    "@balancer-labs/v2-solidity-utils": 4.0.0
     "@nomiclabs/hardhat-ethers": ^2.2.1
     "@nomiclabs/hardhat-waffle": ^2.0.3
     "@types/chai": ^4.3.3

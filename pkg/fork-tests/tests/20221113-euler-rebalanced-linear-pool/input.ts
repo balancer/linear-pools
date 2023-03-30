@@ -1,7 +1,6 @@
 import Task, { TaskMode } from '../../src/task';
 import { MONTH } from '@orbcollective/shared-dependencies/time';
 
-
 export type EulerLinearPoolDeployment = {
   Vault: string;
   ProtocolFeePercentagesProvider: string;
