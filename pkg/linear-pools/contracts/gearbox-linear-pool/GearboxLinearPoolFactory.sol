@@ -37,7 +37,6 @@ contract GearboxLinearPoolFactory is
     ReentrancyGuard
 {
     // Used for create2 deployments
-    uint256 private _nextPoolSalt;
     uint256 private _nextRebalancerSalt;
 
     IBalancerQueries private immutable _queries;
@@ -100,7 +99,8 @@ contract GearboxLinearPoolFactory is
         uint256 upperTarget,
         uint256 swapFeePercentage,
         address owner,
-        uint256 protocolId
+        uint256 protocolId,
+        bytes32 salt
     ) external nonReentrant returns (GearboxLinearPool) {
         // We are going to deploy both an GearboxLinearPool and an GearboxLinearPoolRebalancer set as its Asset
         // Manager, but this creates a circular dependency problem: the Pool must know the Asset Manager's address
@@ -115,9 +115,6 @@ contract GearboxLinearPoolFactory is
         // with this approach is that create2 requires the full creation code, including constructor arguments, and
         // among those is the Pool's address. To work around this, we have the Rebalancer fetch this address from
         // `getLastCreatedPool`, which will hold the Pool's address after we call `_create`.
-
-        bytes32 poolSalt = bytes32(_nextPoolSalt);
-        _nextPoolSalt += 1;
 
         bytes32 rebalancerSalt = bytes32(_nextRebalancerSalt);
         _nextRebalancerSalt += 1;
@@ -144,7 +141,7 @@ contract GearboxLinearPoolFactory is
         args.owner = owner;
         args.version = getPoolVersion();
 
-        GearboxLinearPool pool = GearboxLinearPool(_create(abi.encode(args), poolSalt));
+        GearboxLinearPool pool = GearboxLinearPool(_create(abi.encode(args), salt));
 
         // LinearPools have a separate post-construction initialization step: we perform it here to
         // ensure deployment and initialization are atomic.

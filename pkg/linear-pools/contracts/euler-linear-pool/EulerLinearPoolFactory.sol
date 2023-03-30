@@ -39,7 +39,6 @@ contract EulerLinearPoolFactory is
     ReentrancyGuard
 {
     // Used for create2 deployments
-    uint256 private _nextPoolSalt;
     uint256 private _nextRebalancerSalt;
 
     IBalancerQueries private immutable _queries;
@@ -110,7 +109,8 @@ contract EulerLinearPoolFactory is
         uint256 upperTarget,
         uint256 swapFeePercentage,
         address owner,
-        uint256 protocolId
+        uint256 protocolId,
+        bytes32 salt
     ) external nonReentrant returns (LinearPool) {
         // We are going to deploy both an EulerLinearPool and an EulerLinearPoolRebalancer set as its Asset Manager, but
         // this creates a circular dependency problem: the Pool must know the Asset Manager's address in order to call
@@ -125,9 +125,6 @@ contract EulerLinearPoolFactory is
         // approach is that create2 requires the full creation code, including constructor arguments, and among those is
         // the Pool's address. To work around this, we have the Rebalancer fetch this address from `getLastCreatedPool`,
         // which will hold the Pool's address after we call `_create`.
-
-        bytes32 poolSalt = bytes32(_nextPoolSalt);
-        _nextPoolSalt += 1;
 
         bytes32 rebalancerSalt = bytes32(_nextRebalancerSalt);
         _nextRebalancerSalt += 1;
@@ -154,7 +151,7 @@ contract EulerLinearPoolFactory is
         args.owner = owner;
         args.version = getPoolVersion();
 
-        EulerLinearPool pool = EulerLinearPool(_create(abi.encode(args), poolSalt));
+        EulerLinearPool pool = EulerLinearPool(_create(abi.encode(args), salt));
 
         // LinearPools have a separate post-construction initialization step: we perform it here to
         // ensure deployment and initialization are atomic.

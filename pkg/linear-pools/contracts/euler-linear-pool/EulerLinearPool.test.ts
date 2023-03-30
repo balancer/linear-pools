@@ -18,6 +18,7 @@ import { MONTH } from '@orbcollective/shared-dependencies/time';
 
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import TokenList from '@orbcollective/shared-dependencies/test-helpers/token/TokenList';
+import { randomBytes } from 'ethers/lib/utils';
 
 export enum SwapKind {
   GivenIn = 0,
@@ -113,7 +114,8 @@ describe('EulerLinearPool', function () {
       bn(0),
       POOL_SWAP_FEE_PERCENTAGE,
       owner.address,
-      EULER_PROTOCOL_ID
+      EULER_PROTOCOL_ID,
+      randomBytes(32)
     );
     const receipt = await tx.wait();
     const event = expectEvent.inReceipt(receipt, 'PoolCreated');
@@ -134,7 +136,8 @@ describe('EulerLinearPool', function () {
           bn(0),
           POOL_SWAP_FEE_PERCENTAGE,
           owner.address,
-          EULER_PROTOCOL_ID
+          EULER_PROTOCOL_ID,
+          randomBytes(32)
         )
       ).to.be.revertedWith('BAL#520'); // TOKEN_MISMATCH code
     });

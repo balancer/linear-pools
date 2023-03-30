@@ -38,7 +38,6 @@ contract SiloLinearPoolFactory is
     ReentrancyGuard
 {
     // Used for create2 deployments
-    uint256 private _nextPoolSalt;
     uint256 private _nextRebalancerSalt;
 
     IBalancerQueries private immutable _queries;
@@ -97,7 +96,8 @@ contract SiloLinearPoolFactory is
         uint256 upperTarget,
         uint256 swapFeePercentage,
         address owner,
-        uint256 protocolId
+        uint256 protocolId,
+        bytes32 salt
     ) external nonReentrant returns (SiloLinearPool) {
         // We are going to deploy both an SiloLinearPool and an SiloLinearPoolRebalancer set as its Asset Manager, but
         // this creates a circular dependency problem: the Pool must know the Asset Manager's address in order to call
@@ -112,9 +112,6 @@ contract SiloLinearPoolFactory is
         // approach is that create2 requires the full creation code, including constructor arguments, and among those is
         // the Pool's address. To work around this, we have the Rebalancer fetch this address from `getLastCreatedPool`,
         // which will hold the Pool's address after we call `_create`.
-
-        bytes32 poolSalt = bytes32(_nextPoolSalt);
-        _nextPoolSalt += 1;
 
         bytes32 rebalancerSalt = bytes32(_nextRebalancerSalt);
         _nextRebalancerSalt += 1;
@@ -141,7 +138,7 @@ contract SiloLinearPoolFactory is
         args.owner = owner;
         args.version = getPoolVersion();
 
-        SiloLinearPool pool = SiloLinearPool(_create(abi.encode(args), poolSalt));
+        SiloLinearPool pool = SiloLinearPool(_create(abi.encode(args), salt));
 
         // LinearPools have a separate post-construction initialization step: we perform it here to
         // ensure deployment and initialization are atomic.

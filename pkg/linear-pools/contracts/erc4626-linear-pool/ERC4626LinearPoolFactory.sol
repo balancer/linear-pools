@@ -37,7 +37,6 @@ contract ERC4626LinearPoolFactory is
     ReentrancyGuard
 {
     // Used for create2 deployments
-    uint256 private _nextPoolSalt;
     uint256 private _nextRebalancerSalt;
 
     IBalancerQueries private immutable _queries;
@@ -103,7 +102,8 @@ contract ERC4626LinearPoolFactory is
         uint256 upperTarget,
         uint256 swapFeePercentage,
         address owner,
-        uint256 protocolId
+        uint256 protocolId,
+        bytes32 salt
     ) external nonReentrant returns (LinearPool) {
         // We are going to deploy both an Erc4626LinearPool and an Erc4626LinearPoolRebalancer set as its Asset Manager,
         // but this creates a circular dependency problem: the Pool must know the Asset Manager's address in order to
@@ -118,9 +118,6 @@ contract ERC4626LinearPoolFactory is
         // approach is that create2 requires the full creation code, including constructor arguments, and among those is
         // the Pool's address. To work around this, we have the Rebalancer fetch this address from `getLastCreatedPool`,
         // which will hold the Pool's address after we call `_create`.
-
-        bytes32 poolSalt = bytes32(_nextPoolSalt);
-        _nextPoolSalt += 1;
 
         bytes32 rebalancerSalt = bytes32(_nextRebalancerSalt);
         _nextRebalancerSalt += 1;
@@ -147,7 +144,7 @@ contract ERC4626LinearPoolFactory is
         args.owner = owner;
         args.version = getPoolVersion();
 
-        ERC4626LinearPool pool = ERC4626LinearPool(_create(abi.encode(args), poolSalt));
+        ERC4626LinearPool pool = ERC4626LinearPool(_create(abi.encode(args), salt));
 
         // LinearPools have a separate post-construction initialization step: we perform it here to
         // ensure deployment and initialization are atomic.

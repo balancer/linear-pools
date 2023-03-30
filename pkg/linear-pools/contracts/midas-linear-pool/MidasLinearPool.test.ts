@@ -20,6 +20,7 @@ import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import TokenList from '@orbcollective/shared-dependencies/test-helpers/token/TokenList';
 
 import { FundManagement, SingleSwap } from '@balancer-labs/balancer-js';
+import { randomBytes } from 'ethers/lib/utils';
 
 export enum SwapKind {
   GivenIn = 0,
@@ -119,7 +120,8 @@ describe('MidasLinearPool', function () {
       bn(0),
       POOL_SWAP_FEE_PERCENTAGE,
       owner.address,
-      MIDAS_PROTOCOL_ID
+      MIDAS_PROTOCOL_ID,
+      randomBytes(32)
     );
     const receipt = await tx.wait();
     const event = expectEvent.inReceipt(receipt, 'PoolCreated');
@@ -140,7 +142,8 @@ describe('MidasLinearPool', function () {
           bn(0),
           POOL_SWAP_FEE_PERCENTAGE,
           owner.address,
-          MIDAS_PROTOCOL_ID
+          MIDAS_PROTOCOL_ID,
+          randomBytes(32)
         )
       ).to.be.revertedWith('BAL#520');
     });
@@ -256,7 +259,8 @@ describe('MidasLinearPool', function () {
         fp(1_000_000),
         POOL_SWAP_FEE_PERCENTAGE,
         owner.address,
-        MIDAS_PROTOCOL_ID
+        MIDAS_PROTOCOL_ID,
+        randomBytes(32)
       );
       const receipt = await tx.wait();
       const event = expectEvent.inReceipt(receipt, 'PoolCreated');
@@ -375,7 +379,8 @@ describe('MidasLinearPool', function () {
         fp(1_000_000),
         POOL_SWAP_FEE_PERCENTAGE,
         owner.address,
-        MIDAS_PROTOCOL_ID
+        MIDAS_PROTOCOL_ID,
+        randomBytes(32)
       );
 
       const receipt = await tx.wait();
