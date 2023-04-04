@@ -18,7 +18,7 @@ import { advanceTime, currentTimestamp, MONTH } from '@orbcollective/shared-depe
 
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import TokenList from '@orbcollective/shared-dependencies/test-helpers/token/TokenList';
-import {randomBytes} from "ethers/lib/utils";
+import { randomBytes } from 'ethers/lib/utils';
 
 async function deployBalancerContract(
   task: string,
