@@ -4,7 +4,7 @@ Second deployment of the `YearnLinearPoolFactory`, for Linear Pools with a Yearn
 Already fixes the reentrancy issue described in https://forum.balancer.fi/t/reentrancy-vulnerability-scope-expanded/4345.
 Also has a fix in the `YearnLinearPoolRebalancer` to handle tokens which require the `SafeERC20` library for approvals.
 
-Supersedes `yearn-linear-pool`, updating the BasePoolFactory `_create` function, by requiring an additional `uint256 salt` parameter.
+Supersedes `20230213-yearn-linear-pool`, updating the BasePoolFactory `_create` function, by requiring an additional `uint256 salt` parameter.
 
 ## Useful Files
 

@@ -50,7 +50,7 @@ describeForkTest('EulerLinearPoolFactory', 'mainnet', 15961400, function () {
   let poolId: string;
 
   before('run task', async () => {
-    task = new Task('euler-linear-pool-v2', TaskMode.TEST, getForkedNetwork(hre));
+    task = new Task('euler-linear-pool', TaskMode.TEST, getForkedNetwork(hre));
     await task.run({ force: true });
     factory = await task.deployedInstance('EulerLinearPoolFactory');
   });
@@ -154,8 +154,8 @@ describeForkTest('EulerLinearPoolFactory', 'mainnet', 15961400, function () {
     it('check factory version', async () => {
       const expectedFactoryVersion = {
         name: 'EulerLinearPoolFactory',
-        version: 2,
-        deployment: 'euler-linear-pool-v2',
+        version: 1,
+        deployment: 'euler-linear-pool',
       };
 
       expect(await factory.version()).to.equal(JSON.stringify(expectedFactoryVersion));
@@ -172,8 +172,8 @@ describeForkTest('EulerLinearPoolFactory', 'mainnet', 15961400, function () {
     it('check pool version', async () => {
       const expectedPoolVersion = {
         name: 'EulerLinearPool',
-        version: 2,
-        deployment: 'euler-linear-pool-v2',
+        version: 1,
+        deployment: 'euler-linear-pool',
       };
 
       expect(await pool.version()).to.equal(JSON.stringify(expectedPoolVersion));

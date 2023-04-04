@@ -2,7 +2,7 @@
 
 Deployment of the `AaveLinearPoolFactory`, for Linear Pools with a wrapped aToken.
 
-Supersedes `aave-rebalanced-linear-pool-v4`, updating the BasePoolFactory `_create` function, by requiring an additional `uint256 salt` parameter.
+Supersedes `20230206-aave-rebalanced-linear-pool-v4`, updating the BasePoolFactory `_create` function, by requiring an additional `uint256 salt` parameter.
 
 ## Useful Files
 
