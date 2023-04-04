@@ -26,6 +26,7 @@ import { getTaskActionIds } from './task-libraries/actionId';
 import { getArtifactFromContractOutput } from './task-libraries/artifact';
 
 const TESTS_DIRECTORY = path.resolve(__dirname, '../tests');
+const DEPRECATED_DIRECTORY = path.join(TESTS_DIRECTORY, 'deprecated');
 
 export enum TaskMode {
   LIVE, // Deploys and saves outputs
@@ -208,7 +209,12 @@ export default class Task {
       return nonDeprecatedDir;
     }
 
-    throw Error(`Could not find a directory at ${nonDeprecatedDir}`);
+    const deprecatedDir = this._dirAt(DEPRECATED_DIRECTORY, this.id, false);
+    if (this._existsDir(deprecatedDir)) {
+      return deprecatedDir;
+    }
+
+    throw Error(`Could not find a directory at ${nonDeprecatedDir}, ${deprecatedDir}`);
   }
 
   buildInfo(fileName: string): BuildInfo {
@@ -227,8 +233,8 @@ export default class Task {
     const builds: {
       [sourceName: string]: { [contractName: string]: CompilerOutputContract };
     } = this._existsFile(path.join(buildInfoDir, `${fileName || contractName}.json`))
-      ? this.buildInfo(contractName).output.contracts
-      : this.buildInfos().reduce((result, info: BuildInfo) => ({ ...result, ...info.output.contracts }), {});
+        ? this.buildInfo(contractName).output.contracts
+        : this.buildInfos().reduce((result, info: BuildInfo) => ({ ...result, ...info.output.contracts }), {});
 
     const sourceName = Object.keys(builds).find((sourceName) =>
       Object.keys(builds[sourceName]).find((key) => key === contractName)
@@ -369,7 +375,7 @@ export default class Task {
   }
 
   static getAllTaskIds(): string[] {
-    return [TESTS_DIRECTORY]
+    return [TESTS_DIRECTORY, DEPRECATED_DIRECTORY]
       .map((dir) => fs.readdirSync(dir))
       .flat()
       .sort();
