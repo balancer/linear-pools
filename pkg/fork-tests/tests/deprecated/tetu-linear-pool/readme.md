@@ -1,4 +1,4 @@
-# Tetu Rebalanced Linear Pool
+# Tetu Linear Pool
 
 > ⚠️ **DEPRECATED: do not use** ⚠️
 
