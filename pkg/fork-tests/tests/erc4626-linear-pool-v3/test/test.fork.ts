@@ -20,30 +20,28 @@ export enum SwapKind {
   GivenOut,
 }
 
-describeForkTest('TetuLinearPoolFactory', 'polygon', 39288293, function () {
+describeForkTest('ERC4626LinearPoolFactory', 'mainnet', 16015018, function () {
   let owner: SignerWithAddress, holder: SignerWithAddress, other: SignerWithAddress;
-  let factory: Contract, vault: Contract, usdt: Contract;
+  let factory: Contract, vault: Contract, mainToken: Contract;
   let rebalancer: Contract;
 
   let task: Task;
 
-  const USDT = '0xc2132D05D31c914a87C6611C10748AEb04B58e8F';
-  const xUSDT = '0xE680e0317402ad3CB37D5ed9fc642702658Ef57F';
+  const frxEth = '0x5E8422345238F34275888049021821E8E08CAa1f';
+  const erc4626Token = '0xac3e018457b222d93114458476f3e3416abbe38f';
 
-  const USDT_SCALING = bn(1e12); // USDT has 6 decimals, so its scaling factor is 1e12
+  const FRXETH_SCALING = bn(1); // frxEth has 18 decimals, so its scaling factor is 1
 
-  const USDT_HOLDER = '0xf977814e90da44bfa03b6295a0616a897441acec';
-  const TETU_GOVERNANCE = '0xcc16d636dD05b52FF1D8B9CE09B09BC62b11412B';
-  const TEUT_CONTROLLER = '0x6678814c273d5088114B6E40cC49C8DB04F9bC29';
+  const FRXETH_HOLDER = '0xa1f8a6807c402e4a15ef4eba36528a3fed24e577';
 
   const SWAP_FEE_PERCENTAGE = fp(0.01); // 1%
 
-  // The targets are set using 18 decimals, even if the token has fewer (as is the case for USDT);
-  const INITIAL_UPPER_TARGET = fp(1e7);
+  // The targets are set using 18 decimals, even if the token has fewer (as is the case for USDC);
+  const INITIAL_UPPER_TARGET = fp(1e2);
 
   // The initial midpoint (upper target / 2) must be between the final lower and upper targets
-  const FINAL_LOWER_TARGET = fp(0.2e7);
-  const FINAL_UPPER_TARGET = fp(5e7);
+  const FINAL_LOWER_TARGET = fp(0.2e2);
+  const FINAL_UPPER_TARGET = fp(5e2);
 
   const PROTOCOL_ID = 0;
 
@@ -51,22 +49,22 @@ describeForkTest('TetuLinearPoolFactory', 'polygon', 39288293, function () {
   let poolId: string;
 
   before('run task', async () => {
-    task = new Task('20230110-tetu-linear-pool', TaskMode.TEST, getForkedNetwork(hre));
+    task = new Task('erc4626-linear-pool', TaskMode.TEST, getForkedNetwork(hre));
     await task.run({ force: true });
-    factory = await task.deployedInstance('TetuLinearPoolFactory');
+    factory = await task.deployedInstance('ERC4626LinearPoolFactory');
   });
 
   before('load signers', async () => {
     [, owner, other] = await getSigners();
 
-    holder = await impersonate(USDT_HOLDER, fp(100));
+    holder = await impersonate(FRXETH_HOLDER, fp(100));
   });
 
   before('setup contracts', async () => {
     vault = await new Task('20210418-vault', TaskMode.READ_ONLY, getForkedNetwork(hre)).deployedInstance('Vault');
 
-    usdt = await task.instanceAt('IERC20', USDT);
-    await usdt.connect(holder).approve(vault.address, MAX_UINT256);
+    mainToken = await task.instanceAt('IERC20', frxEth);
+    await mainToken.connect(holder).approve(vault.address, MAX_UINT256);
   });
 
   enum LinearPoolState {
@@ -79,8 +77,8 @@ describeForkTest('TetuLinearPoolFactory', 'polygon', 39288293, function () {
     it('rebalance the pool', async () => {
       const { lowerTarget, upperTarget } = await pool.getTargets();
 
-      const { cash } = await vault.getPoolTokenInfo(poolId, USDT);
-      const scaledCash = cash.mul(USDT_SCALING);
+      const { cash } = await vault.getPoolTokenInfo(poolId, frxEth);
+      const scaledCash = cash.mul(FRXETH_SCALING);
 
       let fees;
       if (scaledCash.gt(upperTarget)) {
@@ -99,35 +97,30 @@ describeForkTest('TetuLinearPoolFactory', 'polygon', 39288293, function () {
         fees = 0;
       }
 
-      const initialRecipientMainBalance = await usdt.balanceOf(other.address);
-
-      const governance = await impersonate(TETU_GOVERNANCE);
-      const controller = await task.instanceAt('ITetuController', TEUT_CONTROLLER);
-      await controller.connect(governance).changeWhiteListStatus([rebalancer.address], true);
-
+      const initialRecipientMainBalance = await mainToken.balanceOf(other.address);
       if (expectedState != LinearPoolState.BALANCED) {
         await rebalancer.connect(holder).rebalance(other.address);
       } else {
         await rebalancer.connect(holder).rebalanceWithExtraMain(other.address, 5);
       }
-      const finalRecipientMainBalance = await usdt.balanceOf(other.address);
+      const finalRecipientMainBalance = await mainToken.balanceOf(other.address);
 
       if (fees > 0) {
         // The recipient of the rebalance call should get the fees that were collected (though there's some rounding
         // error in the main-wrapped conversion).
         expect(finalRecipientMainBalance.sub(initialRecipientMainBalance)).to.be.almostEqual(
-          fees.div(USDT_SCALING),
-          0.0000001
+          fees.div(FRXETH_SCALING),
+          0.00000001
         );
       } else {
         // The recipient of the rebalance call will get any extra main tokens that were not utilized.
-        expect(finalRecipientMainBalance).to.be.almostEqual(initialRecipientMainBalance, 0.0000001);
+        expect(finalRecipientMainBalance).to.be.almostEqual(initialRecipientMainBalance, 0.00000001);
       }
 
-      const mainInfo = await vault.getPoolTokenInfo(poolId, USDT);
+      const mainInfo = await vault.getPoolTokenInfo(poolId, frxEth);
 
       const expectedMainBalance = lowerTarget.add(upperTarget).div(2);
-      expect(mainInfo.cash.mul(USDT_SCALING)).to.equal(expectedMainBalance);
+      expect(mainInfo.cash.mul(FRXETH_SCALING)).to.equal(expectedMainBalance);
       expect(mainInfo.managed).to.equal(0);
     });
   }
@@ -137,8 +130,8 @@ describeForkTest('TetuLinearPoolFactory', 'polygon', 39288293, function () {
       const tx = await factory.create(
         '',
         '',
-        USDT,
-        xUSDT,
+        frxEth,
+        erc4626Token,
         INITIAL_UPPER_TARGET,
         SWAP_FEE_PERCENTAGE,
         owner.address,
@@ -147,24 +140,24 @@ describeForkTest('TetuLinearPoolFactory', 'polygon', 39288293, function () {
       );
       const event = expectEvent.inReceipt(await tx.wait(), 'PoolCreated');
 
-      pool = await task.instanceAt('TetuLinearPool', event.args.pool);
+      pool = await task.instanceAt('ERC4626LinearPool', event.args.pool);
       expect(await factory.isPoolFromFactory(pool.address)).to.be.true;
 
       poolId = await pool.getPoolId();
       const [registeredAddress] = await vault.getPool(poolId);
       expect(registeredAddress).to.equal(pool.address);
 
-      const { assetManager } = await vault.getPoolTokenInfo(poolId, USDT); // We could query for either USDT or xUSDT
-      rebalancer = await task.instanceAt('TetuLinearPoolRebalancer', assetManager);
+      const { assetManager } = await vault.getPoolTokenInfo(poolId, frxEth); // We could query for either frxEth or erc4626Token
+      rebalancer = await task.instanceAt('ERC4626LinearPoolRebalancer', assetManager);
 
-      await usdt.connect(holder).approve(rebalancer.address, MAX_UINT256); // To send extra main on rebalance
+      await mainToken.connect(holder).approve(rebalancer.address, MAX_UINT256); // To send extra main on rebalance
     });
 
     it('check factory version', async () => {
       const expectedFactoryVersion = {
-        name: 'TetuLinearPoolFactory',
-        version: 1,
-        deployment: '20230110-tetu-linear-pool',
+        name: 'ERC4626LinearPoolFactory',
+        version: 3,
+        deployment: 'erc4626-linear-pool-v3',
       };
 
       expect(await factory.version()).to.equal(JSON.stringify(expectedFactoryVersion));
@@ -172,9 +165,9 @@ describeForkTest('TetuLinearPoolFactory', 'polygon', 39288293, function () {
 
     it('check pool version', async () => {
       const expectedPoolVersion = {
-        name: 'TetuLinearPool',
-        version: 1,
-        deployment: '20230110-tetu-linear-pool',
+        name: 'ERC4626LinearPool',
+        version: 3,
+        deployment: 'erc4626-linear-pool-v3',
       };
 
       expect(await pool.version()).to.equal(JSON.stringify(expectedPoolVersion));
@@ -186,22 +179,27 @@ describeForkTest('TetuLinearPoolFactory', 'polygon', 39288293, function () {
       // We're going to join with enough main token to bring the Pool above its upper target, which will let us later
       // rebalance.
 
-      const joinAmount = INITIAL_UPPER_TARGET.mul(2).div(USDT_SCALING);
+      const joinAmount = INITIAL_UPPER_TARGET.mul(2).div(FRXETH_SCALING);
 
-      await vault
-        .connect(holder)
-        .swap(
-          { kind: SwapKind.GivenIn, poolId, assetIn: USDT, assetOut: pool.address, amount: joinAmount, userData: '0x' },
-          { sender: holder.address, recipient: holder.address, fromInternalBalance: false, toInternalBalance: false },
-          0,
-          MAX_UINT256
-        );
+      await vault.connect(holder).swap(
+        {
+          kind: SwapKind.GivenIn,
+          poolId,
+          assetIn: frxEth,
+          assetOut: pool.address,
+          amount: joinAmount,
+          userData: '0x',
+        },
+        { sender: holder.address, recipient: holder.address, fromInternalBalance: false, toInternalBalance: false },
+        0,
+        MAX_UINT256
+      );
 
       // Assert join amount - some fees will be collected as we're going over the upper target.
-      const excess = joinAmount.mul(USDT_SCALING).sub(INITIAL_UPPER_TARGET);
+      const excess = joinAmount.mul(FRXETH_SCALING).sub(INITIAL_UPPER_TARGET);
       const joinCollectedFees = excess.mul(SWAP_FEE_PERCENTAGE).div(FP_ONE);
 
-      const expectedBPT = joinAmount.mul(USDT_SCALING).sub(joinCollectedFees);
+      const expectedBPT = joinAmount.mul(FRXETH_SCALING).sub(joinCollectedFees);
       expect(await pool.balanceOf(holder.address)).to.equal(expectedBPT);
     });
 
@@ -218,16 +216,21 @@ describeForkTest('TetuLinearPoolFactory', 'polygon', 39288293, function () {
       // rebalance.
 
       const { upperTarget } = await pool.getTargets();
-      const joinAmount = upperTarget.mul(5).div(USDT_SCALING);
+      const joinAmount = upperTarget.mul(5).div(FRXETH_SCALING);
 
-      await vault
-        .connect(holder)
-        .swap(
-          { kind: SwapKind.GivenIn, poolId, assetIn: USDT, assetOut: pool.address, amount: joinAmount, userData: '0x' },
-          { sender: holder.address, recipient: holder.address, fromInternalBalance: false, toInternalBalance: false },
-          0,
-          MAX_UINT256
-        );
+      await vault.connect(holder).swap(
+        {
+          kind: SwapKind.GivenIn,
+          poolId,
+          assetIn: frxEth,
+          assetOut: pool.address,
+          amount: joinAmount,
+          userData: '0x',
+        },
+        { sender: holder.address, recipient: holder.address, fromInternalBalance: false, toInternalBalance: false },
+        0,
+        MAX_UINT256
+      );
     });
 
     itRebalancesThePool(LinearPoolState.MAIN_EXCESS);
@@ -238,18 +241,18 @@ describeForkTest('TetuLinearPoolFactory', 'polygon', 39288293, function () {
       // We're going to withdraw enough man token to bring the Pool below its lower target, which will let us later
       // rebalance.
 
-      const { cash } = await vault.getPoolTokenInfo(poolId, USDT);
-      const scaledCash = cash.mul(USDT_SCALING);
+      const { cash } = await vault.getPoolTokenInfo(poolId, frxEth);
+      const scaledCash = cash.mul(FRXETH_SCALING);
       const { lowerTarget } = await pool.getTargets();
 
-      const exitAmount = scaledCash.sub(lowerTarget.div(3)).div(USDT_SCALING);
+      const exitAmount = scaledCash.sub(lowerTarget.div(3)).div(FRXETH_SCALING);
 
       await vault.connect(holder).swap(
         {
           kind: SwapKind.GivenOut,
           poolId,
           assetIn: pool.address,
-          assetOut: USDT,
+          assetOut: frxEth,
           amount: exitAmount,
           userData: '0x',
         },
@@ -269,16 +272,21 @@ describeForkTest('TetuLinearPoolFactory', 'polygon', 39288293, function () {
       const { lowerTarget, upperTarget } = await pool.getTargets();
       const midpoint = lowerTarget.add(upperTarget).div(2);
 
-      const joinAmount = midpoint.div(100).div(USDT_SCALING);
+      const joinAmount = midpoint.div(100).div(FRXETH_SCALING);
 
-      await vault
-        .connect(holder)
-        .swap(
-          { kind: SwapKind.GivenIn, poolId, assetIn: USDT, assetOut: pool.address, amount: joinAmount, userData: '0x' },
-          { sender: holder.address, recipient: holder.address, fromInternalBalance: false, toInternalBalance: false },
-          0,
-          MAX_UINT256
-        );
+      await vault.connect(holder).swap(
+        {
+          kind: SwapKind.GivenIn,
+          poolId,
+          assetIn: frxEth,
+          assetOut: pool.address,
+          amount: joinAmount,
+          userData: '0x',
+        },
+        { sender: holder.address, recipient: holder.address, fromInternalBalance: false, toInternalBalance: false },
+        0,
+        MAX_UINT256
+      );
     });
 
     itRebalancesThePool(LinearPoolState.BALANCED);
@@ -291,14 +299,14 @@ describeForkTest('TetuLinearPoolFactory', 'polygon', 39288293, function () {
       const { lowerTarget, upperTarget } = await pool.getTargets();
       const midpoint = lowerTarget.add(upperTarget).div(2);
 
-      const exitAmount = midpoint.div(100).div(USDT_SCALING);
+      const exitAmount = midpoint.div(100).div(FRXETH_SCALING);
 
       await vault.connect(holder).swap(
         {
           kind: SwapKind.GivenOut,
           poolId,
           assetIn: pool.address,
-          assetOut: USDT,
+          assetOut: frxEth,
           amount: exitAmount,
           userData: '0x',
         },
@@ -318,18 +326,18 @@ describeForkTest('TetuLinearPoolFactory', 'polygon', 39288293, function () {
 
   describe('rebalancer query protection', async () => {
     it('reverts with a malicious lending pool', async () => {
-      const { cash } = await vault.getPoolTokenInfo(poolId, USDT);
-      const scaledCash = cash.mul(USDT_SCALING);
+      const { cash } = await vault.getPoolTokenInfo(poolId, frxEth);
+      const scaledCash = cash.mul(FRXETH_SCALING);
       const { lowerTarget } = await pool.getTargets();
 
-      const exitAmount = scaledCash.sub(lowerTarget.div(3)).div(USDT_SCALING);
+      const exitAmount = scaledCash.sub(lowerTarget.div(3)).div(FRXETH_SCALING);
 
       await vault.connect(holder).swap(
         {
           kind: SwapKind.GivenOut,
           poolId,
           assetIn: pool.address,
-          assetOut: USDT,
+          assetOut: frxEth,
           amount: exitAmount,
           userData: '0x',
         },
@@ -338,14 +346,10 @@ describeForkTest('TetuLinearPoolFactory', 'polygon', 39288293, function () {
         MAX_UINT256
       );
 
-      await setCode(xUSDT, getExternalPackageArtifact('linear-pools/MockTetuSmartVault').deployedBytecode);
-      const mockTetuSmartVault = await getExternalPackageDeployedAt('linear-pools/MockTetuSmartVault', xUSDT);
-      const strategyAddress = await mockTetuSmartVault.strategy();
-      await setCode(strategyAddress, getExternalPackageArtifact('linear-pools/MockTetuStrategy').deployedBytecode);
-      await mockTetuSmartVault.mint(mockTetuSmartVault.address, bn(2e14));
-      await mockTetuSmartVault.setRate(bn(2e6));
+      await setCode(erc4626Token, getExternalPackageArtifact('linear-pools/MockERC4626Token').deployedBytecode);
+      const mockLendingPool = await getExternalPackageDeployedAt('linear-pools/MockERC4626Token', erc4626Token);
 
-      await mockTetuSmartVault.setRevertType(2); // Type 2 is malicious swap query revert
+      await mockLendingPool.setRevertType(2); // Type 2 is malicious swap query revert
       await expect(rebalancer.rebalance(other.address)).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
     });
   });

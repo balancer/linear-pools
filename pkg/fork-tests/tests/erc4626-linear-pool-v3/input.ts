@@ -17,7 +17,7 @@ const BalancerQueries = new Task('20220721-balancer-queries', TaskMode.READ_ONLY
 const ProtocolFeePercentagesProvider = new Task('20220725-protocol-fee-percentages-provider', TaskMode.READ_ONLY);
 const WETH = new Task('00000000-tokens', TaskMode.READ_ONLY);
 
-const BaseVersion = { version: 3, deployment: '20230103-erc4626-linear-pool-v3' };
+const BaseVersion = { version: 3, deployment: 'erc4626-linear-pool-v3' };
 
 export default {
   Vault,

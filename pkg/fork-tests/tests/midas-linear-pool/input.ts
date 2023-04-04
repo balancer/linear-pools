@@ -1,10 +1,10 @@
 import Task, { TaskMode } from '../../src/task';
 import { MONTH } from '@orbcollective/shared-dependencies/time';
 
-export type GearboxLinearPoolDeployment = {
+export type MidasLinearPoolDeployment = {
   Vault: string;
-  BalancerQueries: string;
   ProtocolFeePercentagesProvider: string;
+  BalancerQueries: string;
   WETH: string;
   FactoryVersion: string;
   PoolVersion: string;
@@ -17,15 +17,15 @@ const BalancerQueries = new Task('20220721-balancer-queries', TaskMode.READ_ONLY
 const ProtocolFeePercentagesProvider = new Task('20220725-protocol-fee-percentages-provider', TaskMode.READ_ONLY);
 const WETH = new Task('00000000-tokens', TaskMode.READ_ONLY);
 
-const BaseVersion = { version: 1, deployment: '20230102-gearbox-linear-pool' };
+const BaseVersion = { version: 1, deployment: 'midas-linear-pool' };
 
 export default {
   Vault,
   BalancerQueries,
   ProtocolFeePercentagesProvider,
   WETH,
-  FactoryVersion: JSON.stringify({ name: 'GearboxLinearPoolFactory', ...BaseVersion }),
-  PoolVersion: JSON.stringify({ name: 'GearboxLinearPool', ...BaseVersion }),
+  FactoryVersion: JSON.stringify({ name: 'MidasLinearPoolFactory', ...BaseVersion }),
+  PoolVersion: JSON.stringify({ name: 'MidasLinearPool', ...BaseVersion }),
   InitialPauseWindowDuration: MONTH * 3,
   BufferPeriodDuration: MONTH,
 };

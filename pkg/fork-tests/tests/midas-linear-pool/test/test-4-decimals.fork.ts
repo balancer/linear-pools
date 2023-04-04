@@ -47,7 +47,7 @@ describeForkTest('MidasLinearPoolFactory', 'bsc', 23696722, function () {
   let poolId: string;
 
   before('run task', async () => {
-    task = new Task('20221130-midas-linear-pool', TaskMode.TEST, getForkedNetwork(hre));
+    task = new Task('midas-linear-pool', TaskMode.TEST, getForkedNetwork(hre));
     await task.run({ force: true });
     factory = await task.deployedInstance('MidasLinearPoolFactory');
   });
@@ -157,7 +157,7 @@ describeForkTest('MidasLinearPoolFactory', 'bsc', 23696722, function () {
       const expectedFactoryVersion = {
         name: 'MidasLinearPoolFactory',
         version: 1,
-        deployment: '20221130-midas-linear-pool',
+        deployment: 'midas-linear-pool',
       };
 
       expect(await factory.version()).to.equal(JSON.stringify(expectedFactoryVersion));
@@ -167,7 +167,7 @@ describeForkTest('MidasLinearPoolFactory', 'bsc', 23696722, function () {
       const expectedPoolVersion = {
         name: 'MidasLinearPool',
         version: 1,
-        deployment: '20221130-midas-linear-pool',
+        deployment: 'midas-linear-pool',
       };
 
       expect(await pool.version()).to.equal(JSON.stringify(expectedPoolVersion));

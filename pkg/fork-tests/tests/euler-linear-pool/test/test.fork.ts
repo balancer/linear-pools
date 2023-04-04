@@ -12,34 +12,37 @@ import {
 } from '@orbcollective/shared-dependencies';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 
-import { SwapKind } from '@balancer-labs/balancer-js';
-
 import { describeForkTest } from '../../../src/forkTests';
+
 import { impersonate, getForkedNetwork, Task, TaskMode, getSigners } from '../../../src';
 import { randomBytes } from 'ethers/lib/utils';
 
-describeForkTest('MidasLinearPoolFactory', 'bsc', 23696722, function () {
+export enum SwapKind {
+  GivenIn = 0,
+  GivenOut,
+}
+
+describeForkTest('EulerLinearPoolFactory', 'mainnet', 15961400, function () {
   let owner: SignerWithAddress, holder: SignerWithAddress, other: SignerWithAddress;
-  let factory: Contract, vault: Contract, brz: Contract;
+  let factory: Contract, vault: Contract, usdc: Contract;
   let rebalancer: Contract;
 
   let task: Task;
 
-  const WBNB = '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c';
-  const cWBNB = '0x38982105A2F81dc5dBDEA6c131bB4bF5a416513A';
-
-  const WBNB_SCALING = bn(1); // BRZ has 18 decimals, so its scaling factor is 1e0
-
-  const WBNB_HOLDER = '0x58f876857a02d6762e0101bb5c46a8c1ed44dc16';
+  const USDC = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
+  const eUSDC = '0xEb91861f8A4e1C12333F42DCE8fB0Ecdc28dA716';
+  const EULER_PROTOCOL = '0x27182842E098f60e3D576794A5bFFb0777E025d3';
+  const USDC_SCALING = bn(1e12); // USDC has 6 decimals, so its scaling factor is 1e12
+  const USDC_HOLDER = '0x55FE002aefF02F77364de339a1292923A15844B8';
 
   const SWAP_FEE_PERCENTAGE = fp(0.01); // 1%
 
-  // The targets are set using 18 decimals, even if the token has fewer (as is the case for BRZ);
-  const INITIAL_UPPER_TARGET = fp(1e4);
+  // The targets are set using 18 decimals, even if the token has fewer (as is the case for USDC);
+  const INITIAL_UPPER_TARGET = fp(1e7);
 
   // The initial midpoint (upper target / 2) must be between the final lower and upper targets
-  const FINAL_LOWER_TARGET = fp(0.2e4);
-  const FINAL_UPPER_TARGET = fp(5e4);
+  const FINAL_LOWER_TARGET = fp(0.2e7);
+  const FINAL_UPPER_TARGET = fp(5e7);
 
   const PROTOCOL_ID = 0;
 
@@ -47,22 +50,22 @@ describeForkTest('MidasLinearPoolFactory', 'bsc', 23696722, function () {
   let poolId: string;
 
   before('run task', async () => {
-    task = new Task('20221130-midas-linear-pool', TaskMode.TEST, getForkedNetwork(hre));
+    task = new Task('euler-linear-pool', TaskMode.TEST, getForkedNetwork(hre));
     await task.run({ force: true });
-    factory = await task.deployedInstance('MidasLinearPoolFactory');
+    factory = await task.deployedInstance('EulerLinearPoolFactory');
   });
 
   before('load signers', async () => {
     [, owner, other] = await getSigners();
 
-    holder = await impersonate(WBNB_HOLDER, fp(100));
+    holder = await impersonate(USDC_HOLDER, fp(100));
   });
 
   before('setup contracts', async () => {
     vault = await new Task('20210418-vault', TaskMode.READ_ONLY, getForkedNetwork(hre)).deployedInstance('Vault');
 
-    brz = await task.instanceAt('IERC20', WBNB);
-    await brz.connect(holder).approve(vault.address, MAX_UINT256);
+    usdc = await task.instanceAt('IERC20', USDC);
+    await usdc.connect(holder).approve(vault.address, MAX_UINT256);
   });
 
   enum LinearPoolState {
@@ -75,8 +78,8 @@ describeForkTest('MidasLinearPoolFactory', 'bsc', 23696722, function () {
     it('rebalance the pool', async () => {
       const { lowerTarget, upperTarget } = await pool.getTargets();
 
-      const { cash } = await vault.getPoolTokenInfo(poolId, WBNB);
-      const scaledCash = cash.mul(WBNB_SCALING);
+      const { cash } = await vault.getPoolTokenInfo(poolId, USDC);
+      const scaledCash = cash.mul(USDC_SCALING);
 
       let fees;
       if (scaledCash.gt(upperTarget)) {
@@ -95,32 +98,27 @@ describeForkTest('MidasLinearPoolFactory', 'bsc', 23696722, function () {
         fees = 0;
       }
 
-      const initialRecipientMainBalance = await brz.balanceOf(other.address);
-
+      const initialRecipientMainBalance = await usdc.balanceOf(other.address);
       if (expectedState != LinearPoolState.BALANCED) {
         await rebalancer.connect(holder).rebalance(other.address);
       } else {
         await rebalancer.connect(holder).rebalanceWithExtraMain(other.address, 5);
       }
-
-      const finalRecipientMainBalance = await brz.balanceOf(other.address);
+      const finalRecipientMainBalance = await usdc.balanceOf(other.address);
 
       if (fees > 0) {
-        // The recipient of the rebalance call should get the fees that were collected (though there's some rounding
-        // error in the main-wrapped conversion).
         expect(finalRecipientMainBalance.sub(initialRecipientMainBalance)).to.be.almostEqual(
-          fees.div(WBNB_SCALING),
+          fees.div(USDC_SCALING),
           0.00000001
         );
       } else {
-        // The recipient of the rebalance call will get any extra main tokens that were not utilized.
         expect(finalRecipientMainBalance).to.be.almostEqual(initialRecipientMainBalance, 0.00000001);
       }
 
-      const mainInfo = await vault.getPoolTokenInfo(poolId, WBNB);
+      const mainInfo = await vault.getPoolTokenInfo(poolId, USDC);
 
       const expectedMainBalance = lowerTarget.add(upperTarget).div(2);
-      expect(mainInfo.cash.mul(WBNB_SCALING)).to.equal(expectedMainBalance);
+      expect(mainInfo.cash.mul(USDC_SCALING)).to.equal(expectedMainBalance);
       expect(mainInfo.managed).to.equal(0);
     });
   }
@@ -130,8 +128,8 @@ describeForkTest('MidasLinearPoolFactory', 'bsc', 23696722, function () {
       const tx = await factory.create(
         '',
         '',
-        WBNB,
-        cWBNB,
+        USDC,
+        eUSDC,
         INITIAL_UPPER_TARGET,
         SWAP_FEE_PERCENTAGE,
         owner.address,
@@ -140,61 +138,69 @@ describeForkTest('MidasLinearPoolFactory', 'bsc', 23696722, function () {
       );
       const event = expectEvent.inReceipt(await tx.wait(), 'PoolCreated');
 
-      pool = await task.instanceAt('MidasLinearPool', event.args.pool);
+      pool = await task.instanceAt('EulerLinearPool', event.args.pool);
       expect(await factory.isPoolFromFactory(pool.address)).to.be.true;
 
       poolId = await pool.getPoolId();
       const [registeredAddress] = await vault.getPool(poolId);
       expect(registeredAddress).to.equal(pool.address);
 
-      const { assetManager } = await vault.getPoolTokenInfo(poolId, WBNB); // We could query for either BRZ or cBRZ
-      rebalancer = await task.instanceAt('MidasLinearPoolRebalancer', assetManager);
+      const { assetManager } = await vault.getPoolTokenInfo(poolId, USDC); // We could query for either USDC or waUSDC
+      rebalancer = await task.instanceAt('EulerLinearPoolRebalancer', assetManager);
 
-      await brz.connect(holder).approve(rebalancer.address, MAX_UINT256); // To send extra main on rebalance
+      await usdc.connect(holder).approve(rebalancer.address, MAX_UINT256); // To send extra main on rebalance
     });
 
     it('check factory version', async () => {
       const expectedFactoryVersion = {
-        name: 'MidasLinearPoolFactory',
+        name: 'EulerLinearPoolFactory',
         version: 1,
-        deployment: '20221130-midas-linear-pool',
+        deployment: 'euler-linear-pool',
       };
 
       expect(await factory.version()).to.equal(JSON.stringify(expectedFactoryVersion));
     });
 
+    it('check factory aware of EULER_PROTOCOL', async () => {
+      expect(await factory.eulerProtocol()).to.equal(EULER_PROTOCOL);
+    });
+
+    it('check Rebalancer aware of EULER_PROTOCOL', async () => {
+      expect(await rebalancer.eulerProtocol()).to.equal(EULER_PROTOCOL);
+    });
+
     it('check pool version', async () => {
       const expectedPoolVersion = {
-        name: 'MidasLinearPool',
+        name: 'EulerLinearPool',
         version: 1,
-        deployment: '20221130-midas-linear-pool',
+        deployment: 'euler-linear-pool',
       };
 
       expect(await pool.version()).to.equal(JSON.stringify(expectedPoolVersion));
     });
   });
 
-  describe('join, and rebalance', () => {
+  describe('join and rebalance', () => {
     it('join the pool', async () => {
       // We're going to join with enough main token to bring the Pool above its upper target, which will let us later
       // rebalance.
 
-      const joinAmount = INITIAL_UPPER_TARGET.mul(2).div(WBNB_SCALING);
+      const joinAmount = INITIAL_UPPER_TARGET.mul(2).div(USDC_SCALING);
 
       await vault
         .connect(holder)
         .swap(
-          { kind: SwapKind.GivenIn, poolId, assetIn: WBNB, assetOut: pool.address, amount: joinAmount, userData: '0x' },
+          { kind: SwapKind.GivenIn, poolId, assetIn: USDC, assetOut: pool.address, amount: joinAmount, userData: '0x' },
           { sender: holder.address, recipient: holder.address, fromInternalBalance: false, toInternalBalance: false },
           0,
           MAX_UINT256
         );
 
       // Assert join amount - some fees will be collected as we're going over the upper target.
-      const excess = joinAmount.mul(WBNB_SCALING).sub(INITIAL_UPPER_TARGET);
+      const excess = joinAmount.mul(USDC_SCALING).sub(INITIAL_UPPER_TARGET);
       const joinCollectedFees = excess.mul(SWAP_FEE_PERCENTAGE).div(FP_ONE);
 
-      const expectedBPT = joinAmount.mul(WBNB_SCALING).sub(joinCollectedFees);
+      const expectedBPT = joinAmount.mul(USDC_SCALING).sub(joinCollectedFees);
       expect(await pool.balanceOf(holder.address)).to.equal(expectedBPT);
     });
 
@@ -211,12 +217,12 @@ describeForkTest('MidasLinearPoolFactory', 'bsc', 23696722, function () {
       // rebalance.
 
       const { upperTarget } = await pool.getTargets();
-      const joinAmount = upperTarget.mul(5).div(WBNB_SCALING);
+      const joinAmount = upperTarget.mul(5).div(USDC_SCALING);
 
       await vault
         .connect(holder)
         .swap(
-          { kind: SwapKind.GivenIn, poolId, assetIn: WBNB, assetOut: pool.address, amount: joinAmount, userData: '0x' },
+          { kind: SwapKind.GivenIn, poolId, assetIn: USDC, assetOut: pool.address, amount: joinAmount, userData: '0x' },
           { sender: holder.address, recipient: holder.address, fromInternalBalance: false, toInternalBalance: false },
           0,
           MAX_UINT256
@@ -231,18 +237,18 @@ describeForkTest('MidasLinearPoolFactory', 'bsc', 23696722, function () {
       // We're going to withdraw enough man token to bring the Pool below its lower target, which will let us later
       // rebalance.
 
-      const { cash } = await vault.getPoolTokenInfo(poolId, WBNB);
-      const scaledCash = cash.mul(WBNB_SCALING);
+      const { cash } = await vault.getPoolTokenInfo(poolId, USDC);
+      const scaledCash = cash.mul(USDC_SCALING);
       const { lowerTarget } = await pool.getTargets();
 
-      const exitAmount = scaledCash.sub(lowerTarget.div(3)).div(WBNB_SCALING);
+      const exitAmount = scaledCash.sub(lowerTarget.div(3)).div(USDC_SCALING);
 
       await vault.connect(holder).swap(
         {
           kind: SwapKind.GivenOut,
           poolId,
           assetIn: pool.address,
-          assetOut: WBNB,
+          assetOut: USDC,
           amount: exitAmount,
           userData: '0x',
         },
@@ -257,17 +263,17 @@ describeForkTest('MidasLinearPoolFactory', 'bsc', 23696722, function () {
 
   describe('join below upper target and rebalance', () => {
     it('deposit main tokens', async () => {
-      // We're going to join with few tokens, causing the Pool to not reach its upper target.
+      // We're going to join with few tokens, causing for the Pool to not reach its upper target.
 
       const { lowerTarget, upperTarget } = await pool.getTargets();
       const midpoint = lowerTarget.add(upperTarget).div(2);
 
-      const joinAmount = midpoint.div(100).div(WBNB_SCALING);
+      const joinAmount = midpoint.div(100).div(USDC_SCALING);
 
       await vault
         .connect(holder)
         .swap(
-          { kind: SwapKind.GivenIn, poolId, assetIn: WBNB, assetOut: pool.address, amount: joinAmount, userData: '0x' },
+          { kind: SwapKind.GivenIn, poolId, assetIn: USDC, assetOut: pool.address, amount: joinAmount, userData: '0x' },
           { sender: holder.address, recipient: holder.address, fromInternalBalance: false, toInternalBalance: false },
           0,
           MAX_UINT256
@@ -284,14 +290,14 @@ describeForkTest('MidasLinearPoolFactory', 'bsc', 23696722, function () {
       const { lowerTarget, upperTarget } = await pool.getTargets();
       const midpoint = lowerTarget.add(upperTarget).div(2);
 
-      const exitAmount = midpoint.div(100).div(WBNB_SCALING);
+      const exitAmount = midpoint.div(100).div(USDC_SCALING);
 
       await vault.connect(holder).swap(
         {
           kind: SwapKind.GivenOut,
           poolId,
           assetIn: pool.address,
-          assetOut: WBNB,
+          assetOut: USDC,
           amount: exitAmount,
           userData: '0x',
         },
@@ -311,18 +317,18 @@ describeForkTest('MidasLinearPoolFactory', 'bsc', 23696722, function () {
 
   describe('rebalancer query protection', () => {
     it('reverts with a malicious lending pool', async () => {
-      const { cash } = await vault.getPoolTokenInfo(poolId, WBNB);
-      const scaledCash = cash.mul(WBNB_SCALING);
+      const { cash } = await vault.getPoolTokenInfo(poolId, USDC);
+      const scaledCash = cash.mul(USDC_SCALING);
       const { lowerTarget } = await pool.getTargets();
 
-      const exitAmount = scaledCash.sub(lowerTarget.div(3)).div(WBNB_SCALING);
+      const exitAmount = scaledCash.sub(lowerTarget.div(3)).div(USDC_SCALING);
 
       await vault.connect(holder).swap(
         {
           kind: SwapKind.GivenOut,
           poolId,
           assetIn: pool.address,
-          assetOut: WBNB,
+          assetOut: USDC,
           amount: exitAmount,
           userData: '0x',
         },
@@ -331,10 +337,10 @@ describeForkTest('MidasLinearPoolFactory', 'bsc', 23696722, function () {
         MAX_UINT256
       );
 
-      await setCode(cWBNB, getExternalPackageArtifact('linear-pools/MockCToken').deployedBytecode);
-      const mockMaliciousMidasToken = await getExternalPackageDeployedAt('linear-pools/MockCToken', cWBNB);
+      await setCode(eUSDC, getExternalPackageArtifact('linear-pools/MockEulerToken').deployedBytecode);
+      const mockMaliciousEulerToken = await getExternalPackageDeployedAt('linear-pools/MockEulerToken', eUSDC);
 
-      await mockMaliciousMidasToken.setRevertType(2); // Type 2 is malicious swap query revert
+      await mockMaliciousEulerToken.setRevertType(2); // Type 2 is malicious swap query revert
       await expect(rebalancer.rebalance(other.address)).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
     });
   });

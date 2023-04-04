@@ -52,7 +52,7 @@ describeForkTest('GearboxLinearPoolFactory', 'mainnet', 15989794, function () {
   let poolId: string;
 
   before('run task', async () => {
-    task = new Task('20230102-gearbox-linear-pool', TaskMode.TEST, getForkedNetwork(hre));
+    task = new Task('gearbox-linear-pool', TaskMode.TEST, getForkedNetwork(hre));
     await task.run({ force: true });
     factory = await task.deployedInstance('GearboxLinearPoolFactory');
   });
@@ -160,7 +160,7 @@ describeForkTest('GearboxLinearPoolFactory', 'mainnet', 15989794, function () {
       const expectedFactoryVersion = {
         name: 'GearboxLinearPoolFactory',
         version: 1,
-        deployment: '20230102-gearbox-linear-pool',
+        deployment: 'gearbox-linear-pool',
       };
 
       expect(await factory.version()).to.equal(JSON.stringify(expectedFactoryVersion));
@@ -170,7 +170,7 @@ describeForkTest('GearboxLinearPoolFactory', 'mainnet', 15989794, function () {
       const expectedPoolVersion = {
         name: 'GearboxLinearPool',
         version: 1,
-        deployment: '20230102-gearbox-linear-pool',
+        deployment: 'gearbox-linear-pool',
       };
 
       expect(await pool.version()).to.equal(JSON.stringify(expectedPoolVersion));

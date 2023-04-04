@@ -18,7 +18,7 @@ const ProtocolFeePercentagesProvider = new Task('20220725-protocol-fee-percentag
 const BalancerQueries = new Task('20220721-balancer-queries', TaskMode.READ_ONLY);
 const WETH = new Task('00000000-tokens', TaskMode.READ_ONLY);
 
-const BaseVersion = { version: 1, deployment: '20221113-euler-linear-pool' };
+const BaseVersion = { version: 1, deployment: 'euler-linear-pool' };
 
 export default {
   mainnet: {

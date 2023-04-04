@@ -1,20 +1,18 @@
 import hre from 'hardhat';
 import { expect } from 'chai';
 import { Contract } from 'ethers';
-import { setCode } from '@nomicfoundation/hardhat-network-helpers';
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
-
 import { bn, fp, FP_ONE } from '@orbcollective/shared-dependencies/numbers';
+import { setCode } from '@nomicfoundation/hardhat-network-helpers';
 import {
   MAX_UINT256,
-  getExternalPackageDeployedAt,
   getExternalPackageArtifact,
+  getExternalPackageDeployedAt,
 } from '@orbcollective/shared-dependencies';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 
-import { describeForkTest } from '../../../src/forkTests';
-
 import { impersonate, getForkedNetwork, Task, TaskMode, getSigners } from '../../../src';
+import { describeForkTest } from '../../../src/forkTests';
 import { randomBytes } from 'ethers/lib/utils';
 
 export enum SwapKind {
@@ -22,37 +20,38 @@ export enum SwapKind {
   GivenOut,
 }
 
-describeForkTest('EulerLinearPoolFactory', 'mainnet', 15961400, function () {
+describeForkTest('YearnLinearPoolFactory', 'mainnet', 16610000, function () {
   let owner: SignerWithAddress, holder: SignerWithAddress, other: SignerWithAddress;
   let factory: Contract, vault: Contract, usdc: Contract;
   let rebalancer: Contract;
 
   let task: Task;
 
-  const USDC = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
-  const eUSDC = '0xEb91861f8A4e1C12333F42DCE8fB0Ecdc28dA716';
-  const EULER_PROTOCOL = '0x27182842E098f60e3D576794A5bFFb0777E025d3';
+  const USDC = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
+  const yvUSDC = '0xa354F35829Ae975e850e23e9615b11Da1B3dC4DE';
+
   const USDC_SCALING = bn(1e12); // USDC has 6 decimals, so its scaling factor is 1e12
-  const USDC_HOLDER = '0x55FE002aefF02F77364de339a1292923A15844B8';
+
+  const USDC_HOLDER = '0x7713974908Be4BEd47172370115e8b1219F4A5f0';
 
   const SWAP_FEE_PERCENTAGE = fp(0.01); // 1%
 
   // The targets are set using 18 decimals, even if the token has fewer (as is the case for USDC);
-  const INITIAL_UPPER_TARGET = fp(1e7);
+  const INITIAL_UPPER_TARGET = fp(1e5);
 
   // The initial midpoint (upper target / 2) must be between the final lower and upper targets
-  const FINAL_LOWER_TARGET = fp(0.2e7);
-  const FINAL_UPPER_TARGET = fp(5e7);
+  const FINAL_LOWER_TARGET = fp(0.2e5);
+  const FINAL_UPPER_TARGET = fp(5e5);
 
-  const PROTOCOL_ID = 0;
+  const PROTOCOL_ID = 3;
 
   let pool: Contract;
   let poolId: string;
 
   before('run task', async () => {
-    task = new Task('20221113-euler-linear-pool', TaskMode.TEST, getForkedNetwork(hre));
+    task = new Task('yearn-linear-pool', TaskMode.TEST, getForkedNetwork(hre));
     await task.run({ force: true });
-    factory = await task.deployedInstance('EulerLinearPoolFactory');
+    factory = await task.deployedInstance('YearnLinearPoolFactory');
   });
 
   before('load signers', async () => {
@@ -107,11 +106,14 @@ describeForkTest('EulerLinearPoolFactory', 'mainnet', 15961400, function () {
       const finalRecipientMainBalance = await usdc.balanceOf(other.address);
 
       if (fees > 0) {
+        // The recipient of the rebalance call should get the fees that were collected (though there's some rounding
+        // error in the main-wrapped conversion).
         expect(finalRecipientMainBalance.sub(initialRecipientMainBalance)).to.be.almostEqual(
           fees.div(USDC_SCALING),
           0.00000001
         );
       } else {
+        // The recipient of the rebalance call will get any extra main tokens that were not utilized.
         expect(finalRecipientMainBalance).to.be.almostEqual(initialRecipientMainBalance, 0.00000001);
       }
 
@@ -126,10 +128,10 @@ describeForkTest('EulerLinearPoolFactory', 'mainnet', 15961400, function () {
   describe('create and check getters', () => {
     it('deploy a linear pool', async () => {
       const tx = await factory.create(
-        '',
-        '',
+        'USDC',
+        'yvUSDC',
         USDC,
-        eUSDC,
+        yvUSDC,
         INITIAL_UPPER_TARGET,
         SWAP_FEE_PERCENTAGE,
         owner.address,
@@ -138,7 +140,7 @@ describeForkTest('EulerLinearPoolFactory', 'mainnet', 15961400, function () {
       );
       const event = expectEvent.inReceipt(await tx.wait(), 'PoolCreated');
 
-      pool = await task.instanceAt('EulerLinearPool', event.args.pool);
+      pool = await task.instanceAt('YearnLinearPool', event.args.pool);
       expect(await factory.isPoolFromFactory(pool.address)).to.be.true;
 
       poolId = await pool.getPoolId();
@@ -146,41 +148,33 @@ describeForkTest('EulerLinearPoolFactory', 'mainnet', 15961400, function () {
       expect(registeredAddress).to.equal(pool.address);
 
       const { assetManager } = await vault.getPoolTokenInfo(poolId, USDC); // We could query for either USDC or waUSDC
-      rebalancer = await task.instanceAt('EulerLinearPoolRebalancer', assetManager);
+      rebalancer = await task.instanceAt('YearnLinearPoolRebalancer', assetManager);
 
       await usdc.connect(holder).approve(rebalancer.address, MAX_UINT256); // To send extra main on rebalance
     });
 
     it('check factory version', async () => {
       const expectedFactoryVersion = {
-        name: 'EulerLinearPoolFactory',
+        name: 'YearnLinearPoolFactory',
         version: 1,
-        deployment: '20221113-euler-linear-pool',
+        deployment: 'yearn-linear-pool',
       };
 
       expect(await factory.version()).to.equal(JSON.stringify(expectedFactoryVersion));
     });
 
-    it('check factory aware of EULER_PROTOCOL', async () => {
-      expect(await factory.eulerProtocol()).to.equal(EULER_PROTOCOL);
-    });
-
-    it('check Rebalancer aware of EULER_PROTOCOL', async () => {
-      expect(await rebalancer.eulerProtocol()).to.equal(EULER_PROTOCOL);
-    });
-
     it('check pool version', async () => {
       const expectedPoolVersion = {
-        name: 'EulerLinearPool',
+        name: 'YearnLinearPool',
         version: 1,
-        deployment: '20221113-euler-linear-pool',
+        deployment: 'yearn-linear-pool',
       };
 
       expect(await pool.version()).to.equal(JSON.stringify(expectedPoolVersion));
     });
   });
 
-  describe('join and rebalance', () => {
+  describe('join, and rebalance', () => {
     it('join the pool', async () => {
       // We're going to join with enough main token to bring the Pool above its upper target, which will let us later
       // rebalance.
@@ -263,7 +257,7 @@ describeForkTest('EulerLinearPoolFactory', 'mainnet', 15961400, function () {
 
   describe('join below upper target and rebalance', () => {
     it('deposit main tokens', async () => {
-      // We're going to join with few tokens, causing for the Pool to not reach its upper target.
+      // We're going to join with few tokens, causing the Pool to not reach its upper target.
 
       const { lowerTarget, upperTarget } = await pool.getTargets();
       const midpoint = lowerTarget.add(upperTarget).div(2);
@@ -315,7 +309,7 @@ describeForkTest('EulerLinearPoolFactory', 'mainnet', 15961400, function () {
     itRebalancesThePool(LinearPoolState.BALANCED);
   });
 
-  describe('rebalancer query protection', () => {
+  describe('rebalancer query protection', async () => {
     it('reverts with a malicious lending pool', async () => {
       const { cash } = await vault.getPoolTokenInfo(poolId, USDC);
       const scaledCash = cash.mul(USDC_SCALING);
@@ -337,10 +331,10 @@ describeForkTest('EulerLinearPoolFactory', 'mainnet', 15961400, function () {
         MAX_UINT256
       );
 
-      await setCode(eUSDC, getExternalPackageArtifact('linear-pools/MockEulerToken').deployedBytecode);
-      const mockMaliciousEulerToken = await getExternalPackageDeployedAt('linear-pools/MockEulerToken', eUSDC);
+      await setCode(yvUSDC, getExternalPackageArtifact('linear-pools/MockYearnTokenVault').deployedBytecode);
+      const mockLendingPool = await getExternalPackageDeployedAt('linear-pools/MockYearnTokenVault', yvUSDC);
 
-      await mockMaliciousEulerToken.setRevertType(2); // Type 2 is malicious swap query revert
+      await mockLendingPool.setRevertType(2); // Type 2 is malicious swap query revert
       await expect(rebalancer.rebalance(other.address)).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
     });
   });

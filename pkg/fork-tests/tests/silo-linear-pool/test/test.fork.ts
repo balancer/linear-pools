@@ -1,15 +1,15 @@
 import hre from 'hardhat';
 import { expect } from 'chai';
 import { Contract } from 'ethers';
-import { setCode } from '@nomicfoundation/hardhat-network-helpers';
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import { bn, fp, FP_ONE } from '@orbcollective/shared-dependencies/numbers';
 import {
   MAX_UINT256,
-  getExternalPackageArtifact,
   getExternalPackageDeployedAt,
+  getExternalPackageArtifact,
 } from '@orbcollective/shared-dependencies';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
+import { setCode } from '@nomicfoundation/hardhat-network-helpers';
 
 import { impersonate, getForkedNetwork, Task, TaskMode, getSigners } from '../../../src';
 import { describeForkTest } from '../../../src/forkTests';
@@ -20,51 +20,56 @@ export enum SwapKind {
   GivenOut,
 }
 
-describeForkTest('ERC4626LinearPoolFactory', 'mainnet', 16015018, function () {
+describeForkTest('SiloLinearPoolFactory', 'mainnet', 16478568, function () {
   let owner: SignerWithAddress, holder: SignerWithAddress, other: SignerWithAddress;
-  let factory: Contract, vault: Contract, mainToken: Contract;
+  let factory: Contract, vault: Contract, usdc: Contract;
   let rebalancer: Contract;
 
   let task: Task;
 
-  const frxEth = '0x5E8422345238F34275888049021821E8E08CAa1f';
-  const erc4626Token = '0xac3e018457b222d93114458476f3e3416abbe38f';
+  // USDC Mainnet address
+  const USDC = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
+  // Share Token address for USDC
+  const sUSDC = '0x416DE9AD46C53AAAb2352F91120952393946d2ac';
+  // USDC holder address
+  const USDC_HOLDER = '0xda9ce944a37d218c3302f6b82a094844c6eceb17';
+  // USDC Silo Address
+  const USDC_SILO = '0xfccc27aabd0ab7a0b2ad2b7760037b1eab61616b';
 
-  const FRXETH_SCALING = bn(1); // frxEth has 18 decimals, so its scaling factor is 1
-
-  const FRXETH_HOLDER = '0xa1f8a6807c402e4a15ef4eba36528a3fed24e577';
+  // Scaling factory is 1e12 due to USDC only having 6 decimals
+  const USDC_SCALING = bn(1e12);
 
   const SWAP_FEE_PERCENTAGE = fp(0.01); // 1%
 
   // The targets are set using 18 decimals, even if the token has fewer (as is the case for USDC);
-  const INITIAL_UPPER_TARGET = fp(1e2);
+  const INITIAL_UPPER_TARGET = fp(1e6);
 
   // The initial midpoint (upper target / 2) must be between the final lower and upper targets
-  const FINAL_LOWER_TARGET = fp(0.2e2);
-  const FINAL_UPPER_TARGET = fp(5e2);
+  const FINAL_LOWER_TARGET = fp(0.2e6);
+  const FINAL_UPPER_TARGET = fp(5e6);
 
-  const PROTOCOL_ID = 0;
+  const PROTOCOL_ID = 5;
 
   let pool: Contract;
   let poolId: string;
 
   before('run task', async () => {
-    task = new Task('20230103-erc4626-linear-pool', TaskMode.TEST, getForkedNetwork(hre));
+    task = new Task('silo-linear-pool', TaskMode.TEST, getForkedNetwork(hre));
     await task.run({ force: true });
-    factory = await task.deployedInstance('ERC4626LinearPoolFactory');
+    factory = await task.deployedInstance('SiloLinearPoolFactory');
   });
 
   before('load signers', async () => {
     [, owner, other] = await getSigners();
 
-    holder = await impersonate(FRXETH_HOLDER, fp(100));
+    holder = await impersonate(USDC_HOLDER, fp(100));
   });
 
   before('setup contracts', async () => {
     vault = await new Task('20210418-vault', TaskMode.READ_ONLY, getForkedNetwork(hre)).deployedInstance('Vault');
 
-    mainToken = await task.instanceAt('IERC20', frxEth);
-    await mainToken.connect(holder).approve(vault.address, MAX_UINT256);
+    usdc = await task.instanceAt('IERC20', USDC);
+    await usdc.connect(holder).approve(vault.address, MAX_UINT256);
   });
 
   enum LinearPoolState {
@@ -77,10 +82,11 @@ describeForkTest('ERC4626LinearPoolFactory', 'mainnet', 16015018, function () {
     it('rebalance the pool', async () => {
       const { lowerTarget, upperTarget } = await pool.getTargets();
 
-      const { cash } = await vault.getPoolTokenInfo(poolId, frxEth);
-      const scaledCash = cash.mul(FRXETH_SCALING);
+      const { cash } = await vault.getPoolTokenInfo(poolId, USDC);
+      const scaledCash = cash.mul(USDC_SCALING);
 
       let fees;
+
       if (scaledCash.gt(upperTarget)) {
         expect(expectedState).to.equal(LinearPoolState.MAIN_EXCESS);
 
@@ -97,30 +103,31 @@ describeForkTest('ERC4626LinearPoolFactory', 'mainnet', 16015018, function () {
         fees = 0;
       }
 
-      const initialRecipientMainBalance = await mainToken.balanceOf(other.address);
+      const initialRecipientMainBalance = await usdc.balanceOf(other.address);
+
       if (expectedState != LinearPoolState.BALANCED) {
         await rebalancer.connect(holder).rebalance(other.address);
       } else {
         await rebalancer.connect(holder).rebalanceWithExtraMain(other.address, 5);
       }
-      const finalRecipientMainBalance = await mainToken.balanceOf(other.address);
+      const finalRecipientMainBalance = await usdc.balanceOf(other.address);
 
       if (fees > 0) {
         // The recipient of the rebalance call should get the fees that were collected (though there's some rounding
         // error in the main-wrapped conversion).
         expect(finalRecipientMainBalance.sub(initialRecipientMainBalance)).to.be.almostEqual(
-          fees.div(FRXETH_SCALING),
-          0.00000001
+          fees.div(USDC_SCALING),
+          0.000001
         );
       } else {
         // The recipient of the rebalance call will get any extra main tokens that were not utilized.
-        expect(finalRecipientMainBalance).to.be.almostEqual(initialRecipientMainBalance, 0.00000001);
+        expect(finalRecipientMainBalance).to.be.almostEqual(initialRecipientMainBalance, 0.000001);
       }
 
-      const mainInfo = await vault.getPoolTokenInfo(poolId, frxEth);
+      const mainInfo = await vault.getPoolTokenInfo(poolId, USDC);
 
       const expectedMainBalance = lowerTarget.add(upperTarget).div(2);
-      expect(mainInfo.cash.mul(FRXETH_SCALING)).to.equal(expectedMainBalance);
+      expect(mainInfo.cash.mul(USDC_SCALING)).to.equal(expectedMainBalance);
       expect(mainInfo.managed).to.equal(0);
     });
   }
@@ -128,10 +135,10 @@ describeForkTest('ERC4626LinearPoolFactory', 'mainnet', 16015018, function () {
   describe('create and check getters', () => {
     it('deploy a linear pool', async () => {
       const tx = await factory.create(
-        '',
-        '',
-        frxEth,
-        erc4626Token,
+        'USDC',
+        'sUSDC',
+        USDC,
+        sUSDC,
         INITIAL_UPPER_TARGET,
         SWAP_FEE_PERCENTAGE,
         owner.address,
@@ -140,24 +147,24 @@ describeForkTest('ERC4626LinearPoolFactory', 'mainnet', 16015018, function () {
       );
       const event = expectEvent.inReceipt(await tx.wait(), 'PoolCreated');
 
-      pool = await task.instanceAt('ERC4626LinearPool', event.args.pool);
+      pool = await task.instanceAt('SiloLinearPool', event.args.pool);
       expect(await factory.isPoolFromFactory(pool.address)).to.be.true;
 
       poolId = await pool.getPoolId();
       const [registeredAddress] = await vault.getPool(poolId);
       expect(registeredAddress).to.equal(pool.address);
 
-      const { assetManager } = await vault.getPoolTokenInfo(poolId, frxEth); // We could query for either frxEth or erc4626Token
-      rebalancer = await task.instanceAt('ERC4626LinearPoolRebalancer', assetManager);
+      const { assetManager } = await vault.getPoolTokenInfo(poolId, USDC); // We could query for either frxEth or SiloToken
+      rebalancer = await task.instanceAt('SiloLinearPoolRebalancer', assetManager);
 
-      await mainToken.connect(holder).approve(rebalancer.address, MAX_UINT256); // To send extra main on rebalance
+      await usdc.connect(holder).approve(rebalancer.address, MAX_UINT256); // To send extra main on rebalance
     });
 
     it('check factory version', async () => {
       const expectedFactoryVersion = {
-        name: 'ERC4626LinearPoolFactory',
-        version: 3,
-        deployment: '20230103-erc4626-linear-pool-v3',
+        name: 'SiloLinearPoolFactory',
+        version: 1,
+        deployment: 'silo-linear-pool',
       };
 
       expect(await factory.version()).to.equal(JSON.stringify(expectedFactoryVersion));
@@ -165,9 +172,9 @@ describeForkTest('ERC4626LinearPoolFactory', 'mainnet', 16015018, function () {
 
     it('check pool version', async () => {
       const expectedPoolVersion = {
-        name: 'ERC4626LinearPool',
-        version: 3,
-        deployment: '20230103-erc4626-linear-pool-v3',
+        name: 'SiloLinearPool',
+        version: 1,
+        deployment: 'silo-linear-pool',
       };
 
       expect(await pool.version()).to.equal(JSON.stringify(expectedPoolVersion));
@@ -179,13 +186,12 @@ describeForkTest('ERC4626LinearPoolFactory', 'mainnet', 16015018, function () {
       // We're going to join with enough main token to bring the Pool above its upper target, which will let us later
       // rebalance.
 
-      const joinAmount = INITIAL_UPPER_TARGET.mul(2).div(FRXETH_SCALING);
-
+      const joinAmount = INITIAL_UPPER_TARGET.mul(2).div(USDC_SCALING);
       await vault.connect(holder).swap(
         {
           kind: SwapKind.GivenIn,
           poolId,
-          assetIn: frxEth,
+          assetIn: USDC,
           assetOut: pool.address,
           amount: joinAmount,
           userData: '0x',
@@ -196,10 +202,10 @@ describeForkTest('ERC4626LinearPoolFactory', 'mainnet', 16015018, function () {
       );
 
       // Assert join amount - some fees will be collected as we're going over the upper target.
-      const excess = joinAmount.mul(FRXETH_SCALING).sub(INITIAL_UPPER_TARGET);
+      const excess = joinAmount.mul(USDC_SCALING).sub(INITIAL_UPPER_TARGET);
       const joinCollectedFees = excess.mul(SWAP_FEE_PERCENTAGE).div(FP_ONE);
 
-      const expectedBPT = joinAmount.mul(FRXETH_SCALING).sub(joinCollectedFees);
+      const expectedBPT = joinAmount.mul(USDC_SCALING).sub(joinCollectedFees);
       expect(await pool.balanceOf(holder.address)).to.equal(expectedBPT);
     });
 
@@ -216,13 +222,13 @@ describeForkTest('ERC4626LinearPoolFactory', 'mainnet', 16015018, function () {
       // rebalance.
 
       const { upperTarget } = await pool.getTargets();
-      const joinAmount = upperTarget.mul(5).div(FRXETH_SCALING);
+      const joinAmount = upperTarget.mul(5).div(USDC_SCALING);
 
       await vault.connect(holder).swap(
         {
           kind: SwapKind.GivenIn,
           poolId,
-          assetIn: frxEth,
+          assetIn: USDC,
           assetOut: pool.address,
           amount: joinAmount,
           userData: '0x',
@@ -241,18 +247,18 @@ describeForkTest('ERC4626LinearPoolFactory', 'mainnet', 16015018, function () {
       // We're going to withdraw enough man token to bring the Pool below its lower target, which will let us later
       // rebalance.
 
-      const { cash } = await vault.getPoolTokenInfo(poolId, frxEth);
-      const scaledCash = cash.mul(FRXETH_SCALING);
+      const { cash } = await vault.getPoolTokenInfo(poolId, USDC);
+      const scaledCash = cash.mul(USDC_SCALING);
       const { lowerTarget } = await pool.getTargets();
 
-      const exitAmount = scaledCash.sub(lowerTarget.div(3)).div(FRXETH_SCALING);
+      const exitAmount = scaledCash.sub(lowerTarget.div(3)).div(USDC_SCALING);
 
       await vault.connect(holder).swap(
         {
           kind: SwapKind.GivenOut,
           poolId,
           assetIn: pool.address,
-          assetOut: frxEth,
+          assetOut: USDC,
           amount: exitAmount,
           userData: '0x',
         },
@@ -272,13 +278,13 @@ describeForkTest('ERC4626LinearPoolFactory', 'mainnet', 16015018, function () {
       const { lowerTarget, upperTarget } = await pool.getTargets();
       const midpoint = lowerTarget.add(upperTarget).div(2);
 
-      const joinAmount = midpoint.div(100).div(FRXETH_SCALING);
+      const joinAmount = midpoint.div(100).div(USDC_SCALING);
 
       await vault.connect(holder).swap(
         {
           kind: SwapKind.GivenIn,
           poolId,
-          assetIn: frxEth,
+          assetIn: USDC,
           assetOut: pool.address,
           amount: joinAmount,
           userData: '0x',
@@ -299,14 +305,14 @@ describeForkTest('ERC4626LinearPoolFactory', 'mainnet', 16015018, function () {
       const { lowerTarget, upperTarget } = await pool.getTargets();
       const midpoint = lowerTarget.add(upperTarget).div(2);
 
-      const exitAmount = midpoint.div(100).div(FRXETH_SCALING);
+      const exitAmount = midpoint.div(100).div(USDC_SCALING);
 
       await vault.connect(holder).swap(
         {
           kind: SwapKind.GivenOut,
           poolId,
           assetIn: pool.address,
-          assetOut: frxEth,
+          assetOut: USDC,
           amount: exitAmount,
           userData: '0x',
         },
@@ -326,18 +332,18 @@ describeForkTest('ERC4626LinearPoolFactory', 'mainnet', 16015018, function () {
 
   describe('rebalancer query protection', async () => {
     it('reverts with a malicious lending pool', async () => {
-      const { cash } = await vault.getPoolTokenInfo(poolId, frxEth);
-      const scaledCash = cash.mul(FRXETH_SCALING);
+      const { cash } = await vault.getPoolTokenInfo(poolId, USDC);
+      const scaledCash = cash.mul(USDC_SCALING);
       const { lowerTarget } = await pool.getTargets();
 
-      const exitAmount = scaledCash.sub(lowerTarget.div(3)).div(FRXETH_SCALING);
+      const exitAmount = scaledCash.sub(lowerTarget.div(3)).div(USDC_SCALING);
 
       await vault.connect(holder).swap(
         {
           kind: SwapKind.GivenOut,
           poolId,
           assetIn: pool.address,
-          assetOut: frxEth,
+          assetOut: USDC,
           amount: exitAmount,
           userData: '0x',
         },
@@ -346,8 +352,8 @@ describeForkTest('ERC4626LinearPoolFactory', 'mainnet', 16015018, function () {
         MAX_UINT256
       );
 
-      await setCode(erc4626Token, getExternalPackageArtifact('linear-pools/MockERC4626Token').deployedBytecode);
-      const mockLendingPool = await getExternalPackageDeployedAt('linear-pools/MockERC4626Token', erc4626Token);
+      await setCode(USDC_SILO, getExternalPackageArtifact('linear-pools/MockSilo').deployedBytecode);
+      const mockLendingPool = await getExternalPackageDeployedAt('linear-pools/MockSilo', USDC_SILO);
 
       await mockLendingPool.setRevertType(2); // Type 2 is malicious swap query revert
       await expect(rebalancer.rebalance(other.address)).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT
