@@ -41,7 +41,7 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
     const mockSiloArgs = [mockSiloRepo.address, input.WETH];
     const mockSilo = await task.deployAndVerify('MockSilo', mockSiloArgs, from, force);
 
-    // SiloLinearPools require an Silo Token
+    // SiloLinearPools require a Silo Token
     const mockShareTokenArgs = ['DO NOT USE - Mock Share Token', 'TEST', mockSilo.address, input.WETH, 18];
     const mockShareToken = await task.deployAndVerify('MockShareToken', mockShareTokenArgs, from, force);
 

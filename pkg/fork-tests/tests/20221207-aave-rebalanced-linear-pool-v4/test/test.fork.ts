@@ -157,7 +157,7 @@ describeForkTest('AaveLinearPoolFactory', 'mainnet', 15225000, function () {
     it('check factory version', async () => {
       const expectedFactoryVersion = {
         name: 'AaveLinearPoolFactory',
-        version: 3,
+        version: 4,
         deployment: '20221207-aave-rebalanced-linear-pool-v4',
       };
 
@@ -167,7 +167,7 @@ describeForkTest('AaveLinearPoolFactory', 'mainnet', 15225000, function () {
     it('check pool version', async () => {
       const expectedPoolVersion = {
         name: 'AaveLinearPool',
-        version: 3,
+        version: 4,
         deployment: '20221207-aave-rebalanced-linear-pool-v4',
       };
 

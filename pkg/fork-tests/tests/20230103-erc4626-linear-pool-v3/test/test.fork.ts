@@ -156,7 +156,7 @@ describeForkTest('ERC4626LinearPoolFactory', 'mainnet', 16015018, function () {
     it('check factory version', async () => {
       const expectedFactoryVersion = {
         name: 'ERC4626LinearPoolFactory',
-        version: 1,
+        version: 3,
         deployment: '20230103-erc4626-linear-pool-v3',
       };
 
@@ -166,7 +166,7 @@ describeForkTest('ERC4626LinearPoolFactory', 'mainnet', 16015018, function () {
     it('check pool version', async () => {
       const expectedPoolVersion = {
         name: 'ERC4626LinearPool',
-        version: 1,
+        version: 3,
         deployment: '20230103-erc4626-linear-pool-v3',
       };
 
