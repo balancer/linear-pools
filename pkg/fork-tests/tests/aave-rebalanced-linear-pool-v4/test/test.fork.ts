@@ -50,7 +50,7 @@ describeForkTest('AaveLinearPoolFactory', 'mainnet', 15225000, function () {
   let poolId: string;
 
   before('run task', async () => {
-    task = new Task('20221207-aave-rebalanced-linear-pool-v4', TaskMode.TEST, getForkedNetwork(hre));
+    task = new Task('aave-rebalanced-linear-pool-v4', TaskMode.TEST, getForkedNetwork(hre));
     await task.run({ force: true });
     factory = await task.deployedInstance('AaveLinearPoolFactory');
   });
@@ -158,7 +158,7 @@ describeForkTest('AaveLinearPoolFactory', 'mainnet', 15225000, function () {
       const expectedFactoryVersion = {
         name: 'AaveLinearPoolFactory',
         version: 4,
-        deployment: '20221207-aave-rebalanced-linear-pool-v4',
+        deployment: 'aave-rebalanced-linear-pool-v4',
       };
 
       expect(await factory.version()).to.equal(JSON.stringify(expectedFactoryVersion));
@@ -168,7 +168,7 @@ describeForkTest('AaveLinearPoolFactory', 'mainnet', 15225000, function () {
       const expectedPoolVersion = {
         name: 'AaveLinearPool',
         version: 4,
-        deployment: '20221207-aave-rebalanced-linear-pool-v4',
+        deployment: 'aave-rebalanced-linear-pool-v4',
       };
 
       expect(await pool.version()).to.equal(JSON.stringify(expectedPoolVersion));
