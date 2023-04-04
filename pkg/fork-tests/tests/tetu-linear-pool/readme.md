@@ -1,4 +1,4 @@
-# Tetu Rebalanced Linear Pool
+# Tetu Linear Pool
 
 Deployment of the `TetuLinearPoolFactory`, for Linear Pools with a wrapped tetu smart 
 vault token.

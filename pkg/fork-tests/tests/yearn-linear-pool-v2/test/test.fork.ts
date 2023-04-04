@@ -1,9 +1,9 @@
 import hre from 'hardhat';
 import { expect } from 'chai';
 import { Contract } from 'ethers';
-import { setCode } from '@nomicfoundation/hardhat-network-helpers';
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import { bn, fp, FP_ONE } from '@orbcollective/shared-dependencies/numbers';
+import { setCode } from '@nomicfoundation/hardhat-network-helpers';
 import {
   MAX_UINT256,
   getExternalPackageArtifact,
@@ -20,41 +20,38 @@ export enum SwapKind {
   GivenOut,
 }
 
-describeForkTest('GearboxLinearPoolFactory', 'mainnet', 15989794, function () {
+describeForkTest('YearnLinearPoolFactory', 'mainnet', 16610000, function () {
   let owner: SignerWithAddress, holder: SignerWithAddress, other: SignerWithAddress;
   let factory: Contract, vault: Contract, usdc: Contract;
   let rebalancer: Contract;
 
   let task: Task;
 
-  const USDC = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
-  // Diesel USDC Token
-  const dUSDC = '0xc411db5f5eb3f7d552f9b8454b2d74097ccde6e3';
+  const USDC = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
+  const yvUSDC = '0xa354F35829Ae975e850e23e9615b11Da1B3dC4DE';
 
   const USDC_SCALING = bn(1e12); // USDC has 6 decimals, so its scaling factor is 1e12
 
-  const USDC_HOLDER = '0xdfd5293d8e347dfe59e90efd55b2956a1343963d';
-
-  const GEARBOX_VAULT = '0x86130bDD69143D8a4E5fc50bf4323D48049E98E4';
+  const USDC_HOLDER = '0x7713974908Be4BEd47172370115e8b1219F4A5f0';
 
   const SWAP_FEE_PERCENTAGE = fp(0.01); // 1%
 
   // The targets are set using 18 decimals, even if the token has fewer (as is the case for USDC);
-  const INITIAL_UPPER_TARGET = fp(1e6);
+  const INITIAL_UPPER_TARGET = fp(1e5);
 
   // The initial midpoint (upper target / 2) must be between the final lower and upper targets
-  const FINAL_LOWER_TARGET = fp(0.2e6);
-  const FINAL_UPPER_TARGET = fp(5e6);
+  const FINAL_LOWER_TARGET = fp(0.2e5);
+  const FINAL_UPPER_TARGET = fp(5e5);
 
-  const PROTOCOL_ID = 0;
+  const PROTOCOL_ID = 3;
 
   let pool: Contract;
   let poolId: string;
 
   before('run task', async () => {
-    task = new Task('gearbox-linear-pool', TaskMode.TEST, getForkedNetwork(hre));
+    task = new Task('yearn-linear-pool-v2', TaskMode.TEST, getForkedNetwork(hre));
     await task.run({ force: true });
-    factory = await task.deployedInstance('GearboxLinearPoolFactory');
+    factory = await task.deployedInstance('YearnLinearPoolFactory');
   });
 
   before('load signers', async () => {
@@ -131,10 +128,10 @@ describeForkTest('GearboxLinearPoolFactory', 'mainnet', 15989794, function () {
   describe('create and check getters', () => {
     it('deploy a linear pool', async () => {
       const tx = await factory.create(
-        '',
-        '',
+        'USDC',
+        'yvUSDC',
         USDC,
-        dUSDC,
+        yvUSDC,
         INITIAL_UPPER_TARGET,
         SWAP_FEE_PERCENTAGE,
         owner.address,
@@ -143,24 +140,24 @@ describeForkTest('GearboxLinearPoolFactory', 'mainnet', 15989794, function () {
       );
       const event = expectEvent.inReceipt(await tx.wait(), 'PoolCreated');
 
-      pool = await task.instanceAt('GearboxLinearPool', event.args.pool);
+      pool = await task.instanceAt('YearnLinearPool', event.args.pool);
       expect(await factory.isPoolFromFactory(pool.address)).to.be.true;
 
       poolId = await pool.getPoolId();
       const [registeredAddress] = await vault.getPool(poolId);
       expect(registeredAddress).to.equal(pool.address);
 
-      const { assetManager } = await vault.getPoolTokenInfo(poolId, USDC); // We could query for either USDC or dUSDC
-      rebalancer = await task.instanceAt('GearboxLinearPoolRebalancer', assetManager);
+      const { assetManager } = await vault.getPoolTokenInfo(poolId, USDC); // We could query for either USDC or waUSDC
+      rebalancer = await task.instanceAt('YearnLinearPoolRebalancer', assetManager);
 
       await usdc.connect(holder).approve(rebalancer.address, MAX_UINT256); // To send extra main on rebalance
     });
 
     it('check factory version', async () => {
       const expectedFactoryVersion = {
-        name: 'GearboxLinearPoolFactory',
-        version: 1,
-        deployment: 'gearbox-linear-pool',
+        name: 'YearnLinearPoolFactory',
+        version: 2,
+        deployment: 'yearn-linear-pool-v2',
       };
 
       expect(await factory.version()).to.equal(JSON.stringify(expectedFactoryVersion));
@@ -168,9 +165,9 @@ describeForkTest('GearboxLinearPoolFactory', 'mainnet', 15989794, function () {
 
     it('check pool version', async () => {
       const expectedPoolVersion = {
-        name: 'GearboxLinearPool',
-        version: 1,
-        deployment: 'gearbox-linear-pool',
+        name: 'YearnLinearPool',
+        version: 2,
+        deployment: 'yearn-linear-pool-v2',
       };
 
       expect(await pool.version()).to.equal(JSON.stringify(expectedPoolVersion));
@@ -334,8 +331,8 @@ describeForkTest('GearboxLinearPoolFactory', 'mainnet', 15989794, function () {
         MAX_UINT256
       );
 
-      await setCode(GEARBOX_VAULT, getExternalPackageArtifact('linear-pools/MockGearboxVault').deployedBytecode);
-      const mockLendingPool = await getExternalPackageDeployedAt('linear-pools/MockGearboxVault', GEARBOX_VAULT);
+      await setCode(yvUSDC, getExternalPackageArtifact('linear-pools/MockYearnTokenVault').deployedBytecode);
+      const mockLendingPool = await getExternalPackageDeployedAt('linear-pools/MockYearnTokenVault', yvUSDC);
 
       await mockLendingPool.setRevertType(2); // Type 2 is malicious swap query revert
       await expect(rebalancer.rebalance(other.address)).to.be.revertedWith('BAL#357'); // MALICIOUS_QUERY_REVERT

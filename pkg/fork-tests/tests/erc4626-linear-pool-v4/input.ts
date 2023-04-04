@@ -1,7 +1,7 @@
 import Task, { TaskMode } from '../../src/task';
 import { MONTH } from '@orbcollective/shared-dependencies/time';
 
-export type SiloLinearPoolDeployment = {
+export type ERC4626LinearPoolDeployment = {
   Vault: string;
   BalancerQueries: string;
   ProtocolFeePercentagesProvider: string;
@@ -17,15 +17,15 @@ const BalancerQueries = new Task('20220721-balancer-queries', TaskMode.READ_ONLY
 const ProtocolFeePercentagesProvider = new Task('20220725-protocol-fee-percentages-provider', TaskMode.READ_ONLY);
 const WETH = new Task('00000000-tokens', TaskMode.READ_ONLY);
 
-const BaseVersion = { version: 1, deployment: 'silo-linear-pool' };
+const BaseVersion = { version: 4, deployment: 'erc4626-linear-pool-v4' };
 
 export default {
   Vault,
   BalancerQueries,
   ProtocolFeePercentagesProvider,
   WETH,
-  FactoryVersion: JSON.stringify({ name: 'SiloLinearPoolFactory', ...BaseVersion }),
-  PoolVersion: JSON.stringify({ name: 'SiloLinearPool', ...BaseVersion }),
+  FactoryVersion: JSON.stringify({ name: 'ERC4626LinearPoolFactory', ...BaseVersion }),
+  PoolVersion: JSON.stringify({ name: 'ERC4626LinearPool', ...BaseVersion }),
   InitialPauseWindowDuration: MONTH * 3,
   BufferPeriodDuration: MONTH,
 };

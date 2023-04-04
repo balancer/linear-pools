@@ -1,7 +1,7 @@
-# ERC4626 Linear Pool V3
+# ERC4626 Linear Pool v4
 
 Third deployment of the `ERC4626LinearPoolFactory`, for Linear Pools with a ERC4626 yield-bearing token.
-Supersedes `20220404-erc4626-linear-pool-v2`, fixing the reentrancy issue described in https://forum.balancer.fi/t/reentrancy-vulnerability-scope-expanded/4345.
+Supersedes `20230206-erc4626-linear-pool-v3`, updating the BasePoolFactory `_create` function, by requiring an additional `uint256 salt` parameter.
 Also has a fix in the `ERC4626LinearPoolRebalancer` to handle tokens which require the `SafeERC20` library for approvals.
 
 ## Useful Files
