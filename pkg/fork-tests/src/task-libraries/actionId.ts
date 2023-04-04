@@ -25,6 +25,7 @@ function safeReadJsonFile<T>(filePath: string): Record<string, T> {
 export function getTaskActionIds(task: Task): Record<string, ContractActionIdData> {
   const filePath = path.join(ACTION_ID_DIRECTORY, task.network, 'action-ids.json');
   const actionIdFileContents = safeReadJsonFile<Record<string, ContractActionIdData>>(filePath);
+
   return actionIdFileContents[task.id];
 }
 
@@ -153,12 +154,14 @@ async function getActionIdSource(
   if (contractIsAuthorizerAware) {
     if (factoryOutput) {
       await checkFactoryOutput(task, contractName, factoryOutput);
+
       return { useAdaptor: false, actionIdSource: await task.instanceAt(contractName, factoryOutput) };
     } else {
       return { useAdaptor: false, actionIdSource: await task.deployedInstance(contractName) };
     }
   } else {
     const adaptorTask = new Task('20220325-authorizer-adaptor', TaskMode.READ_ONLY, task.network);
+
     return { useAdaptor: true, actionIdSource: await adaptorTask.deployedInstance('AuthorizerAdaptor') };
   }
 }
@@ -170,6 +173,7 @@ async function getActionIdsFromSource(
   const functionActionIds = await Promise.all(
     contractFunctions.map(async ([signature, contractFunction]) => {
       const functionSelector = Interface.getSighash(contractFunction);
+
       return [signature, await actionIdSource.getActionId(functionSelector)] as [string, string];
     })
   );
@@ -194,6 +198,7 @@ function getDuplicateActionIds(
     .reduce((acc: Record<string, ActionIdInfo[]>, [actionId, actionIdInfo]) => {
       acc[actionId] = acc[actionId] ?? [];
       acc[actionId].push(actionIdInfo);
+
       return acc;
     }, {});
 

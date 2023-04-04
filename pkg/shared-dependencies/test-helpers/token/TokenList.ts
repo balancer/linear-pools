@@ -52,7 +52,7 @@ export default class TokenList {
       }
 
       if (Array.isArray(from) && to.length !== from.length) throw Error('Inconsistent mint sender length');
-      return to.map((to, i) => ({ to, amount, from: Array.isArray(from) ? from[i] : from }));
+      return to.map((currentTo, i) => ({ to: currentTo, amount, from: Array.isArray(from) ? from[i] : from }));
     };
 
     const params: TokenMint[] = toTokenMints(rawParams);
@@ -72,8 +72,10 @@ export default class TokenList {
       const { to: recipients, amount, from } = params;
       const to = Array.isArray(recipients) ? recipients : [recipients];
 
-      return to.flatMap((to) =>
-        Array.isArray(from) ? from.map((from) => ({ to, amount, from })) : [{ to, amount, from }]
+      return to.flatMap((currentTo) =>
+        Array.isArray(from)
+          ? from.map((currentFrom) => ({ to: currentTo, amount, from: currentFrom }))
+          : [{ to: currentTo, amount, from }]
       );
     };
 
