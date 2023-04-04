@@ -13,7 +13,8 @@
     "url": "https://github.com/orbcollective/linear-pools/issues"
   },
   "scripts": {
-    "lint": "NODE_NO_WARNINGS=1 eslint . --fix --ext .ts --ignore-path ../../.eslintignore  --max-warnings 0",
+    "lint": "yarn lint:typescript",
+    "lint:typescript": "NODE_NO_WARNINGS=1 eslint . --fix --ext .ts --ignore-path ../../.eslintignore  --max-warnings 0",
     "test": "hardhat test ./**/test/*.ts"
   },
   "dependencies": {
