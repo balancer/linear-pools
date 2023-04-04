@@ -18,6 +18,7 @@ import { advanceTime, currentTimestamp, MONTH } from '@orbcollective/shared-depe
 
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import TokenList from '@orbcollective/shared-dependencies/test-helpers/token/TokenList';
+import {randomBytes} from "ethers/lib/utils";
 
 async function deployBalancerContract(
   task: string,
@@ -106,7 +107,8 @@ describe('ERC4626LinearPoolFactory', function () {
       UPPER_TARGET,
       POOL_SWAP_FEE_PERCENTAGE,
       owner.address,
-      ERC4626_PROTOCOL_ID
+      ERC4626_PROTOCOL_ID,
+      randomBytes(32)
     );
 
     const receipt = await tx.wait();

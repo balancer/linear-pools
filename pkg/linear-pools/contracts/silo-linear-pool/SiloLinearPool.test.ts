@@ -18,6 +18,7 @@ import { MONTH } from '@orbcollective/shared-dependencies/time';
 
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import TokenList from '@orbcollective/shared-dependencies/test-helpers/token/TokenList';
+import { randomBytes } from 'ethers/lib/utils';
 
 export enum SwapKind {
   GivenIn = 0,
@@ -151,7 +152,8 @@ describe('SiloLinearPool', function () {
       bn(0),
       POOL_SWAP_FEE_PERCENTAGE,
       owner.address,
-      SILO_PROTOCOL_ID
+      SILO_PROTOCOL_ID,
+      randomBytes(32)
     );
     const receipt = await tx.wait();
     const event = expectEvent.inReceipt(receipt, 'PoolCreated');
@@ -172,7 +174,8 @@ describe('SiloLinearPool', function () {
           bn(0),
           POOL_SWAP_FEE_PERCENTAGE,
           owner.address,
-          SILO_PROTOCOL_ID
+          SILO_PROTOCOL_ID,
+          randomBytes(32)
         )
       ).to.be.ok;
     });
