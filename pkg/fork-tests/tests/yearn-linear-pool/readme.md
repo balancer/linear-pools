@@ -1,4 +1,4 @@
-# 2022-11-14 - Yearn Linear Pool
+# Yearn Linear Pool
 
 First deployment of the `YearnLinearPoolFactory`, for Linear Pools with a Yearn yield-bearing token.
 Already fixes the reentrancy issue described in https://forum.balancer.fi/t/reentrancy-vulnerability-scope-expanded/4345.

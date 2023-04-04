@@ -1,4 +1,4 @@
-# 2022-11-13 - Euler Linear Pool
+# Euler Linear Pool
 
 First deployment of the `EulerLinearPoolFactory`, for Linear Pools with an Euler yield-bearing token.
 

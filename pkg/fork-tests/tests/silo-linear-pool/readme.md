@@ -1,4 +1,4 @@
-# 2022-01-06 - Silo Linear Pool
+# Silo Linear Pool
 
 First deployment of the `SiloLinearPoolFactory`, for Linear Pools with a Silo yield-bearing token (shareToken).
 Already fixes the reentrancy issue described in https://forum.balancer.fi/t/reentrancy-vulnerability-scope-expanded/4345.

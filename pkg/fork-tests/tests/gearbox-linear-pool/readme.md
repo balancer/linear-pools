@@ -1,4 +1,4 @@
-# 2023-01-02 - Gearbox Linear Pool
+# Gearbox Linear Pool
 
 First deployment of the `GearboxLinearPoolFactory`, for Linear Pools with a Gearbox yield-bearing token (dieselToken).
 Already fixes the reentrancy issue described in https://forum.balancer.fi/t/reentrancy-vulnerability-scope-expanded/4345.

@@ -1,4 +1,4 @@
-# 2023-01-11 - Tetu Rebalanced Linear Pool
+# Tetu Rebalanced Linear Pool
 
 Deployment of the `TetuLinearPoolFactory`, for Linear Pools with a wrapped tetu smart 
 vault token.

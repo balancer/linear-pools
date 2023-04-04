@@ -1,4 +1,4 @@
-# 2022-12-07 - Aave Rebalanced Linear Pool v4
+# Aave Rebalanced Linear Pool v4
 
 Deployment of the `AaveLinearPoolFactory`, for Linear Pools with a wrapped aToken.
 
