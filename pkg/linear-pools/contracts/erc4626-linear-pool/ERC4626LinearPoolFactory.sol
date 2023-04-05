@@ -84,8 +84,8 @@ contract ERC4626LinearPoolFactory is
         return _poolVersion;
     }
 
-    function _create(bytes memory constructorArgs) internal virtual override returns (address) {
-        address pool = super._create(constructorArgs);
+    function _create(bytes memory constructorArgs, bytes32 salt) internal virtual override returns (address) {
+        address pool = super._create(constructorArgs, salt);
         _lastCreatedPool = pool;
 
         return pool;
@@ -102,7 +102,8 @@ contract ERC4626LinearPoolFactory is
         uint256 upperTarget,
         uint256 swapFeePercentage,
         address owner,
-        uint256 protocolId
+        uint256 protocolId,
+        bytes32 salt
     ) external nonReentrant returns (LinearPool) {
         // We are going to deploy both an Erc4626LinearPool and an Erc4626LinearPoolRebalancer set as its Asset Manager,
         // but this creates a circular dependency problem: the Pool must know the Asset Manager's address in order to
@@ -143,7 +144,7 @@ contract ERC4626LinearPoolFactory is
         args.owner = owner;
         args.version = getPoolVersion();
 
-        ERC4626LinearPool pool = ERC4626LinearPool(_create(abi.encode(args)));
+        ERC4626LinearPool pool = ERC4626LinearPool(_create(abi.encode(args), salt));
 
         // LinearPools have a separate post-construction initialization step: we perform it here to
         // ensure deployment and initialization are atomic.

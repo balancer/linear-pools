@@ -78,8 +78,8 @@ contract SiloLinearPoolFactory is
         return _poolVersion;
     }
 
-    function _create(bytes memory constructorArgs) internal virtual override returns (address) {
-        address pool = super._create(constructorArgs);
+    function _create(bytes memory constructorArgs, bytes32 salt) internal virtual override returns (address) {
+        address pool = super._create(constructorArgs, salt);
         _lastCreatedPool = pool;
 
         return pool;
@@ -96,7 +96,8 @@ contract SiloLinearPoolFactory is
         uint256 upperTarget,
         uint256 swapFeePercentage,
         address owner,
-        uint256 protocolId
+        uint256 protocolId,
+        bytes32 salt
     ) external nonReentrant returns (SiloLinearPool) {
         // We are going to deploy both an SiloLinearPool and an SiloLinearPoolRebalancer set as its Asset Manager, but
         // this creates a circular dependency problem: the Pool must know the Asset Manager's address in order to call
@@ -137,7 +138,7 @@ contract SiloLinearPoolFactory is
         args.owner = owner;
         args.version = getPoolVersion();
 
-        SiloLinearPool pool = SiloLinearPool(_create(abi.encode(args)));
+        SiloLinearPool pool = SiloLinearPool(_create(abi.encode(args), salt));
 
         // LinearPools have a separate post-construction initialization step: we perform it here to
         // ensure deployment and initialization are atomic.

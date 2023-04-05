@@ -18,6 +18,7 @@ import { MONTH } from '@orbcollective/shared-dependencies/time';
 
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import TokenList from '@orbcollective/shared-dependencies/test-helpers/token/TokenList';
+import { randomBytes } from 'ethers/lib/utils';
 
 export enum SwapKind {
   GivenIn = 0,
@@ -112,7 +113,8 @@ describe('ERC4626LinearPool', function () {
       bn(0),
       POOL_SWAP_FEE_PERCENTAGE,
       owner.address,
-      ERC4626_PROTOCOL_ID
+      ERC4626_PROTOCOL_ID,
+      randomBytes(32)
     );
     const receipt = await tx.wait();
     const event = expectEvent.inReceipt(receipt, 'PoolCreated');
@@ -133,7 +135,8 @@ describe('ERC4626LinearPool', function () {
           bn(0),
           POOL_SWAP_FEE_PERCENTAGE,
           owner.address,
-          ERC4626_PROTOCOL_ID
+          ERC4626_PROTOCOL_ID,
+          randomBytes(32)
         )
       ).to.be.ok;
     });

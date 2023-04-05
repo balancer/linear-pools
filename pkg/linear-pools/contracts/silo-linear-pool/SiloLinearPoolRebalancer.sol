@@ -25,13 +25,12 @@ import "./interfaces/IShareToken.sol";
 import "./interfaces/ISilo.sol";
 import "./SiloExchangeRateModel.sol";
 
-contract SiloLinearPoolRebalancer is LinearPoolRebalancer {
+contract SiloLinearPoolRebalancer is LinearPoolRebalancer, SiloExchangeRateModel {
     using SafeERC20 for IERC20;
     using FixedPoint for uint256;
 
     IShareToken private _shareToken;
     ISilo private _silo;
-    SiloExchangeRateModel private _exchangeRateModel;
 
     // These Rebalancers can only be deployed from a factory to work around a circular dependency: the Pool must know
     // the address of the Rebalancer in order to register it, and the Rebalancer must know the address of the Pool
@@ -43,27 +42,29 @@ contract SiloLinearPoolRebalancer is LinearPoolRebalancer {
     ) LinearPoolRebalancer(ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()), vault, queries) {
         _shareToken = IShareToken(address(wrappedToken));
         _silo = ISilo(_shareToken.silo());
-        _exchangeRateModel = new SiloExchangeRateModel();
     }
 
     function _wrapTokens(uint256 amount) internal override {
-        // @dev In order to receive a sharesToken that can gain interest false must be entered for collateralOnly
-        // deposit however, we need to approve the silo where we will be depositing our tokens to.
+        // Approve the silo which will receive the token deposit.
         _mainToken.safeApprove(address(_silo), amount);
+
+        // Set the `_collateralOnly` argument to `false` so that we earn interest on our deposit.
         _silo.deposit(address(_mainToken), amount, false);
     }
 
     function _unwrapTokens(uint256 wrappedAmount) internal override {
         // Withdrawing into underlying (i.e. DAI, USDC, etc. instead of sDAI or sUSDC). Approvals are not necessary here
         // as the wrapped token is simply burnt
-        uint256 mainAmount = _getRequiredTokensToWrap(wrappedAmount) - 1;
-        // Same way we round up requiredTokensToWrap, we need to round down the main amount,
-        // to make sure we have enough tokens to unwrap.
+        uint256 mainAmount = _convertWrappedToMain(_silo, address(_mainToken), wrappedAmount);
+
         _silo.withdraw(address(_mainToken), mainAmount, false);
     }
 
     function _getRequiredTokensToWrap(uint256 wrappedAmount) internal view override returns (uint256) {
-        uint256 rate = _exchangeRateModel.calculateExchangeValue(_shareToken);
-        return wrappedAmount.mulDown(rate) + 1;
+        // `_convertWrappedToMain` returns how many main tokens will be returned when unwrapping. Since there's fixed
+        // point divisions and multiplications with rounding involved, this value might be off by one. We add one to
+        // ensure the returned value will always be enough to get `wrappedAmount` when unwrapping. This might result in
+        // some dust being left in the Rebalancer.
+        return _convertWrappedToMain(_silo, address(_mainToken), wrappedAmount) + 1;
     }
 }

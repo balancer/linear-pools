@@ -18,6 +18,7 @@ import { advanceTime, currentTimestamp, MONTH } from '@orbcollective/shared-depe
 
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import TokenList from '@orbcollective/shared-dependencies/test-helpers/token/TokenList';
+import { randomBytes } from 'ethers/lib/utils';
 
 enum AssetStatus {
   Undefined,
@@ -64,7 +65,9 @@ describe('SiloLinearPoolFactory', function () {
     const mainToken = await deployToken('USDC', 6, deployer);
 
     // Deploy the mock repository
-    const mockRepository = await deployPackageContract('MockSiloRepository');
+    const mockRepository = await deployPackageContract('MockSiloRepository', {
+      args: [0, 0],
+    });
 
     const mockSilo = await deployPackageContract('MockSilo', {
       args: [mockRepository.address, mainToken.address],
@@ -141,7 +144,8 @@ describe('SiloLinearPoolFactory', function () {
       UPPER_TARGET,
       POOL_SWAP_FEE_PERCENTAGE,
       owner.address,
-      SILO_PROTOCOL_ID
+      SILO_PROTOCOL_ID,
+      randomBytes(32)
     );
 
     const receipt = await tx.wait();

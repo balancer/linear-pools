@@ -59,10 +59,12 @@ export default class Verifier {
       const etherscanEndpoints = await getEtherscanEndpoints(this.network.provider, this.network.name, chainConfig, []);
 
       const contractURL = new URL(`/address/${address}#code`, etherscanEndpoints.urls.browserURL);
+
       return contractURL.toString();
     } else if (intent < MAX_VERIFICATION_INTENTS && response.isBytecodeMissingInNetworkError()) {
       logger.info(`Could not find deployed bytecode in network, retrying ${intent++}/${MAX_VERIFICATION_INTENTS}...`);
       delay(5000);
+
       return this.call(task, name, address, constructorArguments, libraries, intent++);
     } else {
       throw new Error(`The contract verification failed. Reason: ${response.message}`);
@@ -169,6 +171,7 @@ export default class Verifier {
 
     const etherscanResponse = new EtherscanResponse(await response.json());
     if (!etherscanResponse.isOk()) throw Error(etherscanResponse.message);
+
     return etherscanResponse;
   }
 
@@ -211,13 +214,12 @@ export default class Verifier {
     // We're not actually converting from relative to absolute but rather guessing: we'll extract the filename from the
     // relative path, and then look for a source name in the inputs that matches it.
     const contractName = (relativeSourcePath.match(/.*\/(\w*)\.sol/) as RegExpMatchArray)[1];
+
     return this.getContractSourceName(contractName, input);
   }
 
   private getContractSourceName(contractName: string, input: CompilerInput): string {
-    const absoluteSourcePath = Object.keys(input.sources).find((absoluteSourcePath) =>
-      absoluteSourcePath.includes(`/${contractName}.sol`)
-    );
+    const absoluteSourcePath = Object.keys(input.sources).find((source) => source.includes(`/${contractName}.sol`));
 
     if (absoluteSourcePath === undefined) {
       throw new Error(`Could not find source name for ${contractName}`);

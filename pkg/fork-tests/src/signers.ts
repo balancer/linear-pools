@@ -6,6 +6,7 @@ import { fp } from '@orbcollective/shared-dependencies/numbers';
 
 export async function getSigners(): Promise<SignerWithAddress[]> {
   const { ethers } = await import('hardhat');
+
   return ethers.getSigners();
 }
 
@@ -19,6 +20,7 @@ export async function impersonate(address: string, balance = fp(100)): Promise<S
 
   const { ethers } = await import('hardhat');
   const signer = ethers.provider.getSigner(address);
+
   return SignerWithAddress.create(signer);
 }
 
