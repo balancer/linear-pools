@@ -50,11 +50,11 @@ contract MidasLinearPoolRebalancer is LinearPoolRebalancer {
 
     function _wrapTokens(uint256 amount) internal override {
         _mainToken.safeApprove(address(_wrappedToken), amount);
-        ICToken(address(_wrappedToken)).mint(amount);
+        require(ICToken(address(_wrappedToken)).mint(amount) == 0, "wrapping failed");
     }
 
     function _unwrapTokens(uint256 wrappedAmount) internal override {
-        ICToken(address(_wrappedToken)).redeem(wrappedAmount);
+        require(ICToken(address(_wrappedToken)).redeem(wrappedAmount) == 0, "unwrapping failed");
     }
 
     function _getRequiredTokensToWrap(uint256 wrappedAmount) internal view override returns (uint256) {
