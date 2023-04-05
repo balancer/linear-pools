@@ -42,7 +42,7 @@ contract MockCToken is TestToken, ICToken, MockMaliciousQueryReverter {
         underlying = underlyingAsset;
 
         // Scale the exchange rate to 1e(18-decimals+underlyingDecimals).
-        uint256 scaleFactor = 10**(uint256(18-decimals).add(ERC20(underlyingAsset).decimals()));
+        uint256 scaleFactor = 10**(uint256(18 - decimals).add(ERC20(underlyingAsset).decimals()));
         _scaleFactor = scaleFactor;
 
         // Incoming exchange rate is scaled to 1e18.

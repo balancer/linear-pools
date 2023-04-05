@@ -23,7 +23,6 @@ import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
 import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
 
 contract MidasLinearPool is LinearPool, Version {
-
     struct ConstructorArgs {
         IVault vault;
         string name;
@@ -56,7 +55,6 @@ contract MidasLinearPool is LinearPool, Version {
         Version(args.version)
     {
         ICToken cToken = ICToken(address(args.wrappedToken));
-
 
         _require(address(args.mainToken) == cToken.underlying(), Errors.TOKENS_MISMATCH);
     }

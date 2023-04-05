@@ -34,17 +34,18 @@ contract MidasLinearPoolRebalancer is LinearPoolRebalancer {
     // These Rebalancers can only be deployed from a factory to work around a circular dependency: the Pool must know
     // the address of the Rebalancer in order to register it, and the Rebalancer must know the address of the Pool
     // during construction.
-    constructor(
-        IVault vault,
-        IBalancerQueries queries
-    ) LinearPoolRebalancer(_getLinearPool(), vault, queries) {
-        ILinearPool pool = _getLinearPool();        
+    constructor(IVault vault, IBalancerQueries queries) LinearPoolRebalancer(_getLinearPool(), vault, queries) {
+        ILinearPool pool = _getLinearPool();
 
         // The CToken function `exchangeRateHypothetical` returns the rate scaled to 18 decimals.
         // When calculating _getRequiredTokensToWrap, we receive wrappedAmount in the decimals
         // of the wrapped token. To get back to main token decimals, we divide by:
         // 10^(18 + wrappedTokenDecimals - mainTokenDecimals)
-        _divisor = 10**(18 + ERC20(address(pool.getWrappedToken())).decimals() - ERC20(address(pool.getMainToken())).decimals());
+        _divisor =
+            10 **
+                (18 +
+                    ERC20(address(pool.getWrappedToken())).decimals() -
+                    ERC20(address(pool.getMainToken())).decimals());
     }
 
     function _wrapTokens(uint256 amount) internal override {
