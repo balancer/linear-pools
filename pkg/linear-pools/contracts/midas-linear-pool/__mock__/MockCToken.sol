@@ -16,13 +16,21 @@ pragma solidity ^0.7.0;
 
 import "../interfaces/ICToken.sol";
 
+import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeERC20.sol";
+
 import "@orbcollective/shared-dependencies/contracts/MockMaliciousQueryReverter.sol";
 import "@orbcollective/shared-dependencies/contracts/TestToken.sol";
 
 contract MockCToken is TestToken, ICToken, MockMaliciousQueryReverter {
+    using SafeERC20 for IERC20;
+    using FixedPoint for uint256;
+
     address public immutable override underlying;
+
+    uint256 private immutable _scaleFactor;
+
     uint256 private _exchangeRate;
-    uint256 private _temp;
 
     constructor(
         string memory name,
@@ -32,7 +40,13 @@ contract MockCToken is TestToken, ICToken, MockMaliciousQueryReverter {
         uint256 exchangeRate
     ) TestToken(name, symbol, decimals) {
         underlying = underlyingAsset;
-        _exchangeRate = exchangeRate;
+
+        // Scale the exchange rate to 1e(18-decimals+underlyingDecimals).
+        uint256 scaleFactor = 10**(uint256(18-decimals).add(ERC20(underlyingAsset).decimals()));
+        _scaleFactor = scaleFactor;
+
+        // Incoming exchange rate is scaled to 1e18.
+        _exchangeRate = exchangeRate.mulDown(scaleFactor);
     }
 
     /**
@@ -42,9 +56,9 @@ contract MockCToken is TestToken, ICToken, MockMaliciousQueryReverter {
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function mint(uint256 mintAmount) public override returns (uint256) {
-        uint256 amountToMint = (mintAmount * 10**18) / _exchangeRate;
+        uint256 amountToMint = toCTokenAmount(mintAmount);
 
-        ERC20(underlying).transferFrom(msg.sender, address(this), mintAmount);
+        IERC20(underlying).safeTransferFrom(msg.sender, address(this), mintAmount);
 
         _mint(msg.sender, amountToMint);
 
@@ -64,9 +78,9 @@ contract MockCToken is TestToken, ICToken, MockMaliciousQueryReverter {
     function redeem(uint256 redeemTokens) external override returns (uint256) {
         _burn(msg.sender, redeemTokens);
 
-        uint256 amountToReturn = (redeemTokens * _exchangeRate) / 10**18;
+        uint256 amountToReturn = fromCTokenAmount(redeemTokens);
 
-        ERC20(underlying).transfer(msg.sender, amountToReturn);
+        IERC20(underlying).safeTransfer(msg.sender, amountToReturn);
 
         return 0;
     }
@@ -86,7 +100,25 @@ contract MockCToken is TestToken, ICToken, MockMaliciousQueryReverter {
         return _exchangeRate;
     }
 
-    function setExchangeRate(uint256 newExchangeRate) public {
-        _exchangeRate = newExchangeRate;
+    function setExchangeRate(uint256 newExchangeRate) external {
+        _exchangeRate = newExchangeRate.mulDown(_scaleFactor);
+    }
+
+    /**
+     * @notice Preview the amount of cTokens returned by a deposit.
+     * @param amount The number of underlying tokens to be deposited.
+     * @return The number of cTokens returned.
+     */
+    function toCTokenAmount(uint256 amount) public view returns (uint256) {
+        return amount.divDown(_exchangeRate);
+    }
+
+    /**
+     * @notice Preview the amount of underlying returned by a withdrawal.
+     * @param amount The number of cTokens to be redeemed.
+     * @return The number of underlying tokens returned.
+     */
+    function fromCTokenAmount(uint256 amount) public view returns (uint256) {
+        return amount.mulUp(_exchangeRate);
     }
 }
