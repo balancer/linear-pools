@@ -40,8 +40,8 @@ contract MidasLinearPoolRebalancer is LinearPoolRebalancer {
     ) LinearPoolRebalancer(_getLinearPool(), vault, queries) {
         ILinearPool pool = _getLinearPool();        
 
-        // The CToken function exchangeRateHypothetical returns the rate scaled to 18 decimals.
-        // when calculating _getRequiredTokensToWrap, we receive wrappedAmount in the decimals
+        // The CToken function `exchangeRateHypothetical` returns the rate scaled to 18 decimals.
+        // When calculating _getRequiredTokensToWrap, we receive wrappedAmount in the decimals
         // of the wrapped token. To get back to main token decimals, we divide by:
         // 10^(18 + wrappedTokenDecimals - mainTokenDecimals)
         _divisor = 10**(18 + ERC20(address(pool.getWrappedToken())).decimals() - ERC20(address(pool.getMainToken())).decimals());
@@ -57,8 +57,8 @@ contract MidasLinearPoolRebalancer is LinearPoolRebalancer {
     }
 
     function _getRequiredTokensToWrap(uint256 wrappedAmount) internal view override returns (uint256) {
-        // Midas' exchangeRateHypothetical returns the exchangeRate for the current block scaled to 18 decimals. It
-        // builds on Compounds' exchangeRateStored function by projecting the exchangeRate Stored to the current block.
+        // Midas' `exchangeRateHypothetical` returns the exchangeRate for the current block scaled to 18 decimals. It
+        // builds on Compounds' `exchangeRateStored` function by projecting the exchangeRate to the current block.
         return wrappedAmount.mulUp(ICToken(address(_wrappedToken)).exchangeRateHypothetical()).divUp(_divisor);
     }
 
