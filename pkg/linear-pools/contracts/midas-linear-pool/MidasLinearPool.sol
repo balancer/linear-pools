@@ -23,7 +23,6 @@ import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
 import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
 
 contract MidasLinearPool is LinearPool, Version {
-    ICToken private immutable _cToken;
 
     struct ConstructorArgs {
         IVault vault;
@@ -58,7 +57,6 @@ contract MidasLinearPool is LinearPool, Version {
     {
         ICToken cToken = ICToken(address(args.wrappedToken));
 
-        _cToken = cToken;
 
         _require(address(args.mainToken) == cToken.underlying(), Errors.TOKENS_MISMATCH);
     }
@@ -75,7 +73,7 @@ contract MidasLinearPool is LinearPool, Version {
     function _getWrappedTokenRate() internal view override returns (uint256) {
         // Midas' exchangeRateHypothetical returns the exchangeRate for the current block scaled to 18 decimals. It
         // builds on Compounds' exchangeRateStored function by projecting the exchangeRate Stored to the current block.
-        try _cToken.exchangeRateHypothetical() returns (uint256 rate) {
+        try ICToken(address(getWrappedToken())).exchangeRateHypothetical() returns (uint256 rate) {
             return rate;
         } catch (bytes memory revertData) {
             // By maliciously reverting here, Midas protocol (or any other contract in the call stack) could trick
