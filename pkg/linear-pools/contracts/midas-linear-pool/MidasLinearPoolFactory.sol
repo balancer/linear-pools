@@ -104,7 +104,7 @@ contract MidasLinearPoolFactory is
         uint256 swapFeePercentage,
         address owner,
         uint256 protocolId
-    ) external nonReentrant returns (LinearPool) {
+    ) external nonReentrant returns (MidasLinearPool) {
         // We are going to deploy both a MidasLinearPool and a MidasLinearPoolRebalancer set as its Asset Manager,
         // but this creates a circular dependency problem: the Pool must know the Asset Manager's address in order to
         // call `IVault.registerTokens` with it, and the Asset Manager must know about the Pool in order to store its
