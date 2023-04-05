@@ -124,7 +124,7 @@ contract MidasLinearPoolFactory is
 
         bytes memory rebalancerCreationCode = abi.encodePacked(
             type(MidasLinearPoolRebalancer).creationCode,
-            abi.encode(getVault(), _queries, address(mainToken), address(wrappedToken))
+            abi.encode(getVault(), _queries)
         );
         address expectedRebalancerAddress = Create2.computeAddress(rebalancerSalt, keccak256(rebalancerCreationCode));
 
