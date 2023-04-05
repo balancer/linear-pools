@@ -25,7 +25,7 @@ contract MockSiloRepository is ISiloRepository, MockMaliciousQueryReverter {
     uint256 private _protocolShareFee;
     MockInterestRateModel private immutable _mockModel;
 
-    constructor(uint256 compoundRate, uint256 currentRate)  {
+    constructor(uint256 compoundRate, uint256 currentRate) {
         _mockModel = new MockInterestRateModel(compoundRate, currentRate);
     }
 

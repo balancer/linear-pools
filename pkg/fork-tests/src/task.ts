@@ -233,8 +233,8 @@ export default class Task {
     const builds: {
       [sourceName: string]: { [contractName: string]: CompilerOutputContract };
     } = this._existsFile(path.join(buildInfoDir, `${fileName || contractName}.json`))
-        ? this.buildInfo(contractName).output.contracts
-        : this.buildInfos().reduce((result, info: BuildInfo) => ({ ...result, ...info.output.contracts }), {});
+      ? this.buildInfo(contractName).output.contracts
+      : this.buildInfos().reduce((result, info: BuildInfo) => ({ ...result, ...info.output.contracts }), {});
 
     const sourceName = Object.keys(builds).find((sourceName) =>
       Object.keys(builds[sourceName]).find((key) => key === contractName)
