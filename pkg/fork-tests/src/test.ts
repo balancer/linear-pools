@@ -17,9 +17,11 @@ export function getForkedNetwork(hre: HardhatRuntimeEnvironment): string {
 
   const network = Object.entries(hre.config.networks).find(([, networkConfig]) => {
     const httpNetworkConfig = networkConfig as HttpNetworkConfig;
+
     return httpNetworkConfig.url && httpNetworkConfig.url === config?.forking?.url;
   });
 
   if (!network) throw Error(`No network found matching fork from ${config.forking.url}`);
+
   return network[0];
 }

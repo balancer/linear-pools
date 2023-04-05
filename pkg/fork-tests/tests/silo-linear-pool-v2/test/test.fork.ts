@@ -54,7 +54,7 @@ describeForkTest('SiloLinearPoolFactory', 'mainnet', 16478568, function () {
   let poolId: string;
 
   before('run task', async () => {
-    task = new Task('silo-linear-pool', TaskMode.TEST, getForkedNetwork(hre));
+    task = new Task('silo-linear-pool-v2', TaskMode.TEST, getForkedNetwork(hre));
     await task.run({ force: true });
     factory = await task.deployedInstance('SiloLinearPoolFactory');
   });
@@ -163,8 +163,8 @@ describeForkTest('SiloLinearPoolFactory', 'mainnet', 16478568, function () {
     it('check factory version', async () => {
       const expectedFactoryVersion = {
         name: 'SiloLinearPoolFactory',
-        version: 1,
-        deployment: 'silo-linear-pool',
+        version: 2,
+        deployment: 'silo-linear-pool-v2',
       };
 
       expect(await factory.version()).to.equal(JSON.stringify(expectedFactoryVersion));
@@ -173,8 +173,8 @@ describeForkTest('SiloLinearPoolFactory', 'mainnet', 16478568, function () {
     it('check pool version', async () => {
       const expectedPoolVersion = {
         name: 'SiloLinearPool',
-        version: 1,
-        deployment: 'silo-linear-pool',
+        version: 2,
+        deployment: 'silo-linear-pool-v2',
       };
 
       expect(await pool.version()).to.equal(JSON.stringify(expectedPoolVersion));

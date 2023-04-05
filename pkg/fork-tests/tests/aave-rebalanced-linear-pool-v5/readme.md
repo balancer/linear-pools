@@ -1,8 +1,8 @@
-# Aave Rebalanced Linear Pool v4
+# Aave Rebalanced Linear Pool v5
 
 Deployment of the `AaveLinearPoolFactory`, for Linear Pools with a wrapped aToken.
 
-Supersedes `20221207-aave-rebalanced-linear-pool-v3`, fixing the reentrancy issue described in this [forum post](https://forum.balancer.fi/t/reentrancy-vulnerability-scope-expanded/4345).
+Supersedes `20230206-aave-rebalanced-linear-pool-v4`, updating the BasePoolFactory `_create` function, by requiring an additional `uint256 salt` parameter.
 
 ## Useful Files
 

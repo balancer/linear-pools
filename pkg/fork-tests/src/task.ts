@@ -54,6 +54,7 @@ export default class Task {
 
   get network(): string {
     if (!this._network) throw Error('No network defined');
+
     return this._network;
   }
 
@@ -68,6 +69,7 @@ export default class Task {
   async deployedInstance(name: string): Promise<Contract> {
     const address = this.output()[name];
     if (!address) throw Error(`Could not find deployed address for ${name}`);
+
     return this.instanceAt(name, address);
   }
 
@@ -78,6 +80,7 @@ export default class Task {
     const task = input as Task;
     task.network = this.network;
     const address = this._parseRawInput(rawInput)[inputName];
+
     return task.instanceAt(artifactName, address);
   }
 
@@ -95,6 +98,7 @@ export default class Task {
     const instance = await this.deploy(name, args, from, force, libs);
 
     await this.verify(name, instance.address, args, libs);
+
     return instance;
   }
 
@@ -220,11 +224,13 @@ export default class Task {
   buildInfo(fileName: string): BuildInfo {
     const buildInfoDir = this._dirAt(this.dir(), 'build-info');
     const artifactFile = this._fileAt(buildInfoDir, `${extname(fileName) ? fileName : `${fileName}.json`}`);
+
     return JSON.parse(fs.readFileSync(artifactFile).toString());
   }
 
   buildInfos(): Array<BuildInfo> {
     const buildInfoDir = this._dirAt(this.dir(), 'build-info');
+
     return fs.readdirSync(buildInfoDir).map((fileName) => this.buildInfo(fileName));
   }
 
@@ -236,11 +242,12 @@ export default class Task {
       ? this.buildInfo(contractName).output.contracts
       : this.buildInfos().reduce((result, info: BuildInfo) => ({ ...result, ...info.output.contracts }), {});
 
-    const sourceName = Object.keys(builds).find((sourceName) =>
-      Object.keys(builds[sourceName]).find((key) => key === contractName)
+    const sourceName = Object.keys(builds).find((currentSourceName) =>
+      Object.keys(builds[currentSourceName]).find((key) => key === contractName)
     );
 
     if (!sourceName) throw Error(`Could not find artifact for ${contractName}`);
+
     return getArtifactFromContractOutput(sourceName, contractName, builds[sourceName][contractName]);
   }
 
@@ -253,6 +260,7 @@ export default class Task {
     const actionIds = taskActionIds[contractName].actionIds;
     if (actionIds[signature] === undefined)
       throw new Error(`Could not find function ${contractName}.${signature} on task ${this.id}`);
+
     return actionIds[signature];
   }
 
@@ -262,6 +270,7 @@ export default class Task {
     const globalInput = { ...rawInput };
     NETWORKS.forEach((network) => delete globalInput[network]);
     const networkInput = rawInput[this.network] || {};
+
     return { ...globalInput, ...networkInput };
   }
 
@@ -276,6 +285,7 @@ export default class Task {
 
     const taskOutputDir = this._dirAt(this.dir(), 'output', ensure);
     const taskOutputFile = this._fileAt(taskOutputDir, `${network}.json`, ensure);
+
     return this._read(taskOutputFile);
   }
 
@@ -320,28 +330,31 @@ export default class Task {
     return Object.keys(rawOutput).reduce((output: Output, key: string) => {
       const value = rawOutput[key];
       output[key] = typeof value === 'string' ? value : value.address;
+
       return output;
     }, {});
   }
 
-  private _read(path: string): Output {
-    return fs.existsSync(path) ? JSON.parse(fs.readFileSync(path).toString()) : {};
+  private _read(pathText: string): Output {
+    return fs.existsSync(pathText) ? JSON.parse(fs.readFileSync(pathText).toString()) : {};
   }
 
-  private _write(path: string, output: Output): void {
+  private _write(pathText: string, output: Output): void {
     const finalOutputJSON = JSON.stringify(output, null, 2);
-    fs.writeFileSync(path, finalOutputJSON);
+    fs.writeFileSync(pathText, finalOutputJSON);
   }
 
   private _fileAt(base: string, name: string, ensure = true): string {
     const filePath = path.join(base, name);
     if (ensure && !this._existsFile(filePath)) throw Error(`Could not find a file at ${filePath}`);
+
     return filePath;
   }
 
   private _dirAt(base: string, name: string, ensure = true): string {
     const dirPath = path.join(base, name);
     if (ensure && !this._existsDir(dirPath)) throw Error(`Could not find a directory at ${dirPath}`);
+
     return dirPath;
   }
 

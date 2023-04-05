@@ -49,7 +49,7 @@ describeForkTest('ERC4626LinearPoolFactory', 'mainnet', 16015018, function () {
   let poolId: string;
 
   before('run task', async () => {
-    task = new Task('erc4626-linear-pool', TaskMode.TEST, getForkedNetwork(hre));
+    task = new Task('erc4626-linear-pool-v4', TaskMode.TEST, getForkedNetwork(hre));
     await task.run({ force: true });
     factory = await task.deployedInstance('ERC4626LinearPoolFactory');
   });
@@ -156,8 +156,8 @@ describeForkTest('ERC4626LinearPoolFactory', 'mainnet', 16015018, function () {
     it('check factory version', async () => {
       const expectedFactoryVersion = {
         name: 'ERC4626LinearPoolFactory',
-        version: 3,
-        deployment: 'erc4626-linear-pool-v3',
+        version: 4,
+        deployment: 'erc4626-linear-pool-v4',
       };
 
       expect(await factory.version()).to.equal(JSON.stringify(expectedFactoryVersion));
@@ -166,8 +166,8 @@ describeForkTest('ERC4626LinearPoolFactory', 'mainnet', 16015018, function () {
     it('check pool version', async () => {
       const expectedPoolVersion = {
         name: 'ERC4626LinearPool',
-        version: 3,
-        deployment: 'erc4626-linear-pool-v3',
+        version: 4,
+        deployment: 'erc4626-linear-pool-v4',
       };
 
       expect(await pool.version()).to.equal(JSON.stringify(expectedPoolVersion));
