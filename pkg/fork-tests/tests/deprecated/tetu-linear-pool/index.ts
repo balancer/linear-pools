@@ -6,9 +6,9 @@ import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 
 import { TetuLinearPoolDeployment } from './input';
 
-import Task, { TaskMode } from '../../src/task';
-import { TaskRunOptions } from '../../src/task-libraries/types';
-import { getContractDeploymentTransactionHash, saveContractDeploymentTransactionHash } from '../../src';
+import Task, { TaskMode } from '../../../src/task';
+import { TaskRunOptions } from '../../../src/task-libraries/types';
+import { getContractDeploymentTransactionHash, saveContractDeploymentTransactionHash } from '../../../src';
 
 export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise<void> => {
   const input = task.input() as TetuLinearPoolDeployment;
