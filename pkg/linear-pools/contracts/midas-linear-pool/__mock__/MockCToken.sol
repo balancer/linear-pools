@@ -85,16 +85,6 @@ contract MockCToken is TestToken, ICToken, MockMaliciousQueryReverter {
         return 0;
     }
 
-    /* function exchangeRateCurrent() external view override returns (uint256) {
-        maybeRevertMaliciously();
-        return _exchangeRate;
-    } */
-
-    /* function exchangeRateStored() external view override returns (uint256) {
-        maybeRevertMaliciously();
-        return _exchangeRate;
-    } */
-
     function exchangeRateHypothetical() external view override returns (uint256) {
         maybeRevertMaliciously();
         return _exchangeRate;
