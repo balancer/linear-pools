@@ -54,9 +54,7 @@ contract MidasLinearPool is LinearPool, Version {
         )
         Version(args.version)
     {
-        ICToken cToken = ICToken(address(args.wrappedToken));
-
-        _require(address(args.mainToken) == cToken.underlying(), Errors.TOKENS_MISMATCH);
+        _require(address(args.mainToken) == ICToken(address(args.wrappedToken)).underlying(), Errors.TOKENS_MISMATCH);
     }
 
     function _toAssetManagerArray(ConstructorArgs memory args) private pure returns (address[] memory) {
