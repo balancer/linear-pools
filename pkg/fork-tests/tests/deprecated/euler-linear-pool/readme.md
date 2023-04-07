@@ -1,5 +1,7 @@
 # Euler Linear Pool
 
+> ⚠️ **DEPRECATED: do not use** ⚠️
+
 First deployment of the `EulerLinearPoolFactory`, for Linear Pools with an Euler yield-bearing token.
 
 ## Useful Files
