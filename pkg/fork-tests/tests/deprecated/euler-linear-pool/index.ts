@@ -1,11 +1,11 @@
 import { bn } from '@orbcollective/shared-dependencies/numbers';
-import Task, { TaskMode } from '../../src/task';
-import { TaskRunOptions } from '../../src/task-libraries/types';
+import Task, { TaskMode } from '../../../src/task';
+import { TaskRunOptions } from '../../../src/task-libraries/types';
 import { EulerLinearPoolDeployment } from './input';
 import { ZERO_ADDRESS } from '@orbcollective/shared-dependencies';
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import { ethers } from 'hardhat';
-import { getContractDeploymentTransactionHash, saveContractDeploymentTransactionHash } from '../../src';
+import { getContractDeploymentTransactionHash, saveContractDeploymentTransactionHash } from '../../../src';
 
 export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise<void> => {
   const input = task.input() as EulerLinearPoolDeployment;
