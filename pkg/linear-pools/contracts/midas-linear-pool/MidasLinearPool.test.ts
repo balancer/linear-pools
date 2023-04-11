@@ -363,7 +363,6 @@ describe('MidasLinearPool', function () {
     let bbcdai: Contract;
 
     let initialExchangeRate: BigNumber;
-    let daiRequired: BigNumber;
 
     beforeEach('setup tokens, cToken and linear pool', async () => {
       dai = await deployToken('DAI', 18, deployer);
