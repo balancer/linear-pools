@@ -415,11 +415,8 @@ describe('MidasLinearPool', function () {
       expect(await bbcdai.getWrappedTokenRate()).to.be.eq(fp(2));
 
       const cDAIAmount = fp(1);
-      daiRequired = cDAIAmount.mul(initialExchangeRate).div(BigNumber.from(10).pow(18));
-      await dai.connect(lp).mint(lp.address, daiRequired);
-      await dai.connect(lp).approve(cdai.address, daiRequired);
 
-      await cdai.connect(lp).mintCTokens(daiRequired);
+      await cdai.connect(lp).mintCTokens(cDAIAmount);
       await cdai.connect(lp).approve(vault.address, MAX_UINT256);
 
       expect(await cdai.balanceOf(lp.address)).to.be.eq(cDAIAmount);

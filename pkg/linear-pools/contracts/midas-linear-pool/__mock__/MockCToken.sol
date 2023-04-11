@@ -66,7 +66,7 @@ contract MockCToken is TestToken, ICToken, MockMaliciousQueryReverter {
     }
 
     function mintCTokens(uint256 mintAmount) public {
-        mint(mintAmount);
+        _mint(msg.sender, mintAmount);
     }
 
     /**
