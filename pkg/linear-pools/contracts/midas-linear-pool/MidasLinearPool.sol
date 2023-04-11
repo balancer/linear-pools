@@ -18,13 +18,11 @@ pragma experimental ABIEncoderV2;
 import "./interfaces/ICToken.sol";
 
 import "@balancer-labs/v2-pool-utils/contracts/lib/ExternalCallLib.sol";
-import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
 
 import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
+import "@balancer-labs/v2-pool-utils/contracts/Version.sol";
 
 contract MidasLinearPool is LinearPool, Version {
-    ICToken private immutable _cToken;
-
     struct ConstructorArgs {
         IVault vault;
         string name;
@@ -56,11 +54,7 @@ contract MidasLinearPool is LinearPool, Version {
         )
         Version(args.version)
     {
-        ICToken cToken = ICToken(address(args.wrappedToken));
-
-        _cToken = cToken;
-
-        _require(address(args.mainToken) == cToken.underlying(), Errors.TOKENS_MISMATCH);
+        _require(address(args.mainToken) == ICToken(address(args.wrappedToken)).underlying(), Errors.TOKENS_MISMATCH);
     }
 
     function _toAssetManagerArray(ConstructorArgs memory args) private pure returns (address[] memory) {
@@ -73,13 +67,13 @@ contract MidasLinearPool is LinearPool, Version {
     }
 
     function _getWrappedTokenRate() internal view override returns (uint256) {
-        try _cToken.exchangeRateStored() returns (uint256 rate) {
-            // exchangeRateStored returns the exchange rate scaled by 1e18, so no additional
-            // operations are needed here.
+        // Midas' `exchangeRateHypothetical` returns the exchangeRate for the current block scaled to 18 decimals. It
+        // builds on Compounds' `exchangeRateStored` function by projecting the exchangeRate to the current block.
+        try ICToken(address(getWrappedToken())).exchangeRateHypothetical() returns (uint256 rate) {
             return rate;
         } catch (bytes memory revertData) {
-            // By maliciously reverting here, any contract in the call stack could trick the Pool into
-            // reporting invalid data to the query mechanism for swaps/joins/exits.
+            // By maliciously reverting here, Midas protocol (or any other contract in the call stack) could trick
+            // the Pool into reporting invalid data to the query mechanism for swaps/joins/exits.
             // We then check the revert data to ensure this doesn't occur.
             ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);
         }

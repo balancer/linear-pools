@@ -18,19 +18,19 @@ import { describeForkTest } from '../../../src/forkTests';
 import { impersonate, getForkedNetwork, Task, TaskMode, getSigners } from '../../../src';
 import { randomBytes } from 'ethers/lib/utils';
 
-describeForkTest('MidasLinearPoolFactory', 'bsc', 23696722, function () {
+describeForkTest('MidasLinearPoolFactory', 'polygon', 40164926, function () {
   let owner: SignerWithAddress, holder: SignerWithAddress, other: SignerWithAddress;
   let factory: Contract, vault: Contract, brz: Contract;
   let rebalancer: Contract;
 
   let task: Task;
 
-  const BRZ = '0x71be881e9C5d4465B3FfF61e89c6f3651E69B5bb';
-  const cBRZ = '0x9c42b10a32d7dfE1a978b74dcD07Eb1Fadea2B86';
+  const cBRZ = '0x2e4659b451C3ba2E72D79aAf267cFc09BCCc9d7c';
+  const BRZ = '0x491a4eB4f1FC3BfF8E1d2FC856a6A46663aD556f';
 
   const BRZ_SCALING = bn(1e14); // BRZ has 4 decimals, so its scaling factor is 1e14
 
-  const BRZ_HOLDER = '0x6b02568149b01f88152c9a4f1853ec9c59922620';
+  const BRZ_HOLDER = '0xB90B2050C955cd899b9BC8B5C743c25770EBc8AA';
 
   const SWAP_FEE_PERCENTAGE = fp(0.01); // 1%
 
@@ -110,7 +110,7 @@ describeForkTest('MidasLinearPoolFactory', 'bsc', 23696722, function () {
         // error in the main-wrapped conversion).
         expect(finalRecipientMainBalance.sub(initialRecipientMainBalance)).to.be.almostEqual(
           fees.div(BRZ_SCALING),
-          0.00000001
+          0.000001 // old: 0.00000001
         );
       } else {
         // The recipient of the rebalance call will get any extra main tokens that were not utilized.

@@ -23,57 +23,47 @@ import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeERC20.sol";
 
-import "./contracts/LinearPoolRebalancer.sol";
+import "@balancer-labs/v2-pool-linear/contracts/LinearPoolRebalancer.sol";
 
 contract MidasLinearPoolRebalancer is LinearPoolRebalancer {
-    using FixedPoint for uint256;
     using SafeERC20 for IERC20;
+    using FixedPoint for uint256;
 
     uint256 private immutable _divisor;
 
     // These Rebalancers can only be deployed from a factory to work around a circular dependency: the Pool must know
     // the address of the Rebalancer in order to register it, and the Rebalancer must know the address of the Pool
     // during construction.
-    constructor(IVault vault, IBalancerQueries queries)
-        LinearPoolRebalancer(ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()), vault, queries)
-    {
-        ILinearPool pool = ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool());
-        ERC20 mainToken = ERC20(address(pool.getMainToken()));
-        ERC20 wrappedToken = ERC20(address(pool.getWrappedToken()));
+    constructor(IVault vault, IBalancerQueries queries) LinearPoolRebalancer(_getLinearPool(), vault, queries) {
+        ILinearPool pool = _getLinearPool();
 
-        // The CToken function exchangeRateCurrent returns the rate scaled to 18 decimals.
-        // when calculating _getRequiredTokensToWrap, we receive wrappedAmount in the decimals
+        // The CToken function `exchangeRateHypothetical` returns the rate scaled to 18 decimals.
+        // When calculating _getRequiredTokensToWrap, we receive wrappedAmount in the decimals
         // of the wrapped token. To get back to main token decimals, we divide by:
         // 10^(18 + wrappedTokenDecimals - mainTokenDecimals)
-        _divisor = 10**(18 + wrappedToken.decimals() - mainToken.decimals());
+        _divisor =
+            10 **
+                (18 +
+                    ERC20(address(pool.getWrappedToken())).decimals() -
+                    ERC20(address(pool.getMainToken())).decimals());
     }
 
     function _wrapTokens(uint256 amount) internal override {
-        // Depositing from underlying (i.e. DAI, USDC, etc. instead of cDAI or cUSDC). Before we can
-        // deposit however, we need to approve the wrapper (cToken) in the underlying token.
         _mainToken.safeApprove(address(_wrappedToken), amount);
-        ICToken(address(_wrappedToken)).mint(amount);
+        require(ICToken(address(_wrappedToken)).mint(amount) == 0, "wrapping failed");
     }
 
-    function _unwrapTokens(uint256 amount) internal override {
-        // Withdrawing into underlying (i.e. DAI, USDC, etc. instead of cDAI or cUSDC). Approvals are not necessary
-        // here as the wrapped token is simply burnt.
-        ICToken(address(_wrappedToken)).redeem(amount);
+    function _unwrapTokens(uint256 wrappedAmount) internal override {
+        require(ICToken(address(_wrappedToken)).redeem(wrappedAmount) == 0, "unwrapping failed");
     }
 
     function _getRequiredTokensToWrap(uint256 wrappedAmount) internal view override returns (uint256) {
-        // exchangeRateStored calculates the exchange rate from the underlying (main) to the CToken (wrapped) scaled
-        // to 1e18. Since the rate calculation includes divisions and multiplications with rounding involved, this
-        // value might be off by one. We divUp to ensure the returned value will always be enough to get
-        // `wrappedAmount` when unwrapping. This might result in some dust being left in the Rebalancer.
-        // wrappedAmount * exchangeRateCurrent / divisor
-        return wrappedAmount.mulUp(ICToken(address(_wrappedToken)).exchangeRateStored()).divUp(_divisor);
+        // Midas' `exchangeRateHypothetical` returns the exchangeRate for the current block scaled to 18 decimals. It
+        // builds on Compounds' `exchangeRateStored` function by projecting the exchangeRate to the current block.
+        return wrappedAmount.mulUp(ICToken(address(_wrappedToken)).exchangeRateHypothetical()).divUp(_divisor);
     }
 
-    function _beforeRebalance() internal override {
-        // We call accrueInterest prior to the rebalance to ensure that all calculations are done using the most up
-        // to date exchangeRate. This is necessary because a call to mint/redeem will also trigger a call to
-        // accrueInterest, resulting in operations before mint/redeem using a different exchangeRate than those after.
-        ICToken(address(_wrappedToken)).accrueInterest();
+    function _getLinearPool() private view returns (ILinearPool) {
+        return ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool());
     }
 }

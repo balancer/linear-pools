@@ -1,7 +1,7 @@
 import hre from 'hardhat';
 import { expect } from 'chai';
 import { Contract } from 'ethers';
-import { setCode } from '@nomicfoundation/hardhat-network-helpers';
+import { setCode, setBalance } from '@nomicfoundation/hardhat-network-helpers';
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 
 import { bn, fp, FP_ONE } from '@orbcollective/shared-dependencies/numbers';
@@ -18,7 +18,7 @@ import { describeForkTest } from '../../../src/forkTests';
 import { impersonate, getForkedNetwork, Task, TaskMode, getSigners } from '../../../src';
 import { randomBytes } from 'ethers/lib/utils';
 
-describeForkTest('MidasLinearPoolFactory', 'bsc', 23696722, function () {
+describeForkTest('MidasLinearPoolFactory', 'bsc', 26325172, function () {
   let owner: SignerWithAddress, holder: SignerWithAddress, other: SignerWithAddress;
   let factory: Contract, vault: Contract, brz: Contract;
   let rebalancer: Contract;
@@ -26,20 +26,20 @@ describeForkTest('MidasLinearPoolFactory', 'bsc', 23696722, function () {
   let task: Task;
 
   const WBNB = '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c';
-  const cWBNB = '0x38982105A2F81dc5dBDEA6c131bB4bF5a416513A';
+  const cWBNB = '0x92897f3De21E2FFa8dd8b3a48D1Edf29B5fCef0e';
 
   const WBNB_SCALING = bn(1); // BRZ has 18 decimals, so its scaling factor is 1e0
 
-  const WBNB_HOLDER = '0x58f876857a02d6762e0101bb5c46a8c1ed44dc16';
+  const WBNB_HOLDER = '0x16b9a82891338f9ba80e2d6970fdda79d1eb0dae';
 
   const SWAP_FEE_PERCENTAGE = fp(0.01); // 1%
 
   // The targets are set using 18 decimals, even if the token has fewer (as is the case for BRZ);
-  const INITIAL_UPPER_TARGET = fp(1e4);
+  const INITIAL_UPPER_TARGET = fp(1e6);
 
   // The initial midpoint (upper target / 2) must be between the final lower and upper targets
-  const FINAL_LOWER_TARGET = fp(0.2e4);
-  const FINAL_UPPER_TARGET = fp(5e4);
+  const FINAL_LOWER_TARGET = fp(0.2e6);
+  const FINAL_UPPER_TARGET = fp(5e6);
 
   const PROTOCOL_ID = 0;
 
@@ -63,6 +63,28 @@ describeForkTest('MidasLinearPoolFactory', 'bsc', 23696722, function () {
 
     brz = await task.instanceAt('IERC20', WBNB);
     await brz.connect(holder).approve(vault.address, MAX_UINT256);
+  });
+
+  before('Get additional wbnb', async () => {
+    const initialBalance = fp(1e12);
+    const depositIntoWbnb = fp(1e11);
+    await setBalance(holder.address, initialBalance);
+    const wbnbContract = new ethers.Contract(
+      WBNB,
+      [
+        {
+          constant: false,
+          inputs: [],
+          name: 'deposit',
+          outputs: [],
+          payable: true,
+          stateMutability: 'payable',
+          type: 'function',
+        },
+      ],
+      holder
+    );
+    await wbnbContract.deposit({ value: depositIntoWbnb });
   });
 
   enum LinearPoolState {
