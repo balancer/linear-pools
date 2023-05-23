@@ -12,9 +12,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.7.0;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol"
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract MockBProtocolERC20Wrapper is ERC20 {
 
@@ -27,8 +27,10 @@ contract MockBProtocolERC20Wrapper is ERC20 {
     address public immutable LQTY; // LQTY Token
     address public gauge; // Boosted Pool Gauge
 
-    construtor(address _gauge) ERC20("Wrapped BProtocol AMM", "WBAMM") {
+    constructor(address _gauge, address _lqty, address _bamm) ERC20("Wrapped BProtocol AMM", "WBAMM") {
         gauge = _gauge;
+        LQTY = _lqty;
+        BAMM = _bamm;
     }
 
     function deposit(uint256 lusdAmount) external {

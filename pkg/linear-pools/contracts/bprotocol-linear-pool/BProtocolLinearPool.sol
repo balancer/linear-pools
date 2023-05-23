@@ -21,8 +21,14 @@ import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20.sol";
 
 import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
 
-contract BProtocolLinearPool is LinearPool, Version {
+import "./BprotocolExchangeRateModel.sol";
+
+import "hardhat/console.sol";
+
+contract BProtocolLinearPool is LinearPool, Version, BprotocolExchangeRateModel {
     // uint256 private immutable _rateScaleFactor;
+    address private immutable _bamm;
+    address private immutable _StabilityPool;
 
     struct ConstructorArgs {
         IVault vault;
@@ -39,7 +45,7 @@ contract BProtocolLinearPool is LinearPool, Version {
         string version;
     }
 
-    constructor(ConstructorArgs memory args)
+    constructor(ConstructorArgs memory args, address bamm)
         LinearPool(
             args.vault,
             args.name,
@@ -78,6 +84,8 @@ contract BProtocolLinearPool is LinearPool, Version {
         // This result is always positive because the LinearPool constructor rejects tokens with more than 18 decimals.
         // uint256 digitsDifference = 18 + wrappedTokenDecimals - mainTokenDecimals;
         // _rateScaleFactor = 10**digitsDifference;
+
+        _bamm = bamm;
     }
 
     function _toAssetManagerArray(ConstructorArgs memory args) private pure returns (address[] memory) {
@@ -90,17 +98,6 @@ contract BProtocolLinearPool is LinearPool, Version {
     }
 
     function _getWrappedTokenRate() internal view override returns (uint256) {
-        // One wrapped token is pre-scaled by 1e(18 - mainTokenDecimals) to achieve the most precise rate.
-        try {
-            // get rate logic for BProtocol here.
-            // 
-        } returns (uint256 rate) {
-            return rate;
-        } catch (bytes memory revertData) {
-            // By maliciously reverting here, the ERC-4626 vault (or any other contract in the call stack) could trick
-            // the Pool into reporting invalid data to the query mechanism for swaps/joins/exits.
-            // We then check the revert data to ensure this doesn't occur.
-            ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);
-        }
+        return _getSharesExchangeRate(address(0));
     }
 }

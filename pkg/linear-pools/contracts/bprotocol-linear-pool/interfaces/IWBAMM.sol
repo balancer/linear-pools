@@ -14,10 +14,6 @@
 
 pragma solidity ^0.7.0;
 
-interface IBAMM {
-    function SP() external view returns (address);   
-    function deposit(uint256 lusdAmount) external;
-    function withdraw(uint256 numShares) external;
-    function totalSupply() external view returns (uint256);
-    function balanceOf(address) external view returns (uint256);
+interface IWBAMM {
+    function previewWithdraw (uint256 amount) external returns (uint256);
 }
