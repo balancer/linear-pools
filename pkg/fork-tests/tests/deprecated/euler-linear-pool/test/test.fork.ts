@@ -12,9 +12,9 @@ import {
 } from '@orbcollective/shared-dependencies';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 
-import { describeForkTest } from '../../../src/forkTests';
+import { describeForkTest } from '../../../../src/forkTests';
 
-import { impersonate, getForkedNetwork, Task, TaskMode, getSigners } from '../../../src';
+import { impersonate, getForkedNetwork, Task, TaskMode, getSigners } from '../../../../src';
 import { randomBytes } from 'ethers/lib/utils';
 
 export enum SwapKind {
