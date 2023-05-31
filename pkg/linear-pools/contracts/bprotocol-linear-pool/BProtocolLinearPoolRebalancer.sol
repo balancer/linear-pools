@@ -15,7 +15,6 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "./interfaces/IBAMM.sol";
 import "./interfaces/IWBAMM.sol";
 
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
@@ -26,29 +25,43 @@ import "@balancer-labs/v2-pool-linear/contracts/LinearPoolRebalancer.sol";
 contract BProtocolLinearPoolRebalancer is LinearPoolRebalancer {
     using SafeERC20 for IERC20;
 
+    //solhint-disable-next-line var-name-mixedcase
+    address public immutable wbamm;
+
     // These Rebalancers can only be deployed from a factory to work around a circular dependency: the Pool must know
     // the address of the Rebalancer in order to register it, and the Rebalancer must know the address of the Pool
     // during construction.
-    constructor(IVault vault, IBalancerQueries queries)
-        LinearPoolRebalancer(ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()), vault, queries)
-    {
-        // solhint-disable-previous-line no-empty-blocks
+    constructor(
+        IVault vault,
+        IBalancerQueries queries,
+        address _wbamm
+    ) LinearPoolRebalancer(ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()), vault, queries) {
+        wbamm = _wbamm;
     }
 
     function _wrapTokens(uint256 amount) internal override {
-        _mainToken.safeApprove(address(_wrappedToken), amount);
-        IBAMM(address(_wrappedToken)).deposit(amount);
+        _mainToken.safeApprove(wbamm, amount);
+
+        // param: subAccountId 0 for primary, 1-255 for a sub-account.
+        // param: amount In underlying units (use max uint256 for full underlying token balance).
+        // https://github.com/euler-xyz/euler-contracts/blob/master/contracts/modules/EToken.sol#L136
+        IWBAMM(address(_wrappedToken)).deposit(amount);
     }
 
-    function _unwrapTokens(uint256 wrappedAmount) internal override {
-        IBAMM(address(_wrappedToken)).redeem(wrappedAmount);
+    function _unwrapTokens(uint256 amount) internal override {
+        //uint256 underlyingAmount = IEulerTokenMinimal(address(_wrappedToken)).convertBalanceToUnderlying(amount);
+
+        // param: subAccountId: 0 for primary, 1-255 for a sub-account.
+        // param: amount: In underlying units (use max uint256 for full pool balance).
+        // https://github.com/euler-xyz/euler-contracts/blob/master/contracts/modules/EToken.sol#L177
+        IWBAMM(address(_wrappedToken)).withdraw(amount);
     }
 
     function _getRequiredTokensToWrap(uint256 wrappedAmount) internal view override returns (uint256) {
-        // ERC4626 defines that previewMint MUST return as close to and no fewer than the exact amount of assets
-        // (main tokens) that would be deposited to mint the desired number of shares (wrapped tokens).
-        // Since the amount returned by previewMint may be slightly larger then the required number of main tokens,
-        // this could result in some dust being left in the Rebalancer.
-        return IWBAMM(address(_wrappedToken)).previewMint(wrappedAmount);
+        // Convert an eToken balance to an underlying amount, taking into account current exchange rate
+        // input: balance: eToken balance, in internal book-keeping units (18 decimals)
+        // returns: Amount in underlying units, (same decimals as underlying token)
+        // https://docs.euler.finance/developers/getting-started/contract-reference
+        return IWBAMM(address(_wrappedToken)).previewWithdraw(wrappedAmount) + 1;
     }
 }

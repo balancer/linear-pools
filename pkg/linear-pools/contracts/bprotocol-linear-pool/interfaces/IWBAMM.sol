@@ -15,5 +15,7 @@
 pragma solidity ^0.7.0;
 
 interface IWBAMM {
-    function previewWithdraw (uint256 amount) external returns (uint256);
+    function previewWithdraw (uint256 amount) external view returns (uint256);
+    function withdraw (uint256 amount) external returns (uint256);
+    function deposit (uint256 amount) external returns (uint256);
 }

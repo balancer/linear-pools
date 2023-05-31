@@ -28,7 +28,7 @@ import "hardhat/console.sol";
 contract BProtocolLinearPool is LinearPool, Version, BprotocolExchangeRateModel {
     // uint256 private immutable _rateScaleFactor;
     address private immutable _bamm;
-    address private immutable _StabilityPool;
+    address private immutable _rebalancer;
 
     struct ConstructorArgs {
         IVault vault;
@@ -45,7 +45,7 @@ contract BProtocolLinearPool is LinearPool, Version, BprotocolExchangeRateModel 
         string version;
     }
 
-    constructor(ConstructorArgs memory args, address bamm)
+    constructor(ConstructorArgs memory args, address bamm, address rebalancer)
         LinearPool(
             args.vault,
             args.name,
@@ -86,6 +86,7 @@ contract BProtocolLinearPool is LinearPool, Version, BprotocolExchangeRateModel 
         // _rateScaleFactor = 10**digitsDifference;
 
         _bamm = bamm;
+        _rebalancer = rebalancer;
     }
 
     function _toAssetManagerArray(ConstructorArgs memory args) private pure returns (address[] memory) {
@@ -98,6 +99,14 @@ contract BProtocolLinearPool is LinearPool, Version, BprotocolExchangeRateModel 
     }
 
     function _getWrappedTokenRate() internal view override returns (uint256) {
-        return _getSharesExchangeRate(address(0));
+        // what is one share of the wrapped token worth in terms of the main token?
+        try IWBAMM(address(1234)).previewWithdraw(1e18) returns (uint256 rate) {
+            return rate;
+        } catch (bytes memory revertData) {
+            // By maliciously reverting here, Euler (or any other contract in the call stack) could trick the Pool
+            // into reporting invalid data to the query mechanism for swaps/joins/exits.
+            // We then check the revert data to ensure this doesn't occur.
+            ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);
+        }
     }
 }

@@ -30,6 +30,8 @@ import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ReentrancyGuard.
 import "./BProtocolLinearPool.sol";
 import "./BProtocolLinearPoolRebalancer.sol";
 
+import "hardhat/console.sol";
+
 contract BProtocolLinearPoolFactory is
     ILastCreatedPoolFactory,
     IFactoryCreatedPoolVersion,
@@ -45,8 +47,11 @@ contract BProtocolLinearPoolFactory is
     address private _lastCreatedPool;
     string private _poolVersion;
 
+    //solhint-disable-next-line var-name-mixedcase
+    address public immutable wbamm;
+
     // This event allows off-chain tools to differentiate between different protocols that use this factory
-    // to deploy Euler Linear Pools.
+    // to deploy BProtocol Linear Pools.
     event BProtocolLinearPoolCreated(address indexed pool, uint256 indexed protocolId);
 
     constructor(
@@ -56,7 +61,8 @@ contract BProtocolLinearPoolFactory is
         string memory factoryVersion,
         string memory poolVersion,
         uint256 initialPauseWindowDuration,
-        uint256 bufferPeriodDuration
+        uint256 bufferPeriodDuration,
+        address _wbamm
     )
         BasePoolFactory(
             vault,
@@ -69,6 +75,7 @@ contract BProtocolLinearPoolFactory is
     {
         _queries = queries;
         _poolVersion = poolVersion;
+        wbamm = _wbamm;
     }
 
     /**
@@ -93,7 +100,7 @@ contract BProtocolLinearPoolFactory is
     }
 
     /**
-     * @dev Deploys a new `EulerLinearPool`.
+     * @dev Deploys a new `BProtocolLinearPool`.
      */
     function create(
         string memory name,
@@ -106,7 +113,7 @@ contract BProtocolLinearPoolFactory is
         uint256 protocolId,
         bytes32 salt
     ) external nonReentrant returns (BProtocolLinearPool) {
-        // We are going to deploy both an EulerLinearPool and an EulerLinearPoolRebalancer set as its Asset Manager, but
+        // We are going to deploy both an BProtocolLinearPool and an BProtocolLinearPoolRebalancer set as its Asset Manager, but
         // this creates a circular dependency problem: the Pool must know the Asset Manager's address in order to call
         // `IVault.registerTokens` with it, and the Asset Manager must know about the Pool in order to store its Pool
         // ID, wrapped and main tokens, etc., as immutable variables.
@@ -120,14 +127,19 @@ contract BProtocolLinearPoolFactory is
         // the Pool's address. To work around this, we have the Rebalancer fetch this address from `getLastCreatedPool`,
         // which will hold the Pool's address after we call `_create`.
 
+
+        console.log("HELLO HARDHAT");
         bytes32 rebalancerSalt = bytes32(_nextRebalancerSalt);
         _nextRebalancerSalt += 1;
 
+        //console.log("address of wrapper", wrapper);
+
         bytes memory rebalancerCreationCode = abi.encodePacked(
             type(BProtocolLinearPoolRebalancer).creationCode,
-            abi.encode(getVault(), _queries)
+            abi.encode(getVault(), _queries, wbamm)
         );
         address expectedRebalancerAddress = Create2.computeAddress(rebalancerSalt, keccak256(rebalancerCreationCode));
+        console.log("Rebalancer should get deployed at", expectedRebalancerAddress);
 
         (uint256 pauseWindowDuration, uint256 bufferPeriodDuration) = getPauseConfiguration();
 
@@ -147,19 +159,33 @@ contract BProtocolLinearPoolFactory is
 
         BProtocolLinearPool pool = BProtocolLinearPool(_create(abi.encode(args), salt));
 
+        console.log("Linear Pool should be deployed at", address(pool));
+
         // LinearPools have a separate post-construction initialization step: we perform it here to
         // ensure deployment and initialization are atomic.
         pool.initialize();
 
         // Not that the Linear Pool's deployment is complete, we can deploy the Rebalancer, verifying that we correctly
         // predicted its deployment address.
+
+        console.log("SALT BELOW");
+        console.logBytes32(rebalancerSalt);
+        console.log("SALT TOP");
+
+        
+
         address actualRebalancerAddress = Create2.deploy(0, rebalancerSalt, rebalancerCreationCode);
+        console.log("checking addresses");
+
         require(expectedRebalancerAddress == actualRebalancerAddress, "Rebalancer deployment failed");
 
         // Identify the protocolId associated with this pool. We do not require that the protocolId be registered.
         emit BProtocolLinearPoolCreated(address(pool), protocolId);
 
         // We don't return the Rebalancer's address, but that can be queried in the Vault by calling `getPoolTokenInfo`.
+        console.log("done, returning pool");
+
         return pool;
+
     }
 }
