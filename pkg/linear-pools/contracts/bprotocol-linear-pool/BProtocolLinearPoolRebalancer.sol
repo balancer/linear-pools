@@ -26,42 +26,29 @@ contract BProtocolLinearPoolRebalancer is LinearPoolRebalancer {
     using SafeERC20 for IERC20;
 
     //solhint-disable-next-line var-name-mixedcase
-    address public immutable wbamm;
 
     // These Rebalancers can only be deployed from a factory to work around a circular dependency: the Pool must know
     // the address of the Rebalancer in order to register it, and the Rebalancer must know the address of the Pool
     // during construction.
     constructor(
         IVault vault,
-        IBalancerQueries queries,
-        address _wbamm
+        IBalancerQueries queries
     ) LinearPoolRebalancer(ILinearPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()), vault, queries) {
-        wbamm = _wbamm;
     }
 
     function _wrapTokens(uint256 amount) internal override {
-        _mainToken.safeApprove(wbamm, amount);
-
-        // param: subAccountId 0 for primary, 1-255 for a sub-account.
-        // param: amount In underlying units (use max uint256 for full underlying token balance).
-        // https://github.com/euler-xyz/euler-contracts/blob/master/contracts/modules/EToken.sol#L136
+        _mainToken.safeApprove(address(_wrappedToken), amount);
+        // wrap lusd into the liquid wrapper tokens
         IWBAMM(address(_wrappedToken)).deposit(amount);
     }
 
     function _unwrapTokens(uint256 amount) internal override {
-        //uint256 underlyingAmount = IEulerTokenMinimal(address(_wrappedToken)).convertBalanceToUnderlying(amount);
-
-        // param: subAccountId: 0 for primary, 1-255 for a sub-account.
-        // param: amount: In underlying units (use max uint256 for full pool balance).
-        // https://github.com/euler-xyz/euler-contracts/blob/master/contracts/modules/EToken.sol#L177
+        // unwrap the liquid wrapper tokens to main tokens
         IWBAMM(address(_wrappedToken)).withdraw(amount);
     }
 
     function _getRequiredTokensToWrap(uint256 wrappedAmount) internal view override returns (uint256) {
-        // Convert an eToken balance to an underlying amount, taking into account current exchange rate
-        // input: balance: eToken balance, in internal book-keeping units (18 decimals)
-        // returns: Amount in underlying units, (same decimals as underlying token)
-        // https://docs.euler.finance/developers/getting-started/contract-reference
+        // preview the withdrawl process from the wrapper
         return IWBAMM(address(_wrappedToken)).previewWithdraw(wrappedAmount) + 1;
     }
 }

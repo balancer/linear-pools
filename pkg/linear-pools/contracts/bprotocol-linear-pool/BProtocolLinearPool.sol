@@ -21,14 +21,14 @@ import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20.sol";
 
 import "@balancer-labs/v2-pool-linear/contracts/LinearPool.sol";
 
-import "./BprotocolExchangeRateModel.sol";
+//import "./BprotocolExchangeRateModel.sol";
+
+import "./interfaces/IWBAMM.sol";
+import "./interfaces/IExchangeRateModel.sol";
 
 import "hardhat/console.sol";
 
-contract BProtocolLinearPool is LinearPool, Version, BprotocolExchangeRateModel {
-    // uint256 private immutable _rateScaleFactor;
-    address private immutable _bamm;
-    address private immutable _rebalancer;
+contract BProtocolLinearPool is LinearPool, Version {
 
     struct ConstructorArgs {
         IVault vault;
@@ -45,7 +45,7 @@ contract BProtocolLinearPool is LinearPool, Version, BprotocolExchangeRateModel 
         string version;
     }
 
-    constructor(ConstructorArgs memory args, address bamm, address rebalancer)
+    constructor(ConstructorArgs memory args, address exchangeRateModel)
         LinearPool(
             args.vault,
             args.name,
@@ -61,32 +61,7 @@ contract BProtocolLinearPool is LinearPool, Version, BprotocolExchangeRateModel 
         )
         Version(args.version)
     {
-        // We do NOT enforce mainToken == wrappedToken.asset() even
-        // though this is the expected behavior in most cases. Instead,
-        // we assume a 1:1 relationship between mainToken and
-        // wrappedToken.asset(), but they do not have to be the same
-        // token. It is vitally important that this 1:1 relationship is
-        // respected, or the pool will not function as intended.
-        //
-        // This allows for use cases where the wrappedToken is
-        // double-wrapped into an ERC-4626 token. For example, consider
-        // a linear pool whose goal is to pair DAI with aDAI. Because
-        // aDAI is a rebasing token, it needs to be wrapped, and let's
-        // say an ERC-4626 wrapper is chosen for compatibility with this
-        // linear pool. Then wrappedToken.asset() will return aDAI,
-        // whereas mainToken is DAI. But the 1:1 relationship holds, and
-        // the pool is still valid.
-
-        // uint256 wrappedTokenDecimals = ERC20(address(args.wrappedToken)).decimals();
-        uint256 mainTokenDecimals = ERC20(address(args.mainToken)).decimals();
-
-        // _getWrappedTokenRate is scaled to 18 decimals, so we may need to scale external calls.
-        // This result is always positive because the LinearPool constructor rejects tokens with more than 18 decimals.
-        // uint256 digitsDifference = 18 + wrappedTokenDecimals - mainTokenDecimals;
-        // _rateScaleFactor = 10**digitsDifference;
-
-        _bamm = bamm;
-        _rebalancer = rebalancer;
+        //solhint-disable-next-line empty-blocks
     }
 
     function _toAssetManagerArray(ConstructorArgs memory args) private pure returns (address[] memory) {
@@ -100,13 +75,15 @@ contract BProtocolLinearPool is LinearPool, Version, BprotocolExchangeRateModel 
 
     function _getWrappedTokenRate() internal view override returns (uint256) {
         // what is one share of the wrapped token worth in terms of the main token?
-        try IWBAMM(address(1234)).previewWithdraw(1e18) returns (uint256 rate) {
+        try IExchangeRateModel(address(getWrappedToken())).getSharesExchangeRate() returns (uint256 rate) {
             return rate;
         } catch (bytes memory revertData) {
             // By maliciously reverting here, Euler (or any other contract in the call stack) could trick the Pool
             // into reporting invalid data to the query mechanism for swaps/joins/exits.
             // We then check the revert data to ensure this doesn't occur.
             ExternalCallLib.bubbleUpNonMaliciousRevert(revertData);
+            //console.log(1);
         }
+        //return 1e18;
     }
 }

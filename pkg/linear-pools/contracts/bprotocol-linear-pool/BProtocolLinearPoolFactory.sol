@@ -39,6 +39,9 @@ contract BProtocolLinearPoolFactory is
     BasePoolFactory,
     ReentrancyGuard
 {
+    //used for exchange rate model
+    address private _exchangeRateModel;
+
     // Used for create2 deployments
     uint256 private _nextRebalancerSalt;
 
@@ -46,9 +49,6 @@ contract BProtocolLinearPoolFactory is
 
     address private _lastCreatedPool;
     string private _poolVersion;
-
-    //solhint-disable-next-line var-name-mixedcase
-    address public immutable wbamm;
 
     // This event allows off-chain tools to differentiate between different protocols that use this factory
     // to deploy BProtocol Linear Pools.
@@ -61,8 +61,7 @@ contract BProtocolLinearPoolFactory is
         string memory factoryVersion,
         string memory poolVersion,
         uint256 initialPauseWindowDuration,
-        uint256 bufferPeriodDuration,
-        address _wbamm
+        uint256 bufferPeriodDuration
     )
         BasePoolFactory(
             vault,
@@ -75,7 +74,6 @@ contract BProtocolLinearPoolFactory is
     {
         _queries = queries;
         _poolVersion = poolVersion;
-        wbamm = _wbamm;
     }
 
     /**
@@ -132,11 +130,9 @@ contract BProtocolLinearPoolFactory is
         bytes32 rebalancerSalt = bytes32(_nextRebalancerSalt);
         _nextRebalancerSalt += 1;
 
-        //console.log("address of wrapper", wrapper);
-
         bytes memory rebalancerCreationCode = abi.encodePacked(
             type(BProtocolLinearPoolRebalancer).creationCode,
-            abi.encode(getVault(), _queries, wbamm)
+            abi.encode(getVault(), _queries)
         );
         address expectedRebalancerAddress = Create2.computeAddress(rebalancerSalt, keccak256(rebalancerCreationCode));
         console.log("Rebalancer should get deployed at", expectedRebalancerAddress);
@@ -168,11 +164,7 @@ contract BProtocolLinearPoolFactory is
         // Not that the Linear Pool's deployment is complete, we can deploy the Rebalancer, verifying that we correctly
         // predicted its deployment address.
 
-        console.log("SALT BELOW");
-        console.logBytes32(rebalancerSalt);
-        console.log("SALT TOP");
 
-        
 
         address actualRebalancerAddress = Create2.deploy(0, rebalancerSalt, rebalancerCreationCode);
         console.log("checking addresses");

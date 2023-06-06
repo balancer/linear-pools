@@ -18,35 +18,38 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "../interfaces/IBAMM.sol";
 
 
-contract MockBProtocolAMM is ReentrancyGuard, ERC20 {
+contract MockBProtocolAMM is ReentrancyGuard, IBAMM {
 
-    address public immutable mockStabilityPool;
+    address public override immutable SP;
 
-    constructor(address _mockStabilityPool) ERC20("Mock Liquity Token", "MockLQTY") {
-        mockStabilityPool = _mockStabilityPool;
+    constructor(address _mockStabilityPool) {
+        SP = _mockStabilityPool;
     }
 
-    function deposit(uint256 lusdAmount) external nonReentrant() {
+    function deposit(uint256 lusdAmount) external override nonReentrant() {
         // [] transfer LUSD from msg.sender to the AMM Contract
         // [] transfer LUSD from the AMM contract to the Mock Stability pool
         // [] track user deposits in the form of shares
-
     }
 
-    function withdraw(uint256 numShares) external nonReentrant() {
+    function balanceOf(address account) public override view returns(uint256){
+        return 1;
+    }
+
+    function totalSupply() public view override returns(uint256) {
+        return 1;
+    }
+
+
+    function withdraw(uint256 numShares) external override nonReentrant() {
         // [] request LUSD from the Mock Stability Pool depending on
         // amount of shares
         // [] send LUSD to withdrawer
         // [] burn shares
         // [] send Eth to withdrawer
         // [] send LQTY to withdrawer
-    }
-
-    function previewWithdraw(uint256 shares) external view returns (uint256) {
-        // [] return the amount of LUSD that would be withdrawn for
-        // a given amount of shares
-    }
-    
+    }    
 }

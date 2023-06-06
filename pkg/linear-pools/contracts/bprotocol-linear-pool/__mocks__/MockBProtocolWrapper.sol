@@ -16,46 +16,64 @@ pragma solidity ^0.7.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract MockBProtocolERC20Wrapper is ERC20 {
+import "../interfaces/IWBAMM.sol";
+import "./MockBProtocolExchangeRateModel.sol";
+
+
+contract MockBProtocolWrapper is ERC20, IWBAMM, MockBprotocolExchangeRateModel {
 
     // SafeERC20
     // SafeApprove? 
     // possibility to sweep from this contract? 
 
-
-    address public immutable BAMM; // BProtocol AMM
+    // address public immutable BAMM; // BProtocol AMM
     address public immutable LQTY; // LQTY Token
     address public gauge; // Boosted Pool Gauge
 
-    constructor(address _gauge, address _lqty, address _bamm) ERC20("Wrapped BProtocol AMM", "WBAMM") {
+    constructor(address _gauge, address _lqty, address SP, address _bamm) ERC20("Wrapped BProtocol AMM", "WBAMM") 
+        MockBprotocolExchangeRateModel(SP, _bamm)
+    {
         gauge = _gauge;
         LQTY = _lqty;
-        BAMM = _bamm;
     }
 
-    function deposit(uint256 lusdAmount) external {
+    // TODO: remove
+    function previewWithdraw(uint256 numShares) external override view returns(uint256) {
+        // Calculate the amount of LUSD that will be withdrawn
+        // based on the amount of shares
+        return 1;
+    }
+
+    function deposit(uint256 lusdAmount) external override returns(uint256) {
         // Transfer LUSD from user to BProtocol AMM
         // Transfer BProtocol AMM shares from BProtocol AMM to user
         // Mint WBAMM to user
+        return 1;
 
     }
 
-    function withdraw(uint256 numShares) external {
+    function withdraw(uint256 numShares) external override  returns (uint256) {
         // Burn WBAMM from user
         // Transfer Bprotocol AMM shares from the Wrapper contract back to BAMM
         // Transfer LUSD from BProtocol AMM to user
+        return 1;
     }
 
     // TODO: Implement 
-    function handleEth() external {
+    function handleEth() external view returns(uint256) {
         // during every withdrawl the possibility of this contract
         // receiving eth exists, so it must be handled.
-
+        return 1;
     }
 
     // TODO: Implement 
-    function handleLQTY() external {
+    function handleLQTY() external view returns (uint256) {
         // during every withdrawl the possibility of this contract
         // receiving LQTY exists, so it must be handled.
-    }   
+        return 1;
+    }
+
+    function mint(address recipient, uint256 amount) external {
+        _mint(recipient, amount);
+    }
 }

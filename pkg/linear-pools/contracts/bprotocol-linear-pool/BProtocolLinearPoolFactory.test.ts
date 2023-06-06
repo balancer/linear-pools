@@ -47,9 +47,8 @@ describe('BProtocolLinearPoolFactory', function () {
 
   const BPROTOCOL_PROTOCOL_ID = 0;
 
-  const GAUGE_ADDRESS = ZERO_ADDRESS;
+  const GAUGE_ADDRESS = '0x30a047d720f735Ad27ad384Ec77C36A4084dF63E';
   const LQTY_ADDRESS = '0x6DEA81C8171D0bA574754EF6F8b412F2Ed88c54D';
-  const BAMM_ADDRESS = '0x00FF66AB8699AAfa050EE5EF5041D1503aa0849a';
 
   beforeEach('deploy factory & tokens', async () => {
     let deployer: SignerWithAddress;
@@ -61,12 +60,26 @@ describe('BProtocolLinearPoolFactory', function () {
 
     // Deploy tokens
 
+    // deploy MockStabilityPool;
+    const stabilityPool = await deployPackageContract('MockStabilityPool');
+    
+    // deploy MockBAMM;
+    const bammExchange = await deployPackageContract('MockBProtocolAMM', {
+      args: [stabilityPool.address],
+    });
+
+    // deploy MockExchangeRateModel;
+    /* const exchangeRateModel = await deployPackageContract('MockBprotocolExchangeRateModel', {
+      args: [stabilityPool.address, bamm.address],
+    }); */
 
     const mainToken = await deployToken('LUSD', 18, deployer);
-    const wrappedTokenInstance = await deployPackageContract('MockBProtocolERC20Wrapper', {
-      args: [GAUGE_ADDRESS, LQTY_ADDRESS, BAMM_ADDRESS],
+    const wrappedTokenInstance = await deployPackageContract('MockBProtocolWrapper', {
+      args: [GAUGE_ADDRESS, LQTY_ADDRESS, stabilityPool.address, bammExchange.address],
     });
-    const wrappedToken = await getPackageContractDeployedAt('MockBProtocolERC20Wrapper', wrappedTokenInstance.address);
+    const wrappedToken = await getPackageContractDeployedAt('MockBProtocolWrapper', wrappedTokenInstance.address);
+
+    const exchangeRate = await wrappedToken.getSharesExchangeRate();
 
     tokens = new TokenList([mainToken, wrappedToken]).sort();
 
@@ -96,8 +109,6 @@ describe('BProtocolLinearPoolFactory', function () {
         poolVersion,
         BASE_PAUSE_WINDOW_DURATION,
         BASE_BUFFER_PERIOD_DURATION,
-        BAMM_ADDRESS,
-        //wrappedTokenInstance.address,
       ],
     });
 
